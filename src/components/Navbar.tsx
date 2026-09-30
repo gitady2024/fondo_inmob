@@ -1,6 +1,6 @@
 import React from 'react';
 import type { UserProfile } from '../types/auth';
-import { Building2, Sparkles, RefreshCw, Printer, Database, User, Shield, HardHat } from 'lucide-react';
+import { Building2, Sparkles, RefreshCw, Printer, Database, User, Shield, HardHat, ScrollText } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/supabase';
 
 interface NavbarProps {
@@ -9,6 +9,7 @@ interface NavbarProps {
   onPrint: () => void;
   onOpenPersistencia: () => void;
   onOpenLogin: () => void;
+  onOpenContrato: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -16,7 +17,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onReset,
   onPrint,
   onOpenPersistencia,
-  onOpenLogin
+  onOpenLogin,
+  onOpenContrato
 }) => {
   const isCloud = isSupabaseConfigured();
 
@@ -97,6 +99,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="hidden sm:inline">Restablecer</span>
             </button>
           )}
+
+          <button
+            onClick={onOpenContrato}
+            title="Ver y descargar Contrato Tripartito Oficial"
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all shadow-sm"
+          >
+            <ScrollText className="w-4 h-4 text-amber-400" />
+            <span>Contrato Tripartito</span>
+          </button>
 
           <button
             onClick={onPrint}

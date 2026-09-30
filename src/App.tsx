@@ -34,6 +34,7 @@ import { CuentaIndividual } from './components/CuentaIndividual';
 import { ResumenConsolidado } from './components/ResumenConsolidado';
 import { SupabaseModal } from './components/SupabaseModal';
 import { ModuloTecnico } from './components/ModuloTecnico';
+import { ContratoModal } from './components/ContratoModal';
 import type { DatosTecnicosProyecto } from './types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from './types/tecnico';
 import { Calculator, HardHat } from 'lucide-react';
@@ -41,6 +42,7 @@ import { Calculator, HardHat } from 'lucide-react';
 export const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<UserProfile>(ADMIN_USER);
   const [isLoginOpen, setIsLoginOpen] = useState<boolean>(false);
+  const [isContratoOpen, setIsContratoOpen] = useState<boolean>(false);
   const [fondosList, setFondosList] = useState<FondoGuardado[]>([]);
   const [currentFondoId, setCurrentFondoId] = useState<string>('');
   const [socioSeleccionado, setSocioSeleccionado] = useState<number>(1);
@@ -332,6 +334,7 @@ export const App: React.FC = () => {
           onPrint={() => window.print()}
           onOpenPersistencia={() => setIsPersistenciaOpen(true)}
           onOpenLogin={() => setIsLoginOpen(true)}
+          onOpenContrato={() => setIsContratoOpen(true)}
         />
 
         {/* ------------------------------------------------------------------ */}
@@ -345,6 +348,7 @@ export const App: React.FC = () => {
             fechaInicio={currentFondo.params.fechaInicio}
             params={currentFondo.params}
             gastos={currentFondo.gastos}
+            onOpenContrato={() => setIsContratoOpen(true)}
           />
         ) : currentUser.role === 'tecnico' ? (
           /* ------------------------------------------------------------------ */
@@ -531,6 +535,18 @@ export const App: React.FC = () => {
           onLoadFondo={(f) => {
             handleSelectFondo(f.id);
           }}
+        />
+
+        {/* Modal de Contrato Tripartito Oficial */}
+        <ContratoModal
+          isOpen={isContratoOpen}
+          onClose={() => setIsContratoOpen(false)}
+          user={currentUser}
+          fondoNombre={currentFondo.nombre}
+          params={currentFondo.params}
+          gastos={currentFondo.gastos}
+          anticipos={anticiposNormalizados}
+          datosTecnicos={currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT}
         />
       </div>
     </div>

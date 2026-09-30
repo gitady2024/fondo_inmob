@@ -19,6 +19,7 @@ interface PortalSocioProps {
   fechaInicio: string;
   params: ParametrosFondoState;
   gastos: GastosConfigState;
+  onOpenContrato?: () => void;
 }
 
 export const PortalSocio: React.FC<PortalSocioProps> = ({
@@ -27,7 +28,8 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   flujoSocio,
   fechaInicio,
   params,
-  gastos
+  gastos,
+  onOpenContrato
 }) => {
   const socioId = user.socioId || 1;
   const [activeTab, setActiveTab] = useState<'cartola' | 'adelanto' | 'cesion' | 'obra'>('cartola');
@@ -68,6 +70,15 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {onOpenContrato && (
+              <button
+                onClick={onOpenContrato}
+                className="bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+              >
+                <ScrollText className="w-4 h-4 text-amber-400" />
+                <span>Ver y Descargar mi Contrato</span>
+              </button>
+            )}
             <div className="bg-slate-900/90 border border-slate-800 px-3.5 py-2 rounded-xl text-xs font-mono">
               <span className="text-slate-400 block text-[10px]">Posesión Programada:</span>
               <strong className="text-amber-300">Cuota {mPos} ({fechaPos.fechaCorta})</strong>
