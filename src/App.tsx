@@ -104,11 +104,20 @@ export const App: React.FC = () => {
         updated.adelanto,
         updated.id,
         updated.descripcion,
-        updated.datosTecnicos
+        updated.datosTecnicos,
+        updated.contratoPersonalizado
       );
 
       return newList;
     });
+  };
+
+  const handleContratoChange = (nuevoTexto: string) => {
+    updateCurrentFondo((prev) => ({
+      ...prev,
+      contratoPersonalizado: nuevoTexto,
+      updated_at: new Date().toISOString()
+    }));
   };
 
   // Handlers para cambios individuales
@@ -547,6 +556,8 @@ export const App: React.FC = () => {
           gastos={currentFondo.gastos}
           anticipos={anticiposNormalizados}
           datosTecnicos={currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT}
+          contratoPersonalizado={currentFondo.contratoPersonalizado}
+          onSaveContrato={handleContratoChange}
         />
       </div>
     </div>

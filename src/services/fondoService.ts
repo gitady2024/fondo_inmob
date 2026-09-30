@@ -21,6 +21,7 @@ export interface FondoGuardado {
   cesion: CesionConfigState;
   adelanto: AdelantoConfigState;
   datosTecnicos?: DatosTecnicosProyecto;
+  contratoPersonalizado?: string;
 }
 
 
@@ -262,7 +263,8 @@ export const saveFondo = async (
   adelanto: AdelantoConfigState,
   existenteId?: string,
   descripcion?: string,
-  datosTecnicos?: DatosTecnicosProyecto
+  datosTecnicos?: DatosTecnicosProyecto,
+  contratoPersonalizado?: string
 ): Promise<{ id: string; guardadoEn: 'supabase' | 'local' }> => {
   const client = getSupabaseClient();
   const id = existenteId || (typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Date.now()));
@@ -307,12 +309,14 @@ export const saveFondo = async (
 
   // Guardado en LocalStorage
   let existingTecnicos: DatosTecnicosProyecto | undefined = undefined;
+  let existingContrato: string | undefined = undefined;
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
     if (raw) {
       const list: FondoGuardado[] = JSON.parse(raw);
       const match = list.find((f) => f.id === id);
       if (match?.datosTecnicos) existingTecnicos = match.datosTecnicos;
+      if (match?.contratoPersonalizado) existingContrato = match.contratoPersonalizado;
     }
   } catch {}
 
@@ -327,7 +331,8 @@ export const saveFondo = async (
     adjudicacionFijada,
     cesion,
     adelanto,
-    datosTecnicos: datosTecnicos || existingTecnicos || DATOS_TECNICOS_DEFAULT
+    datosTecnicos: datosTecnicos || existingTecnicos || DATOS_TECNICOS_DEFAULT,
+    contratoPersonalizado: contratoPersonalizado !== undefined ? contratoPersonalizado : existingContrato
   };
 
   try {
