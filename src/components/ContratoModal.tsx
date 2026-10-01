@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+// @ts-ignore
+import mammoth from 'mammoth';
 import type { ParametrosFondoState, GastosConfigState } from '../types/fondo';
 import type { DatosTecnicosProyecto } from '../types/tecnico';
 import type { UserProfile } from '../types/auth';
@@ -143,16 +145,38 @@ export const ContratoModal: React.FC<ContratoModalProps> = ({
     }
   };
 
-  // Cargar archivo desde la computadora (.txt, .md, etc.)
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Cargar archivo desde la computadora (.docx, .txt, .md, etc.)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const nombreArchivo = file.name.toLowerCase();
+
+    // 1. Archivos Microsoft Word .docx
+    if (nombreArchivo.endsWith('.docx')) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        if (result && result.value) {
+          setTextoEditor(result.value.trim());
+          setModo('edicion');
+        } else {
+          alert('El archivo .docx no contiene texto legible.');
+        }
+      } catch (err) {
+        console.error('Error al procesar archivo .docx:', err);
+        alert('No se pudo procesar el archivo .docx. Asegúrate de que no esté protegido con contraseña.');
+      }
+      e.target.value = '';
+      return;
+    }
+
+    // 2. Archivos de texto plano (.txt, .md, etc.)
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
       if (content) {
-        setTextoEditor(content);
+        setTextoEditor(content.trim());
         setModo('edicion');
       }
     };
@@ -436,17 +460,17 @@ export const ContratoModal: React.FC<ContratoModalProps> = ({
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileUpload}
-                  accept=".txt,.md,.doc,.docx"
+                  accept=".docx,.txt,.md"
                   className="hidden"
                 />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-sm"
-                  title="Cargar texto desde archivo de tu computadora (.txt, .md)"
+                  title="Cargar texto desde archivo Word (.docx) o texto (.txt, .md)"
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  <span>Subir Archivo (.txt / .md)</span>
+                  <span>Subir Archivo (.docx / .txt)</span>
                 </button>
 
                 {/* Botón para vaciar / borrar todo el texto */}
