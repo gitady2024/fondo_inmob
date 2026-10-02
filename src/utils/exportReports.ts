@@ -102,6 +102,7 @@ export const exportarFichaSocioPDF = (
   socio.flujo.forEach((f) => {
     const fecha = formatFecha(fechaInicio, f.mes);
     let strConcepto = 'Cuota Mensual Inmueble';
+    if (f.porcentajeAjuste) strConcepto += ` (+${f.porcentajeAjuste}% Ajuste)`;
     if (f.adelanto > 0) strConcepto += ` + Adelanto (${fmtMoneda(f.adelanto)})`;
     if (f.mes === mPos && socio.pagoFinalGastos > 0) strConcepto += ` + Gastos Adjudicación (${fmtMoneda(socio.pagoFinalGastos)})`;
     else if (socio.recargoGastosPorCuota > 0) strConcepto += ` + Gastos Prorrateados (${fmtMoneda(socio.recargoGastosPorCuota)})`;
@@ -222,6 +223,7 @@ export const exportarFichaSocioExcel = (
   socio.flujo.forEach((f) => {
     const fecha = formatFecha(fechaInicio, f.mes);
     let strConcepto = 'Cuota Mensual Inmueble';
+    if (f.porcentajeAjuste) strConcepto += ` (+${f.porcentajeAjuste}% Ajuste)`;
     if (f.adelanto > 0) strConcepto += ` + Adelanto (${fmtMoneda(f.adelanto)})`;
     if (f.mes === mPos && socio.pagoFinalGastos > 0) strConcepto += ` + Gastos Adjudicación (${fmtMoneda(socio.pagoFinalGastos)})`;
     else if (socio.recargoGastosPorCuota > 0) strConcepto += ` + Gastos Prorrateados (${fmtMoneda(socio.recargoGastosPorCuota)})`;

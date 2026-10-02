@@ -212,6 +212,21 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
         </div>
       </div>
 
+      {/* Banner de Ajuste por Mayores Costos si aplica */}
+      {(flujoSocio.totalAjustesPorcentaje || 0) > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-amber-300 font-semibold">
+            <span className="text-base">📈</span>
+            <span>
+              Plan con Redeterminación de Precios / CAC: <strong>+{flujoSocio.totalAjustesPorcentaje}% acumulado</strong>
+            </span>
+          </div>
+          <div className="text-slate-300 font-mono text-[11px]">
+            Cuota Inicial: <strong className="text-slate-200">{fmtMoneda(flujoSocio.cuotaInmInicial)}</strong> ➔ Cuota Actual: <strong className="text-emerald-400">{fmtMoneda(flujoSocio.cuotaInmActual || flujoSocio.cuotaInmInicial)}</strong>
+          </div>
+        </div>
+      )}
+
       {/* Barra de progreso y simulación interactiva */}
       <div className="bg-slate-900/80 border border-slate-700/80 p-5 rounded-2xl space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -372,6 +387,9 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
               }
 
               let strConcepto = 'Cuota Mensual Inmueble';
+              if (f.porcentajeAjuste) {
+                strConcepto += ` (+${f.porcentajeAjuste}% Ajuste Costos)`;
+              }
               if (f.adelanto > 0) {
                 strConcepto += ` + Adelanto (${fmtMoneda(f.adelanto)})`;
               }
@@ -386,7 +404,17 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
               return (
                 <tr key={f.mes} className={rClass}>
                   <td className="py-2.5 px-4 font-mono font-bold text-slate-300">
-                    Cuota {f.mes}
+                    <div className="flex items-center gap-1.5">
+                      <span>Cuota {f.mes}</span>
+                      {f.porcentajeAjuste && (
+                        <span
+                          className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 font-sans font-bold"
+                          title={f.motivoAjuste || 'Ajuste de costos'}
+                        >
+                          +{f.porcentajeAjuste}%
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-2.5 px-4 text-slate-400 text-[11px]">
                     {fecha.fechaCorta}

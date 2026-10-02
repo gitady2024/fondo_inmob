@@ -2,7 +2,8 @@ import type {
   GastosConfigState,
   FlujoMes,
   FlujoSocioCalculado,
-  LiquidacionCesion
+  LiquidacionCesion,
+  AjusteCuota
 } from '../types/fondo';
 
 
@@ -61,7 +62,8 @@ export const calcularFlujoIndividual = (
     estrategia: 'reducir_cuota' | 'acelerar';
   },
   mPosesion: number,
-  pagoFinalGastos: number
+  pagoFinalGastos: number,
+  ajustes: AjusteCuota[] = []
 ): FlujoSocioCalculado => {
   const flujo: FlujoMes[] = [];
   let saldo = costoDepto - ant;
@@ -80,24 +82,41 @@ export const calcularFlujoIndividual = (
 
   let mes = 1;
   let totalAbonado = ant;
+  let factorAcumulado = 1;
+  let sumaPorcentajesAjustes = 0;
 
   while (saldo > 0.01 && mes <= 240) {
+    // 1. Detectar si este mes tiene ajustes programados
+    const ajustesEsteMes = ajustes.filter((a) => a.mes === mes);
+    let porcentajeAjusteMes = 0;
+    let motivoAjusteMes = '';
+
+    if (ajustesEsteMes.length > 0) {
+      for (const aj of ajustesEsteMes) {
+        if (aj.porcentaje !== 0) {
+          const factor = 1 + aj.porcentaje / 100;
+          factorAcumulado *= factor;
+          saldo *= factor;
+          cuotaNormal *= factor;
+          porcentajeAjusteMes += aj.porcentaje;
+          motivoAjusteMes = motivoAjusteMes
+            ? `${motivoAjusteMes}, ${aj.motivo || 'Ajuste de costos'}`
+            : (aj.motivo || 'Ajuste de costos');
+          sumaPorcentajesAjustes += aj.porcentaje;
+        }
+      }
+    }
+
     let capitalMes = cuotaNormal;
     let adelantoMes = 0;
 
+    // 2. Procesar adelanto / licitación
     if (adelantoConfig.activo && mes === adelantoConfig.mes) {
       adelantoMes = adelantoConfig.monto;
       saldo -= adelantoMes;
       if (saldo < 0) {
         adelantoMes += saldo;
         saldo = 0;
-      }
-
-      if (adelantoConfig.estrategia === 'reducir_cuota' && saldo > 0) {
-        const mesesRest = limiteMeses - mes;
-        if (mesesRest > 0) {
-          cuotaNormal = saldo / mesesRest;
-        }
       }
     }
 
@@ -106,9 +125,18 @@ export const calcularFlujoIndividual = (
     }
     saldo -= capitalMes;
 
-    let gastosMes = recargoGastosPorCuota;
+    // Si hubo adelanto y reduce cuota, recalcular cuotaNormal sobre el saldo remanente para los meses restantes
+    if (adelantoConfig.activo && mes === adelantoConfig.mes && adelantoConfig.estrategia === 'reducir_cuota' && saldo > 0) {
+      const mesesRest = limiteMeses - mes;
+      if (mesesRest > 0) {
+        cuotaNormal = saldo / mesesRest;
+      }
+    }
+
+    // Gastos proporcionales al factor acumulado
+    let gastosMes = recargoGastosPorCuota * factorAcumulado;
     if (mes === mPosesion) {
-      gastosMes += pagoFinalGastos;
+      gastosMes += pagoFinalGastos * factorAcumulado;
     }
 
     const abonadoMes = capitalMes + adelantoMes + gastosMes;
@@ -120,13 +148,22 @@ export const calcularFlujoIndividual = (
       adelanto: adelantoMes,
       gastos: gastosMes,
       abonadoMes,
-      saldoRemanente: saldo,
-      totalAcumulado: totalAbonado
+      saldoRemanente: Math.max(0, saldo),
+      totalAcumulado: totalAbonado,
+      porcentajeAjuste: porcentajeAjusteMes !== 0 ? porcentajeAjusteMes : undefined,
+      motivoAjuste: motivoAjusteMes || undefined,
+      factorAcumuladoAjuste: factorAcumulado
     });
 
     if (saldo <= 0.01) break;
     mes++;
   }
+
+  const ultimaCuota = flujo.length > 0 ? flujo[flujo.length - 1] : undefined;
+  const cuotaInmActual = ultimaCuota ? ultimaCuota.capital : 0;
+  const cuotaFinActual = ultimaCuota
+    ? (ultimaCuota.capital + recargoGastosPorCuota * factorAcumulado)
+    : 0;
 
   return {
     socioId,
@@ -138,7 +175,10 @@ export const calcularFlujoIndividual = (
     recargoGastosPorCuota,
     mesesTotales: flujo.length,
     totalAbonado,
-    flujo
+    flujo,
+    totalAjustesPorcentaje: sumaPorcentajesAjustes,
+    cuotaInmActual,
+    cuotaFinActual
   };
 };
 

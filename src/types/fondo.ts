@@ -35,6 +35,14 @@ export interface AdelantoConfigState {
   estrategia: EstrategiaImpactoAdelanto;
 }
 
+export interface AjusteCuota {
+  id: string;
+  mes: number; // Mes a partir del cual aplica el ajuste (ej: 6)
+  porcentaje: number; // Porcentaje de incremento ej: 10 para 10%
+  motivo?: string; // Ej: "Aumento CAC / Materiales", "Gestión Técnica"
+  fechaAplicacion?: string; // Formato YYYY-MM
+}
+
 export interface FlujoMes {
   mes: number;
   capital: number;
@@ -43,6 +51,9 @@ export interface FlujoMes {
   abonadoMes: number;
   saldoRemanente: number;
   totalAcumulado: number;
+  porcentajeAjuste?: number;
+  motivoAjuste?: string;
+  factorAcumuladoAjuste?: number;
 }
 
 export interface FlujoSocioCalculado {
@@ -56,6 +67,9 @@ export interface FlujoSocioCalculado {
   mesesTotales: number;
   totalAbonado: number;
   flujo: FlujoMes[];
+  totalAjustesPorcentaje?: number;
+  cuotaInmActual?: number;
+  cuotaFinActual?: number;
 }
 
 export interface LiquidacionCesion {

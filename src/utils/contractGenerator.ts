@@ -123,19 +123,22 @@ El objeto del presente contrato es la adquisición del terreno, tramitación int
 CLÁUSULA TERCERA: Plan Económico, Aportes, Cuotas y Gastos de Adjudicación
 El valor de costo objetivo estimado de la unidad asciende a ${fmtMoneda(costoDepto)}, pactándose un esquema de cancelación de ${cantidadCuotas} cuotas mensuales y ordinarias de aporte mutuo, con una cuota pura inicial estimada de ${fmtMoneda(cuotaPura)}. El Socio ha integrado un anticipo voluntario de capital de ${fmtMoneda(anticipo)}, quedando un saldo neto financiado de ${fmtMoneda(saldoFinanciar)}. Los gastos fiduciarios (administración, escribanía, seguros de caución y fondo de contingencia por un total estimado del ${totalGastosPct}%) serán integrados mediante la modalidad pactada (${input.gastos.formaPagoGastos === 'final' ? 'al momento de adjudicación / toma de posesión' : 'prorrateados proporcionalmente mes a mes'}).
 
-CLÁUSULA CUARTA: Obligaciones y Facultades de la Administración Fiduciaria
+CLÁUSULA CUARTA: Método de Ajuste por Mayores Costos, Índice CAC y Redeterminación Técnica
+Tratándose de una administración fiduciaria al costo real riguroso (Art. 1666 CCCN), las cuotas mensuales y aportes del círculo mutual se ajustarán en la oportunidad que resultare necesario incorporar porcentajes de incremento derivados de variaciones en el índice de precios de materiales de construcción (Cámara Argentina de la Construcción - CAC o similar), mano de obra, certificaciones de obra o redeterminaciones de la gestión técnica y honorarios profesionales. Dichos incrementos regirán a partir del mes en que fueren dispuestos por la administración o consensuados en el plan de obra, recalculando las cuotas mensuales ordinarias subsiguientes y el saldo remanente a amortizar, preservando los pagos previamente devengados e integrados.
+
+CLÁUSULA QUINTA: Obligaciones y Facultades de la Administración Fiduciaria
 LA FIDUCIARIA se obliga a: a) Recaudar puntualmente las cuotas y aportes mediante cuenta bancaria recaudadora fiduciaria exclusiva; b) Proveer los fondos necesarios al Equipo Técnico y a los proveedores conforme a los certificados de obra mensuales aprobados; c) Emitir mensualmente a cada suscriptor el extracto de cuenta corriente individual con historial de pagos; d) Gestionar las compras por acopio de materiales básicos (hierro, cemento, ladrillos) para blindar el costo contra variaciones inflacionarias; e) Convocar a los actos de adjudicación por sorteo o licitación.
 
-CLÁUSULA QUINTA: Compromisos, Certificación y Dirección del Equipo Técnico
+CLÁUSULA SEXTA: Compromisos, Certificación y Dirección del Equipo Técnico
 EL EQUIPO TÉCNICO RESPONSABLE asume formalmente la dirección ejecutiva, control de calidad y fiel ejecución constructiva del edificio, obligándose a: a) Confeccionar y gestionar las aprobaciones de planos definitivos ante la Municipalidad correspondiente (${permiso}), entes prestadores de servicios de energía, agua, gas y medio ambiente; b) Certificar de forma mensual el avance físico ponderado de la obra mediante Libro de Órdenes y actas rubricadas; c) Velar por el cumplimiento de las normas de higiene y seguridad laboral; d) Confeccionar el Plano de Mensura y Subdivisión en Propiedad Horizontal (PH) y tramitar el Final de Obra definitivo.
 
-CLÁUSULA SEXTA: Posesión, Adjudicación y Cesión de Posición Contractual (Art. 1614 CCCN)
+CLÁUSULA SÉPTIMA: Posesión, Adjudicación y Cesión de Posición Contractual (Art. 1614 CCCN)
 La entrega de la posesión efectiva de la unidad quedará supeditada a que la obra haya alcanzado el porcentaje de avance físico habitable certificado por la Dirección Técnica y a que el Socio Aportante se encuentre al día con sus cuotas y gastos de posesión. Asimismo, conforme a las previsiones del Artículo 1614 y concordantes del Código Civil y Comercial de la Nación, EL SOCIO APORTANTE goza del derecho expreso de ceder su posición contractual a terceros interesados, requiriendo únicamente la notificación fehaciente a la Administración Fiduciaria para el traspaso de la titularidad fiduciaria y registro en el padrón de socios.
 
-CLÁUSULA SÉPTIMA: Mora, Intereses y Fondo de Garantía
+CLÁUSULA OCTAVA: Mora, Intereses y Fondo de Garantía
 La mora en el pago de las cuotas operará de pleno derecho a los diez (10) días corridos del vencimiento mensual, devengando un interés compensatorio y punitorio fijado por la administración. La reiteración de tres (3) cuotas consecutivas impagas facultará a la Fiduciaria a intimar al regularizamiento en un plazo improrrogable de 15 días, bajo apercibimiento de cesión coactiva o reintegro según las pautas del reglamento fiduciario para no perjudicar la continuidad de la obra comunitaria.
 
-CLÁUSULA OCTAVA: Jurisdicción, Domicilios y Firma Tripartita
+CLÁUSULA NOVENA: Jurisdicción, Domicilios y Firma Tripartita
 Para todos los efectos judiciales o extrajudiciales derivados del presente, las partes constituyen sus domicilios especiales en los lugares precedentemente indicados, y se someten a la competencia de los Tribunales Ordinarios en lo Civil y Comercial correspondientes a la jurisdicción de ubicación del inmueble, con renuncia a cualquier otro fuero o jurisdicción que pudiera corresponder. En prueba de mutua conformidad, se firman tres (3) ejemplares de un mismo tenor y a un solo efecto.
 
 Celebrado en la ciudad correspondiente al emplazamiento del proyecto, a los ${fechaHoy}.
@@ -200,26 +203,31 @@ export const obtenerTextoContrato = (input: ContratoDatosInput): {
       },
       {
         numero: 'CUARTA',
+        titulo: 'Método de Ajuste por Mayores Costos, Índice CAC y Redeterminación Técnica',
+        contenido: `Tratándose de una administración fiduciaria al costo real riguroso (Art. 1666 CCCN), las cuotas mensuales y aportes del círculo mutual se ajustarán en la oportunidad que resultare necesario incorporar porcentajes de incremento derivados de variaciones en el índice de precios de materiales de construcción (Cámara Argentina de la Construcción - CAC o similar), mano de obra, certificaciones de obra o redeterminaciones de la gestión técnica y honorarios profesionales. Dichos incrementos regirán a partir del mes en que fueren dispuestos por la administración o consensuados en el plan de obra, recalculando las cuotas mensuales ordinarias subsiguientes y el saldo remanente a amortizar, preservando los pagos previamente devengados e integrados.`
+      },
+      {
+        numero: 'QUINTA',
         titulo: 'Obligaciones y Facultades de la Administración Fiduciaria',
         contenido: `LA FIDUCIARIA se obliga a: a) Recaudar puntualmente las cuotas y aportes mediante cuenta bancaria recaudadora fiduciaria exclusiva; b) Proveer los fondos necesarios al Equipo Técnico y a los proveedores conforme a los certificados de obra mensuales aprobados; c) Emitir mensualmente a cada suscriptor el extracto de cuenta corriente individual con historial de pagos; d) Gestionar las compras por acopio de materiales básicos (hierro, cemento, ladrillos) para blindar el costo contra variaciones inflacionarias; e) Convocar a los actos de adjudicación por sorteo o licitación.`
       },
       {
-        numero: 'QUINTA',
+        numero: 'SEXTA',
         titulo: 'Compromisos, Certificación y Dirección del Equipo Técnico',
         contenido: `EL EQUIPO TÉCNICO RESPONSABLE asume formalmente la dirección ejecutiva, control de calidad y fiel ejecución constructiva del edificio, obligándose a: a) Confeccionar y gestionar las aprobaciones de planos definitivos ante la Municipalidad correspondiente (${permiso}), entes prestadores de servicios de energía, agua, gas y medio ambiente; b) Certificar de forma mensual el avance físico ponderado de la obra mediante Libro de Órdenes y actas rubricadas; c) Velar por el cumplimiento de las normas de higiene y seguridad laboral; d) Confeccionar el Plano de Mensura y Subdivisión en Propiedad Horizontal (PH) y tramitar el Final de Obra definitivo.`
       },
       {
-        numero: 'SEXTA',
+        numero: 'SÉPTIMA',
         titulo: 'Posesión, Adjudicación y Cesión de Posición Contractual (Art. 1614 CCCN)',
         contenido: `La entrega de la posesión efectiva de la unidad quedará supeditada a que la obra haya alcanzado el porcentaje de avance físico habitable certificado por la Dirección Técnica y a que el Socio Aportante se encuentre al día con sus cuotas y gastos de posesión. Asimismo, conforme a las previsiones del Artículo 1614 y concordantes del Código Civil y Comercial de la Nación, EL SOCIO APORTANTE goza del derecho expreso de ceder su posición contractual a terceros interesados, requiriendo únicamente la notificación fehaciente a la Administración Fiduciaria para el traspaso de la titularidad fiduciaria y registro en el padrón de socios.`
       },
       {
-        numero: 'SÉPTIMA',
+        numero: 'OCTAVA',
         titulo: 'Mora, Intereses y Fondo de Garantía',
         contenido: `La mora en el pago de las cuotas operará de pleno derecho a los diez (10) días corridos del vencimiento mensual, devengando un interés compensatorio y punitorio fijado por la administración. La reiteración de tres (3) cuotas consecutivas impagas facultará a la Fiduciaria a intimar al regularizamiento en un plazo improrrogable de 15 días, bajo apercibimiento de cesión coactiva o reintegro según las pautas del reglamento fiduciario para no perjudicar la continuidad de la obra comunitaria.`
       },
       {
-        numero: 'OCTAVA',
+        numero: 'NOVENA',
         titulo: 'Jurisdicción, Domicilios y Firma Tripartita',
         contenido: `Para todos los efectos judiciales o extrajudiciales derivados del presente, las partes constituyen sus domicilios especiales en los lugares precedentemente indicados, y se someten a la competencia de los Tribunales Ordinarios en lo Civil y Comercial correspondientes a la jurisdicción de ubicación del inmueble, con renuncia a cualquier otro fuero o jurisdicción que pudiera corresponder. En prueba de mutua conformidad, se firman tres (3) ejemplares de un mismo tenor y a un solo efecto.`
       }

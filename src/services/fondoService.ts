@@ -3,7 +3,8 @@ import type {
   ParametrosFondoState,
   GastosConfigState,
   CesionConfigState,
-  AdelantoConfigState
+  AdelantoConfigState,
+  AjusteCuota
 } from '../types/fondo';
 
 import type { DatosTecnicosProyecto } from '../types/tecnico';
@@ -20,6 +21,7 @@ export interface FondoGuardado {
   adjudicacionFijada: Record<number, number>;
   cesion: CesionConfigState;
   adelanto: AdelantoConfigState;
+  ajustes?: AjusteCuota[];
   datosTecnicos?: DatosTecnicosProyecto;
   contratoPersonalizado?: string;
 }
@@ -61,7 +63,8 @@ export const PLANTILLAS_PREDEFINIDAS: Omit<FondoGuardado, 'id' | 'updated_at'>[]
       monto: 10000,
       cuota: 10,
       estrategia: 'reducir_cuota'
-    }
+    },
+    ajustes: []
   },
   {
     nombre: 'Complejo Casas del Parque (6 Casas • 36 Meses)',
@@ -95,7 +98,8 @@ export const PLANTILLAS_PREDEFINIDAS: Omit<FondoGuardado, 'id' | 'updated_at'>[]
       monto: 15000,
       cuota: 8,
       estrategia: 'acelerar'
-    }
+    },
+    ajustes: []
   },
   {
     nombre: 'Edificio Studio Suites (16 Unidades • 60 Meses)',
@@ -129,7 +133,8 @@ export const PLANTILLAS_PREDEFINIDAS: Omit<FondoGuardado, 'id' | 'updated_at'>[]
       monto: 5000,
       cuota: 12,
       estrategia: 'reducir_cuota'
-    }
+    },
+    ajustes: []
   }
 ];
 
@@ -209,7 +214,8 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
               monto: 10000,
               cuota: 10,
               estrategia: 'reducir_cuota'
-            }
+            },
+            ajustes: []
           });
         }
         if (supabaseFondos.length > 0) return supabaseFondos;
@@ -224,7 +230,12 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
     const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
     if (raw) {
       const parsed: FondoGuardado[] = JSON.parse(raw);
-      if (parsed.length > 0) return parsed;
+      if (parsed.length > 0) {
+        return parsed.map((f) => ({
+          ...f,
+          ajustes: f.ajustes || []
+        }));
+      }
     }
   } catch {}
 
@@ -264,7 +275,8 @@ export const saveFondo = async (
   existenteId?: string,
   descripcion?: string,
   datosTecnicos?: DatosTecnicosProyecto,
-  contratoPersonalizado?: string
+  contratoPersonalizado?: string,
+  ajustes?: AjusteCuota[]
 ): Promise<{ id: string; guardadoEn: 'supabase' | 'local' }> => {
   const client = getSupabaseClient();
   const id = existenteId || (typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Date.now()));
@@ -310,6 +322,7 @@ export const saveFondo = async (
   // Guardado en LocalStorage
   let existingTecnicos: DatosTecnicosProyecto | undefined = undefined;
   let existingContrato: string | undefined = undefined;
+  let existingAjustes: AjusteCuota[] | undefined = undefined;
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
     if (raw) {
@@ -317,6 +330,7 @@ export const saveFondo = async (
       const match = list.find((f) => f.id === id);
       if (match?.datosTecnicos) existingTecnicos = match.datosTecnicos;
       if (match?.contratoPersonalizado) existingContrato = match.contratoPersonalizado;
+      if (match?.ajustes) existingAjustes = match.ajustes;
     }
   } catch {}
 
@@ -331,6 +345,7 @@ export const saveFondo = async (
     adjudicacionFijada,
     cesion,
     adelanto,
+    ajustes: ajustes !== undefined ? ajustes : (existingAjustes || []),
     datosTecnicos: datosTecnicos || existingTecnicos || DATOS_TECNICOS_DEFAULT,
     contratoPersonalizado: contratoPersonalizado !== undefined ? contratoPersonalizado : existingContrato
   };
@@ -371,7 +386,9 @@ export const createFondoFromTemplate = async (
     { ...template.adelanto },
     id,
     template.descripcion,
-    DATOS_TECNICOS_DEFAULT
+    DATOS_TECNICOS_DEFAULT,
+    undefined,
+    template.ajustes ? [...template.ajustes] : []
   );
 
   const created = await loadFondoById(res.id);
@@ -395,7 +412,9 @@ export const duplicateFondo = async (sourceId: string, newName?: string): Promis
     { ...original.adelanto },
     newId,
     original.descripcion,
-    original.datosTecnicos ? JSON.parse(JSON.stringify(original.datosTecnicos)) : DATOS_TECNICOS_DEFAULT
+    original.datosTecnicos ? JSON.parse(JSON.stringify(original.datosTecnicos)) : DATOS_TECNICOS_DEFAULT,
+    original.contratoPersonalizado,
+    original.ajustes ? JSON.parse(JSON.stringify(original.ajustes)) : []
   );
 
   return await loadFondoById(newId);

@@ -147,13 +147,23 @@ export const ResumenConsolidado: React.FC<ResumenConsolidadoProps> = ({
                     {fmtMoneda(p.anticipoMes0)}
                   </td>
                   <td className="py-3 px-4 text-right text-slate-300">
-                    {fmtMoneda(p.cuotaInmInicial)}
+                    <div>{fmtMoneda(p.cuotaInmInicial)}</div>
+                    {p.cuotaInmActual && Math.round(p.cuotaInmActual) !== Math.round(p.cuotaInmInicial) && (
+                      <div className="text-[10px] text-amber-400 font-bold" title="Cuota ajustada por mayores costos">
+                        ➔ {fmtMoneda(p.cuotaInmActual)}
+                      </div>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-right text-slate-400">
                     {fmtMoneda(p.recargoGastosPorCuota)}
                   </td>
                   <td className="py-3 px-4 text-right font-bold text-indigo-200">
-                    {fmtMoneda(p.cuotaFinInicial)}/m
+                    <div>{fmtMoneda(p.cuotaFinInicial)}/m</div>
+                    {p.cuotaFinActual && Math.round(p.cuotaFinActual) !== Math.round(p.cuotaFinInicial) && (
+                      <div className="text-[10px] text-amber-300 font-bold" title="Cuota final mensual ajustada">
+                        ➔ {fmtMoneda(p.cuotaFinActual)}/m
+                      </div>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-center font-bold text-amber-300">
                     Cuota {mPos}

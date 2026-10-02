@@ -4,6 +4,7 @@ import type {
   GastosConfigState,
   CesionConfigState,
   AdelantoConfigState,
+  AjusteCuota,
   FlujoSocioCalculado
 } from './types/fondo';
 import type { UserProfile } from './types/auth';
@@ -30,6 +31,7 @@ import { GastosAdjudicacion } from './components/GastosAdjudicacion';
 import { MatrizAnticipos } from './components/MatrizAnticipos';
 import { CesionContractual } from './components/CesionContractual';
 import { AdelantoCapital } from './components/AdelantoCapital';
+import { AjustesMayoresCostos } from './components/AjustesMayoresCostos';
 import { CuentaIndividual } from './components/CuentaIndividual';
 import { ResumenConsolidado } from './components/ResumenConsolidado';
 import { SupabaseModal } from './components/SupabaseModal';
@@ -105,7 +107,8 @@ export const App: React.FC = () => {
         updated.id,
         updated.descripcion,
         updated.datosTecnicos,
-        updated.contratoPersonalizado
+        updated.contratoPersonalizado,
+        updated.ajustes
       );
 
       return newList;
@@ -189,6 +192,14 @@ export const App: React.FC = () => {
     updateCurrentFondo((prev) => ({
       ...prev,
       datosTecnicos: newDatos,
+      updated_at: new Date().toISOString()
+    }));
+  };
+
+  const handleAjustesChange = (nuevosAjustes: AjusteCuota[]) => {
+    updateCurrentFondo((prev) => ({
+      ...prev,
+      ajustes: nuevosAjustes,
       updated_at: new Date().toISOString()
     }));
   };
@@ -315,7 +326,8 @@ export const App: React.FC = () => {
         gastosCalculados.recargoGastosPorCuota,
         configAdelantoSocio,
         mPosesion,
-        gastosCalculados.pagoFinalGastos
+        gastosCalculados.pagoFinalGastos,
+        currentFondo.ajustes || []
       );
 
       list.push(flujoCalculado);
@@ -325,6 +337,7 @@ export const App: React.FC = () => {
     currentFondo.params,
     currentFondo.adjudicacionFijada,
     currentFondo.adelanto,
+    currentFondo.ajustes,
     anticiposNormalizados,
     gastosCalculados
   ]);
@@ -476,6 +489,15 @@ export const App: React.FC = () => {
                   fechaInicio={currentFondo.params.fechaInicio}
                   maxCuotas={currentFondo.params.cantidadCuotas}
                   onChange={handleAdelantoChange}
+                />
+
+                {/* Ajuste por Mayores Costos e Inflación Técnica */}
+                <AjustesMayoresCostos
+                  ajustes={currentFondo.ajustes || []}
+                  cantidadCuotas={currentFondo.params.cantidadCuotas}
+                  fechaInicio={currentFondo.params.fechaInicio}
+                  costoDepto={currentFondo.params.costoDepto}
+                  onChangeAjustes={handleAjustesChange}
                 />
 
                 {/* Estado de Cuenta Individual (Vista Admin) */}

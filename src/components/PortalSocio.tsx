@@ -96,7 +96,8 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
         estrategia: simEstrategiaAdelanto
       },
       flujoSocio.cuotaPosesion,
-      flujoSocio.pagoFinalGastos
+      flujoSocio.pagoFinalGastos,
+      currentFondo.ajustes || []
     );
   }, [
     socioId,
@@ -107,6 +108,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
     flujoSocio.recargoGastosPorCuota,
     flujoSocio.cuotaPosesion,
     flujoSocio.pagoFinalGastos,
+    currentFondo.ajustes,
     simMontoAdelanto,
     simCuotaAdelanto,
     simEstrategiaAdelanto
