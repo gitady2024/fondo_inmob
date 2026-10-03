@@ -8,6 +8,8 @@ import type {
   ProfesionalTecnico
 } from '../types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from '../types/tecnico';
+import type { UserProfile } from '../types/auth';
+import { CentroMensajes } from './CentroMensajes';
 import {
   Landmark,
   HardHat,
@@ -30,12 +32,15 @@ import {
   Briefcase,
   FileBadge,
   X,
-  Save
+  Save,
+  MessageSquare
 } from 'lucide-react';
 
 interface ModuloTecnicoProps {
   datosTecnicos: DatosTecnicosProyecto;
   fondoNombre: string;
+  fondoId?: string;
+  currentUser?: UserProfile;
   isReadOnly?: boolean;
   onUpdateDatosTecnicos: (newDatos: DatosTecnicosProyecto) => void;
 }
@@ -43,10 +48,12 @@ interface ModuloTecnicoProps {
 export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
   datosTecnicos,
   fondoNombre,
+  fondoId = 'default',
+  currentUser,
   isReadOnly = false,
   onUpdateDatosTecnicos
 }) => {
-  const [activeTab, setActiveTab] = useState<'tramites' | 'avance' | 'planos' | 'memoria'>('tramites');
+  const [activeTab, setActiveTab] = useState<'tramites' | 'avance' | 'planos' | 'memoria' | 'mensajes'>('tramites');
 
   // Modal / Form para nuevo trámite
   const [isNewTramiteOpen, setIsNewTramiteOpen] = useState(false);
@@ -461,6 +468,20 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
           <Ruler className="w-4 h-4" />
           <span>Ficha Técnica y Profesionales</span>
         </button>
+
+        {!isReadOnly && currentUser && currentUser.role !== 'socio' && (
+          <button
+            onClick={() => setActiveTab('mensajes')}
+            className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'mensajes'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>Comunicaciones con Administración</span>
+          </button>
+        )}
       </div>
 
       {/* ------------------------------------------------------------------ */}
@@ -937,6 +958,21 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------ */}
+      {/* PESTAÑA 5: COMUNICACIONES CON ADMINISTRACIÓN FIDUCIARIA           */}
+      {/* ------------------------------------------------------------------ */}
+      {activeTab === 'mensajes' && currentUser && (
+        <div className="space-y-4">
+          <CentroMensajes
+            user={currentUser}
+            fondoId={fondoId}
+            fondoNombre={fondoNombre}
+            isEmbedded={true}
+            initialContactRole="tecnico"
+          />
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type {
   ParametrosFondoState,
   GastosConfigState,
@@ -37,20 +37,24 @@ import { ResumenConsolidado } from './components/ResumenConsolidado';
 import { SupabaseModal } from './components/SupabaseModal';
 import { ModuloTecnico } from './components/ModuloTecnico';
 import { ContratoModal } from './components/ContratoModal';
+import { CentroMensajes } from './components/CentroMensajes';
+import { getUnreadCount } from './services/mensajeService';
 import type { DatosTecnicosProyecto } from './types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from './types/tecnico';
-import { Calculator, HardHat } from 'lucide-react';
+import { Calculator, HardHat, MessageSquare } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<UserProfile>(ADMIN_USER);
   const [isLoginOpen, setIsLoginOpen] = useState<boolean>(false);
   const [isContratoOpen, setIsContratoOpen] = useState<boolean>(false);
+  const [isMensajesOpen, setIsMensajesOpen] = useState<boolean>(false);
   const [fondosList, setFondosList] = useState<FondoGuardado[]>([]);
   const [currentFondoId, setCurrentFondoId] = useState<string>('');
   const [socioSeleccionado, setSocioSeleccionado] = useState<number>(1);
   const [isPersistenciaOpen, setIsPersistenciaOpen] = useState<boolean>(false);
   const [isNewModalOpen, setIsNewModalOpen] = useState<boolean>(false);
-  const [adminTab, setAdminTab] = useState<'financiero' | 'tecnico'>('financiero');
+  const [adminTab, setAdminTab] = useState<'financiero' | 'tecnico' | 'mensajeria'>('financiero');
+  const [unreadCount, setUnreadCount] = useState<number>(0);
 
   // Inicializar fondos al montar
   useEffect(() => {
@@ -85,6 +89,15 @@ export const App: React.FC = () => {
       }
     );
   }, [fondosList, currentFondoId]);
+
+  // Contador de mensajes no leídos
+  const refreshUnreadCount = useCallback(() => {
+    setUnreadCount(getUnreadCount(currentFondo.id, currentUser));
+  }, [currentFondo.id, currentUser]);
+
+  useEffect(() => {
+    refreshUnreadCount();
+  }, [refreshUnreadCount]);
 
   // Sincronizar actualización de campos en el fondo activo (Admin y Técnico)
   const updateCurrentFondo = (updater: (prev: FondoGuardado) => FondoGuardado) => {
@@ -352,11 +365,13 @@ export const App: React.FC = () => {
         {/* Barra de Navegación Principal */}
         <Navbar
           user={currentUser}
+          unreadCount={unreadCount}
           onReset={handleResetCurrent}
           onPrint={() => window.print()}
           onOpenPersistencia={() => setIsPersistenciaOpen(true)}
           onOpenLogin={() => setIsLoginOpen(true)}
           onOpenContrato={() => setIsContratoOpen(true)}
+          onOpenMensajes={() => setIsMensajesOpen(true)}
         />
 
         {/* ------------------------------------------------------------------ */}
@@ -390,6 +405,8 @@ export const App: React.FC = () => {
             <ModuloTecnico
               datosTecnicos={currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT}
               fondoNombre={currentFondo.nombre}
+              fondoId={currentFondo.id}
+              currentUser={currentUser}
               isReadOnly={false}
               onUpdateDatosTecnicos={handleDatosTecnicosChange}
             />
@@ -411,28 +428,44 @@ export const App: React.FC = () => {
             />
 
             {/* Barra de alternancia de módulo para el Administrador */}
-            <div className="flex bg-slate-900 border border-slate-800 p-1.5 rounded-2xl max-w-md gap-2 shadow-lg no-print">
+            <div className="flex flex-wrap sm:flex-nowrap bg-slate-900 border border-slate-800 p-1.5 rounded-2xl max-w-2xl gap-2 shadow-lg no-print">
               <button
                 onClick={() => setAdminTab('financiero')}
-                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
                   adminTab === 'financiero'
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                 }`}
               >
                 <Calculator className="w-4 h-4" />
-                <span>Gestión Financiera y Círculo</span>
+                <span>Gestión Financiera</span>
               </button>
               <button
                 onClick={() => setAdminTab('tecnico')}
-                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
                   adminTab === 'tecnico'
                     ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                 }`}
               >
                 <HardHat className="w-4 h-4" />
-                <span>Gestión Técnica y Trámites</span>
+                <span>Gestión Técnica</span>
+              </button>
+              <button
+                onClick={() => setAdminTab('mensajeria')}
+                className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                  adminTab === 'mensajeria'
+                    ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                }`}
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Mensajería Fiduciaria</span>
+                {unreadCount > 0 && (
+                  <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-extrabold animate-pulse">
+                    {unreadCount}
+                  </span>
+                )}
               </button>
             </div>
 
@@ -440,9 +473,24 @@ export const App: React.FC = () => {
               <ModuloTecnico
                 datosTecnicos={currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT}
                 fondoNombre={currentFondo.nombre}
+                fondoId={currentFondo.id}
+                currentUser={currentUser}
                 isReadOnly={false}
                 onUpdateDatosTecnicos={handleDatosTecnicosChange}
               />
+            ) : adminTab === 'mensajeria' ? (
+              <div className="space-y-4">
+                <CentroMensajes
+                  user={currentUser}
+                  fondoId={currentFondo.id}
+                  fondoNombre={currentFondo.nombre}
+                  cantidadSocios={currentFondo.params.cantidadDeptos}
+                  isEmbedded={true}
+                  initialContactRole="socio"
+                  initialSocioId={socioSeleccionado}
+                  onRefreshBadges={refreshUnreadCount}
+                />
+              </div>
             ) : (
               <>
                 {/* Fila 1: Parámetros del Fondo y Gastos de Adjudicación */}
@@ -580,6 +628,22 @@ export const App: React.FC = () => {
           datosTecnicos={currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT}
           contratoPersonalizado={currentFondo.contratoPersonalizado}
           onSaveContrato={handleContratoChange}
+        />
+
+        {/* Modal del Centro de Mensajes Fiduciarios */}
+        <CentroMensajes
+          isOpen={isMensajesOpen}
+          onClose={() => {
+            setIsMensajesOpen(false);
+            refreshUnreadCount();
+          }}
+          onRefreshBadges={refreshUnreadCount}
+          user={currentUser}
+          fondoId={currentFondo.id}
+          fondoNombre={currentFondo.nombre}
+          cantidadSocios={currentFondo.params.cantidadDeptos}
+          initialContactRole={adminTab === 'tecnico' ? 'tecnico' : 'socio'}
+          initialSocioId={socioSeleccionado}
         />
       </div>
     </div>

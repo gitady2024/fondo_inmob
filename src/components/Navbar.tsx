@@ -1,24 +1,28 @@
 import React from 'react';
 import type { UserProfile } from '../types/auth';
-import { Building2, Sparkles, RefreshCw, Printer, Database, User, Shield, HardHat, ScrollText } from 'lucide-react';
+import { Building2, Sparkles, RefreshCw, Printer, Database, User, Shield, HardHat, ScrollText, MessageSquare } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/supabase';
 
 interface NavbarProps {
   user: UserProfile;
+  unreadCount?: number;
   onReset: () => void;
   onPrint: () => void;
   onOpenPersistencia: () => void;
   onOpenLogin: () => void;
   onOpenContrato: () => void;
+  onOpenMensajes: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   user,
+  unreadCount = 0,
   onReset,
   onPrint,
   onOpenPersistencia,
   onOpenLogin,
-  onOpenContrato
+  onOpenContrato,
+  onOpenMensajes
 }) => {
   const isCloud = isSupabaseConfigured();
 
@@ -99,6 +103,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="hidden sm:inline">Restablecer</span>
             </button>
           )}
+
+          <button
+            onClick={onOpenMensajes}
+            title="Centro de Comunicaciones Fiduciarias"
+            className="relative bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all shadow-sm"
+          >
+            <MessageSquare className="w-4 h-4 text-indigo-400" />
+            <span className="hidden sm:inline">Mensajes</span>
+            {unreadCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-extrabold shadow-sm animate-pulse">
+                {unreadCount}
+              </span>
+            )}
+          </button>
 
           <button
             onClick={onOpenContrato}

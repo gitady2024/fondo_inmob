@@ -103,10 +103,38 @@ CREATE TABLE IF NOT EXISTS public.licitaciones_adelantos (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 6. TABLA: mensajes (Sistema de mensajería fiduciaria con aislamiento estricto)
+CREATE TABLE IF NOT EXISTS public.mensajes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    fondo_id UUID NOT NULL REFERENCES public.fondos(id) ON DELETE CASCADE,
+    sender_id VARCHAR(100) NOT NULL,
+    sender_role VARCHAR(20) NOT NULL CHECK (sender_role IN ('admin', 'tecnico', 'socio')),
+    sender_nombre VARCHAR(150) NOT NULL,
+    sender_socio_id INTEGER,
+    receiver_role VARCHAR(20) NOT NULL CHECK (receiver_role IN ('admin', 'tecnico', 'socio')),
+    receiver_socio_id INTEGER,
+    categoria VARCHAR(40) NOT NULL DEFAULT 'consulta_general',
+    motivo_personalizado VARCHAR(150),
+    asunto VARCHAR(200) NOT NULL,
+    contenido TEXT NOT NULL,
+    reply_to_id UUID REFERENCES public.mensajes(id) ON DELETE SET NULL,
+    leido BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    -- Regla de aislamiento estricto: Técnico y Socio NUNCA pueden comunicarse directamente
+    CONSTRAINT chk_aislamiento_tecnico_socio CHECK (
+        NOT (
+            (sender_role = 'tecnico' AND receiver_role = 'socio') OR
+            (sender_role = 'socio' AND receiver_role = 'tecnico')
+        )
+    )
+);
+
 -- ÍNDICES para optimización de consultas
 CREATE INDEX IF NOT EXISTS idx_socios_fondo_id ON public.socios(fondo_id);
 CREATE INDEX IF NOT EXISTS idx_pagos_socio_id ON public.pagos_cuotas(socio_id);
 CREATE INDEX IF NOT EXISTS idx_pagos_fondo_id ON public.pagos_cuotas(fondo_id);
+CREATE INDEX IF NOT EXISTS idx_mensajes_fondo_id ON public.mensajes(fondo_id);
+CREATE INDEX IF NOT EXISTS idx_mensajes_reply_to ON public.mensajes(reply_to_id);
 
 -- POLÍTICAS RLS (Row Level Security) básicas
 ALTER TABLE public.fondos ENABLE ROW LEVEL SECURITY;
@@ -114,6 +142,7 @@ ALTER TABLE public.socios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pagos_cuotas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cesiones_contractuales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.licitaciones_adelantos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mensajes ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de lectura y escritura anónima (para desarrollo / demo público)
 CREATE POLICY "Permitir lectura publica de fondos" ON public.fondos FOR SELECT USING (true);
@@ -123,3 +152,5 @@ CREATE POLICY "Permitir acceso publico a socios" ON public.socios FOR ALL USING 
 CREATE POLICY "Permitir acceso publico a pagos" ON public.pagos_cuotas FOR ALL USING (true);
 CREATE POLICY "Permitir acceso publico a cesiones" ON public.cesiones_contractuales FOR ALL USING (true);
 CREATE POLICY "Permitir acceso publico a licitaciones" ON public.licitaciones_adelantos FOR ALL USING (true);
+CREATE POLICY "Permitir acceso publico a mensajes" ON public.mensajes FOR ALL USING (true);
+

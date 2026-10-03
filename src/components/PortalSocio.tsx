@@ -16,12 +16,14 @@ import {
 } from '../utils/calculations';
 import { CuentaIndividual } from './CuentaIndividual';
 import { ModuloTecnico } from './ModuloTecnico';
+import { CentroMensajes } from './CentroMensajes';
 import { DATOS_TECNICOS_DEFAULT } from '../types/tecnico';
 import {
   Building2,
   Zap,
   ScrollText,
   HardHat,
+  MessageSquare,
   CheckCircle2,
   ArrowRight,
   Clock,
@@ -53,7 +55,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   onOpenContrato
 }) => {
   const socioId = user.socioId || 1;
-  const [activeTab, setActiveTab] = useState<'cartola' | 'adelanto' | 'cesion' | 'obra'>('cartola');
+  const [activeTab, setActiveTab] = useState<'cartola' | 'adelanto' | 'cesion' | 'obra' | 'mensajes'>('cartola');
 
   // ==========================================
   // ESTADOS PARA SIMULACIÓN DE ADELANTO
@@ -211,7 +213,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
       </div>
 
       {/* Pestañas de Navegación del Socio */}
-      <div className="flex border-b border-slate-800 bg-slate-900/40 rounded-2xl p-1 gap-1 max-w-2xl no-print">
+      <div className="flex flex-wrap border-b border-slate-800 bg-slate-900/40 rounded-2xl p-1 gap-1 max-w-3xl no-print">
         <button
           onClick={() => setActiveTab('cartola')}
           className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
@@ -258,6 +260,18 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
         >
           <HardHat className="w-4 h-4" />
           <span>Avance y Permisos</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('mensajes')}
+          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'mensajes'
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+          }`}
+        >
+          <MessageSquare className="w-4 h-4" />
+          <span>Mensajes & Consultas</span>
         </button>
       </div>
 
@@ -1003,6 +1017,21 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
             fondoNombre={currentFondo.nombre}
             isReadOnly={true}
             onUpdateDatosTecnicos={() => {}}
+          />
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* PESTAÑA 5: MENSAJES Y COMUNICACIONES CON ADMINISTRACIÓN         */}
+      {/* ============================================================== */}
+      {activeTab === 'mensajes' && (
+        <div className="space-y-4">
+          <CentroMensajes
+            user={user}
+            fondoId={currentFondo.id}
+            fondoNombre={currentFondo.nombre}
+            cantidadSocios={params.cantidadDeptos}
+            isEmbedded={true}
           />
         </div>
       )}
