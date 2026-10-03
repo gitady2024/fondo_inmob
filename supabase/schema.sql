@@ -117,8 +117,10 @@ CREATE TABLE IF NOT EXISTS public.mensajes (
     motivo_personalizado VARCHAR(150),
     asunto VARCHAR(200) NOT NULL,
     contenido TEXT NOT NULL,
+    adjuntos JSONB NOT NULL DEFAULT '[]'::jsonb,
     reply_to_id UUID REFERENCES public.mensajes(id) ON DELETE SET NULL,
     leido BOOLEAN NOT NULL DEFAULT false,
+    fecha_lectura TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     -- Regla de aislamiento estricto: Técnico y Socio NUNCA pueden comunicarse directamente
     CONSTRAINT chk_aislamiento_tecnico_socio CHECK (

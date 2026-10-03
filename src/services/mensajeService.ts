@@ -1,8 +1,13 @@
 import type { UserProfile } from '../types/auth';
-import type { Mensaje, NuevoMensajeInput, ReplyPreview } from '../types/mensajes';
+import type { Mensaje, NuevoMensajeInput, ReplyPreview, AdjuntoMensaje } from '../types/mensajes';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 
 const LOCAL_STORAGE_MENSAJES_KEY = 'fondo_inmobil_mensajes_store';
+
+// Helper de adjunto simulado base64 para entorno demostrativo
+const DUMMY_PDF_BASE64 = 'data:application/pdf;base64,JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PAovVHlwZSAvQ2F0YWxvZwovUGFnZXMgMiAwIFIKPj4KZW5kb2JqCjIgMCBvYmoKPDwKL1R5cGUgL1BhZ2VzCi9LaWRzIFszIDAgUl0KL0NvdW50IDEKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL1R5cGUgL1BhZ2UKL1BhcmVudCAyIDAgUgovTWVkaWFCb3ggWzAgMCA2MTIgNzkyXQo+PgplbmRvYmoKeHJlZgowIDQKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE4IDAwMDAwIG4gCjAwMDAwMDAwNjggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9TaXplIDQKL1Jvb3QgMSAwIFIKPj4Kc3RhcnR4cmVmCjE5OQolJUVPRg==';
+const DUMMY_EXCEL_BASE64 = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,UEsDBBQAAAAIAAAAIQAAAAAAAAAAAAAAABAAAAB4bC93b3Jrc2hlZXRzL3NoZWV0MS54bWw=';
+const DUMMY_WORD_BASE64 = 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,UEsDBBQAAAAIAAAAIQAAAAAAAAAAAAAAABAAAAB3b3JkL2RvY3VtZW50LnhtbA==';
 
 // Semilla inicial de mensajes demostrativos con aislamiento estricto
 const MENSAJES_INICIALES_DEMO: Mensaje[] = [
@@ -52,6 +57,16 @@ const MENSAJES_INICIALES_DEMO: Mensaje[] = [
     categoria: 'avance_obra',
     asunto: 'Certificado de Hormigonado de Losa 2do Piso y Ensayos de Probetas',
     contenido: 'Estimado Administrador: Se concluyó con éxito el vaciado de hormigón H-30 en la losa sobre el segundo piso. Las probetas de control de resistencia a 7 días han dado valores óptimos. Solicitamos la aprobación de la certificación técnica para liberar el pago de la subcontrata de estructura.',
+    adjuntos: [
+      {
+        id: 'adj-seed-1',
+        nombre: 'Certificado_Tecnico_Losa_Piso2.pdf',
+        tamano: 184520,
+        tipo: 'pdf',
+        mimeType: 'application/pdf',
+        dataUrl: DUMMY_PDF_BASE64
+      }
+    ],
     leido: true,
     fechaCreacion: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() // Hace 24h
   },
@@ -87,7 +102,25 @@ const MENSAJES_INICIALES_DEMO: Mensaje[] = [
     categoria: 'otros',
     motivoPersonalizado: 'Consulta sobre cesión contractual por cambio de radicación',
     asunto: 'Orientación para cesión de posición contractual',
-    contenido: 'Buenos días. Por motivos laborales debo radicarme en el exterior a fin de año y desearía evaluar la cesión de mi boleto bajo el Art. 1636 CCCN. ¿Podrían informarme el arancel de cesión y si hay interesados en la lista de espera fiduciaria?',
+    contenido: 'Buenos días. Por motivos laborales debo radicarme en el exterior a fin de año y desearía evaluar la cesión de mi boleto bajo el Art. 1636 CCCN. Adjunto la solicitud formal y la planilla con la proyección de cuotas aportadas para coordinar con el fiduciario.',
+    adjuntos: [
+      {
+        id: 'adj-seed-2',
+        nombre: 'Solicitud_Cesion_Boleto_D2.docx',
+        tamano: 68400,
+        tipo: 'word',
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        dataUrl: DUMMY_WORD_BASE64
+      },
+      {
+        id: 'adj-seed-3',
+        nombre: 'Planilla_Aportes_Unidad_D2.xlsx',
+        tamano: 124800,
+        tipo: 'excel',
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        dataUrl: DUMMY_EXCEL_BASE64
+      }
+    ],
     leido: false,
     fechaCreacion: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString() // Hace 5h
   }
@@ -236,6 +269,7 @@ export const enviarMensaje = async (
     motivoPersonalizado: input.motivoPersonalizado?.trim(),
     asunto: input.asunto.trim(),
     contenido: input.contenido.trim(),
+    adjuntos: input.adjuntos || [],
     replyToId: input.replyToId,
     replyToPreview: input.replyToPreview,
     leido: false,
@@ -265,6 +299,7 @@ export const enviarMensaje = async (
           motivo_personalizado: nuevoMensaje.motivoPersonalizado,
           asunto: nuevoMensaje.asunto,
           contenido: nuevoMensaje.contenido,
+          adjuntos: nuevoMensaje.adjuntos || [],
           reply_to_id: nuevoMensaje.replyToId,
           leido: false,
           created_at: nuevoMensaje.fechaCreacion
@@ -279,12 +314,13 @@ export const enviarMensaje = async (
 };
 
 /**
- * Responder a un mensaje existente.
+ * Responder a un mensaje existente, admitiendo también documentos adjuntos opcionales.
  */
 export const responderMensaje = async (
   mensajeOriginal: Mensaje,
   contenidoRespuesta: string,
-  sender: UserProfile
+  sender: UserProfile,
+  adjuntos?: AdjuntoMensaje[]
 ): Promise<Mensaje> => {
   // Determinar destinatario de la respuesta
   let receiverRole: 'admin' | 'tecnico' | 'socio';
@@ -320,6 +356,7 @@ export const responderMensaje = async (
       motivoPersonalizado: mensajeOriginal.motivoPersonalizado,
       asunto,
       contenido: contenidoRespuesta,
+      adjuntos,
       replyToId: mensajeOriginal.id,
       replyToPreview: replyPreview
     },
@@ -328,15 +365,16 @@ export const responderMensaje = async (
 };
 
 /**
- * Marcar mensaje como leído.
+ * Marcar mensaje individual como leído, registrando la fecha de lectura.
  */
-export const marcarMensajeComoLeido = async (mensajeId: string): Promise<void> => {
+export const marcarMensajeComoLeido = async (mensajeId: string): Promise<boolean> => {
   const actuales = getStoredMensajes();
   let modificado = false;
+  const ahora = new Date().toISOString();
   const actualizados = actuales.map((m) => {
     if (m.id === mensajeId && !m.leido) {
       modificado = true;
-      return { ...m, leido: true };
+      return { ...m, leido: true, fechaLectura: ahora };
     }
     return m;
   });
@@ -347,13 +385,17 @@ export const marcarMensajeComoLeido = async (mensajeId: string): Promise<void> =
       try {
         const client = getSupabaseClient();
         if (client) {
-          await client.from('mensajes').update({ leido: true }).eq('id', mensajeId);
+          await client.from('mensajes').update({
+            leido: true,
+            fecha_lectura: ahora
+          }).eq('id', mensajeId);
         }
       } catch (e) {
         console.warn('Error al marcar leído en Supabase:', e);
       }
     }
   }
+  return modificado;
 };
 
 /**

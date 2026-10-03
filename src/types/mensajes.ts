@@ -75,6 +75,17 @@ export interface ReplyPreview {
   senderRole: 'admin' | 'tecnico' | 'socio';
 }
 
+export type TipoDocumentoAdjunto = 'pdf' | 'excel' | 'word' | 'otro';
+
+export interface AdjuntoMensaje {
+  id: string;
+  nombre: string;
+  tamano: number; // Tamaño en bytes
+  tipo: TipoDocumentoAdjunto;
+  mimeType: string;
+  dataUrl: string; // Base64 Data URL para descarga y visualización
+}
+
 export interface Mensaje {
   id: string;
   fondoId: string;
@@ -95,12 +106,16 @@ export interface Mensaje {
   asunto: string;
   contenido: string;
 
+  // Documentos adjuntos (Excel, Word, PDF)
+  adjuntos?: AdjuntoMensaje[];
+
   // Hilos y Respuestas
   replyToId?: string;
   replyToPreview?: ReplyPreview;
 
   // Estado y Tiempos
   leido: boolean;
+  fechaLectura?: string; // ISO string de cuando se marcó como leído
   fechaCreacion: string; // ISO string
 }
 
@@ -112,6 +127,7 @@ export interface NuevoMensajeInput {
   motivoPersonalizado?: string;
   asunto: string;
   contenido: string;
+  adjuntos?: AdjuntoMensaje[];
   replyToId?: string;
   replyToPreview?: ReplyPreview;
 }

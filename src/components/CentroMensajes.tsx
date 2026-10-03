@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { UserProfile } from '../types/auth';
-import type { Mensaje, CategoriaMensaje } from '../types/mensajes';
+import type { Mensaje, CategoriaMensaje, AdjuntoMensaje, TipoDocumentoAdjunto } from '../types/mensajes';
 import { CATEGORIAS_CONFIG } from '../types/mensajes';
 import {
   getMensajesForUser,
   enviarMensaje,
   responderMensaje,
+  marcarMensajeComoLeido,
   marcarConversacionComoLeida
 } from '../services/mensajeService';
 import {
@@ -21,7 +22,11 @@ import {
   AlertCircle,
   Inbox,
   Sparkles,
-  Search
+  Search,
+  Paperclip,
+  Download,
+  FileSpreadsheet,
+  FileText
 } from 'lucide-react';
 
 interface CentroMensajesProps {
@@ -36,6 +41,39 @@ interface CentroMensajesProps {
   initialContactRole?: 'tecnico' | 'socio';
   initialSocioId?: number;
 }
+
+const formatFileSize = (bytes: number): string => {
+  if (!bytes || bytes < 1024) return `${bytes || 0} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+};
+
+const getTipoDocumento = (file: File): { tipo: TipoDocumentoAdjunto; valido: boolean } => {
+  const name = file.name.toLowerCase();
+  const mime = file.type.toLowerCase();
+
+  if (name.endsWith('.pdf') || mime === 'application/pdf') {
+    return { tipo: 'pdf', valido: true };
+  }
+  if (
+    name.endsWith('.xlsx') ||
+    name.endsWith('.xls') ||
+    mime.includes('spreadsheet') ||
+    mime.includes('excel')
+  ) {
+    return { tipo: 'excel', valido: true };
+  }
+  if (
+    name.endsWith('.docx') ||
+    name.endsWith('.doc') ||
+    mime.includes('wordprocessingml') ||
+    mime.includes('msword')
+  ) {
+    return { tipo: 'word', valido: true };
+  }
+
+  return { tipo: 'otro', valido: false };
+};
 
 export const CentroMensajes: React.FC<CentroMensajesProps> = ({
   user,
@@ -66,10 +104,12 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
   const [contenido, setContenido] = useState<string>('');
   const [categoria, setCategoria] = useState<CategoriaMensaje>('consulta_general');
   const [motivoPersonalizado, setMotivoPersonalizado] = useState<string>('');
+  const [adjuntos, setAdjuntos] = useState<AdjuntoMensaje[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState<boolean>(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Cargar mensajes
   const reloadMensajes = useCallback(() => {
@@ -81,6 +121,40 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
   useEffect(() => {
     reloadMensajes();
   }, [reloadMensajes]);
+
+  // Saber si un mensaje fue dirigido al usuario actual
+  const esMensajeParaMi = useCallback(
+    (m: Mensaje): boolean => {
+      if (user.role === 'admin') {
+        return m.receiverRole === 'admin';
+      }
+      if (user.role === 'tecnico') {
+        return m.receiverRole === 'tecnico';
+      }
+      if (user.role === 'socio') {
+        return m.receiverRole === 'socio' && m.receiverSocioId === (user.socioId || 1);
+      }
+      return false;
+    },
+    [user]
+  );
+
+  // Marcar mensaje individual como leído
+  const handleMarcarMensajeLeido = async (mensajeId: string) => {
+    try {
+      await marcarMensajeComoLeido(mensajeId);
+      setMensajes((prev) =>
+        prev.map((m) =>
+          m.id === mensajeId
+            ? { ...m, leido: true, fechaLectura: new Date().toISOString() }
+            : m
+        )
+      );
+      if (onRefreshBadges) onRefreshBadges();
+    } catch (e) {
+      console.error('Error al marcar mensaje como leído:', e);
+    }
+  };
 
   // Determinar con quién es la conversación activa
   const targetInterlocutor = useMemo(() => {
@@ -150,7 +224,8 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
             m.asunto.toLowerCase().includes(q) ||
             m.contenido.toLowerCase().includes(q) ||
             (m.motivoPersonalizado && m.motivoPersonalizado.toLowerCase().includes(q)) ||
-            m.senderNombre.toLowerCase().includes(q)
+            m.senderNombre.toLowerCase().includes(q) ||
+            (m.adjuntos && m.adjuntos.some((a) => a.nombre.toLowerCase().includes(q)))
           );
         }
         return true;
@@ -158,23 +233,29 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
       .sort((a, b) => new Date(a.fechaCreacion).getTime() - new Date(b.fechaCreacion).getTime());
   }, [mensajes, user, adminActiveTab, selectedSocioId, filtroCategoria, busqueda]);
 
-  // Marcar conversación como leída al abrir
-  useEffect(() => {
-    if (user.role === 'admin') {
-      marcarConversacionComoLeida(
-        fondoId,
-        user,
-        adminActiveTab === 'tecnico' ? 'tecnico' : 'socio',
-        adminActiveTab === 'socios' ? selectedSocioId : undefined
-      ).then(() => {
-        if (onRefreshBadges) onRefreshBadges();
-      });
-    } else {
-      marcarConversacionComoLeida(fondoId, user, 'admin').then(() => {
-        if (onRefreshBadges) onRefreshBadges();
-      });
+  // Contador de mensajes pendientes de leer en esta conversación
+  const unreadEnEstaConversacion = useMemo(() => {
+    return mensajesConversacion.filter((m) => !m.leido && esMensajeParaMi(m)).length;
+  }, [mensajesConversacion, esMensajeParaMi]);
+
+  // Marcar toda la conversación actual como leída
+  const handleMarcarConversacionLeida = async () => {
+    try {
+      if (user.role === 'admin') {
+        await marcarConversacionComoLeida(
+          fondoId,
+          user,
+          adminActiveTab === 'tecnico' ? 'tecnico' : 'socio',
+          adminActiveTab === 'socios' ? selectedSocioId : undefined
+        );
+      } else {
+        await marcarConversacionComoLeida(fondoId, user, 'admin');
+      }
+      reloadMensajes();
+    } catch (e) {
+      console.error('Error al marcar conversación como leída:', e);
     }
-  }, [fondoId, user, adminActiveTab, selectedSocioId, onRefreshBadges]);
+  };
 
   // Auto-scroll al final al recibir o enviar mensajes
   useEffect(() => {
@@ -196,6 +277,79 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
   const handleCancelReply = () => {
     setReplyingTo(null);
     setAsunto('');
+  };
+
+  // Selección de archivos adjuntos (Excel, Word, PDF)
+  const handleFilesSelected = (fileList: FileList | File[]) => {
+    setFormError(null);
+    const files = Array.from(fileList);
+    if (files.length === 0) return;
+
+    const maxFileSize = 5 * 1024 * 1024; // 5 MB
+
+    for (const file of files) {
+      const { tipo, valido } = getTipoDocumento(file);
+      if (!valido) {
+        setFormError(
+          `Formato no admitido para "${file.name}". Solo se permiten documentos Excel (.xlsx, .xls), Word (.docx) o PDF (.pdf).`
+        );
+        return;
+      }
+
+      if (file.size > maxFileSize) {
+        setFormError(`El archivo "${file.name}" supera el tamaño máximo permitido de 5 MB.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        setAdjuntos((prev) => {
+          if (prev.some((a) => a.nombre === file.name)) {
+            return prev;
+          }
+          return [
+            ...prev,
+            {
+              id: `adj-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+              nombre: file.name,
+              tamano: file.size,
+              tipo,
+              mimeType:
+                file.type ||
+                (tipo === 'pdf'
+                  ? 'application/pdf'
+                  : tipo === 'excel'
+                  ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                  : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
+              dataUrl
+            }
+          ];
+        });
+      };
+      reader.onerror = () => {
+        setFormError(`Error al leer el archivo "${file.name}".`);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveAdjunto = (adjId: string) => {
+    setAdjuntos((prev) => prev.filter((a) => a.id !== adjId));
+  };
+
+  const handleDownloadAdjunto = (adjunto: AdjuntoMensaje, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const link = document.createElement('a');
+      link.href = adjunto.dataUrl;
+      link.download = adjunto.nombre;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Error al descargar archivo adjunto:', err);
+    }
   };
 
   // Enviar mensaje o respuesta
@@ -220,9 +374,11 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
 
     setEnviando(true);
     try {
+      const adjuntosAEnviar = adjuntos.length > 0 ? adjuntos : undefined;
+
       if (replyingTo) {
-        // Enviar respuesta
-        await responderMensaje(replyingTo, contenido.trim(), user);
+        // Enviar respuesta con posibles adjuntos
+        await responderMensaje(replyingTo, contenido.trim(), user, adjuntosAEnviar);
       } else {
         // Enviar nuevo mensaje directo
         let receiverRole: 'admin' | 'tecnico' | 'socio' = 'admin';
@@ -245,18 +401,20 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
             categoria,
             motivoPersonalizado: categoria === 'otros' ? motivoPersonalizado.trim() : undefined,
             asunto: asunto.trim(),
-            contenido: contenido.trim()
+            contenido: contenido.trim(),
+            adjuntos: adjuntosAEnviar
           },
           user
         );
       }
 
-      // Limpiar formulario
+      // Limpiar formulario y adjuntos
       setContenido('');
       setAsunto('');
       setMotivoPersonalizado('');
       setReplyingTo(null);
       setCategoria('consulta_general');
+      setAdjuntos([]);
       reloadMensajes();
     } catch (err: any) {
       setFormError(err?.message || 'Error al enviar el mensaje.');
@@ -287,21 +445,25 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
   if (!isEmbedded && !isOpen) return null;
 
   const content = (
-    <div className={`flex flex-col bg-slate-900 border border-slate-800 shadow-2xl rounded-2xl overflow-hidden ${
-      isEmbedded ? 'h-[750px] w-full' : 'h-[85vh] max-h-[820px] w-full max-w-5xl'
-    }`}>
+    <div
+      className={`flex flex-col bg-slate-900 border border-slate-800 shadow-2xl rounded-2xl overflow-hidden ${
+        isEmbedded ? 'h-[750px] w-full' : 'h-[85vh] max-h-[820px] w-full max-w-5xl'
+      }`}
+    >
       {/* ------------------------------------------------------------------ */}
       {/* HEADER DEL CENTRO DE MENSAJES                                     */}
       {/* ------------------------------------------------------------------ */}
       <div className="bg-slate-950/80 border-b border-slate-800/80 px-5 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${
-            user.role === 'admin'
-              ? 'bg-gradient-to-tr from-indigo-600 to-indigo-500 shadow-indigo-600/20 text-white'
-              : user.role === 'tecnico'
-              ? 'bg-gradient-to-tr from-amber-600 to-amber-500 shadow-amber-600/20 text-white'
-              : 'bg-gradient-to-tr from-emerald-600 to-emerald-500 shadow-emerald-600/20 text-white'
-          }`}>
+          <div
+            className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${
+              user.role === 'admin'
+                ? 'bg-gradient-to-tr from-indigo-600 to-indigo-500 shadow-indigo-600/20 text-white'
+                : user.role === 'tecnico'
+                ? 'bg-gradient-to-tr from-amber-600 to-amber-500 shadow-amber-600/20 text-white'
+                : 'bg-gradient-to-tr from-emerald-600 to-emerald-500 shadow-emerald-600/20 text-white'
+            }`}
+          >
             <MessageSquare className="w-5 h-5" />
           </div>
           <div>
@@ -315,7 +477,7 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
             </div>
             <p className="text-xs text-slate-400">
               {user.role === 'admin'
-                ? 'Gestión centralizada de comunicaciones con Socios Inversores y Equipo Técnico'
+                ? 'Gestión centralizada con Socios Inversores y Equipo Técnico'
                 : user.role === 'tecnico'
                 ? 'Canal directo y exclusivo con el Administrador Fiduciario'
                 : `Canal privado y confidencial para la Unidad D${user.socioId || 1}`}
@@ -392,9 +554,11 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
-                          isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
-                        }`}>
+                        <div
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
+                            isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
+                          }`}
+                        >
                           D{sId}
                         </div>
                         <div>
@@ -412,9 +576,7 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
                   );
                 })
               ) : (
-                <div
-                  className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-xs text-amber-200 space-y-1"
-                >
+                <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-xs text-amber-200 space-y-1">
                   <div className="font-bold flex items-center gap-1.5">
                     <HardHat className="w-4 h-4 text-amber-400" />
                     <span>Equipo Técnico & Obra</span>
@@ -441,13 +603,15 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
           {/* Barra superior de la conversación activa */}
           <div className="px-5 py-3 border-b border-slate-800/80 bg-slate-900/90 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <div className={`p-2 rounded-xl border ${
-                targetInterlocutor.role === 'admin'
-                  ? 'bg-indigo-950/60 border-indigo-700/50 text-indigo-400'
-                  : targetInterlocutor.role === 'tecnico'
-                  ? 'bg-amber-950/60 border-amber-700/50 text-amber-400'
-                  : 'bg-emerald-950/60 border-emerald-700/50 text-emerald-400'
-              }`}>
+              <div
+                className={`p-2 rounded-xl border ${
+                  targetInterlocutor.role === 'admin'
+                    ? 'bg-indigo-950/60 border-indigo-700/50 text-indigo-400'
+                    : targetInterlocutor.role === 'tecnico'
+                    ? 'bg-amber-950/60 border-amber-700/50 text-amber-400'
+                    : 'bg-emerald-950/60 border-emerald-700/50 text-emerald-400'
+                }`}
+              >
                 {targetInterlocutor.role === 'admin' ? (
                   <Shield className="w-4 h-4" />
                 ) : targetInterlocutor.role === 'tecnico' ? (
@@ -460,14 +624,23 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <span>{targetInterlocutor.nombre}</span>
                 </h3>
-                <p className="text-[11px] text-slate-400">
-                  {targetInterlocutor.subtitulo}
-                </p>
+                <p className="text-[11px] text-slate-400">{targetInterlocutor.subtitulo}</p>
               </div>
             </div>
 
-            {/* Filtros rápidos de conversación */}
+            {/* Acciones de cabecera: Marcar conversación leída y Filtros */}
             <div className="flex items-center gap-2">
+              {unreadEnEstaConversacion > 0 && (
+                <button
+                  onClick={handleMarcarConversacionLeida}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/60 hover:text-white text-xs font-semibold transition-all shadow-sm"
+                  title="Marcar todos los mensajes pendientes de este hilo como leídos"
+                >
+                  <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Marcar todo leído ({unreadEnEstaConversacion})</span>
+                </button>
+              )}
+
               <div className="relative">
                 <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
@@ -503,14 +676,16 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
                 </div>
                 <div className="text-sm font-semibold text-slate-300">No hay mensajes aún en este canal</div>
                 <p className="text-xs text-slate-500 max-w-sm">
-                  Utilice el formulario inferior para redactar el primer mensaje oficial.
+                  Utilice el formulario inferior para redactar el primer mensaje oficial o adjuntar informes.
                 </p>
               </div>
             ) : (
               mensajesConversacion.map((msg) => {
-                const isMyMessage = msg.senderRole === user.role && (
-                  user.role !== 'socio' || msg.senderSocioId === user.socioId
-                );
+                const isMyMessage =
+                  msg.senderRole === user.role &&
+                  (user.role !== 'socio' || msg.senderSocioId === user.socioId);
+                const esParaMi = esMensajeParaMi(msg);
+                const esPendienteDeLeer = !msg.leido && esParaMi;
                 const catInfo = CATEGORIAS_CONFIG[msg.categoria] || CATEGORIAS_CONFIG.consulta_general;
                 const formattedDate = new Date(msg.fechaCreacion).toLocaleString('es-AR', {
                   day: '2-digit',
@@ -524,25 +699,41 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
                     key={msg.id}
                     className={`flex flex-col ${isMyMessage ? 'items-end' : 'items-start'}`}
                   >
-                    <div className={`max-w-[85%] sm:max-w-[78%] rounded-2xl p-4 space-y-2.5 shadow-md border ${
-                      isMyMessage
-                        ? 'bg-indigo-950/40 border-indigo-500/30 text-slate-100 rounded-tr-sm'
-                        : msg.senderRole === 'tecnico'
-                        ? 'bg-amber-950/30 border-amber-600/30 text-slate-100 rounded-tl-sm'
-                        : msg.senderRole === 'admin'
-                        ? 'bg-slate-800/80 border-slate-700/80 text-slate-100 rounded-tl-sm'
-                        : 'bg-emerald-950/30 border-emerald-600/30 text-slate-100 rounded-tl-sm'
-                    }`}>
-                      {/* Remitente y Badge de categoría */}
+                    <div
+                      onClick={() => {
+                        if (esPendienteDeLeer) {
+                          handleMarcarMensajeLeido(msg.id);
+                        }
+                      }}
+                      title={
+                        esPendienteDeLeer
+                          ? 'Presiona sobre este mensaje para marcarlo como leído'
+                          : undefined
+                      }
+                      className={`max-w-[85%] sm:max-w-[80%] rounded-2xl p-4 space-y-2.5 shadow-md border transition-all ${
+                        esPendienteDeLeer
+                          ? 'ring-2 ring-amber-400/60 border-amber-500/70 bg-gradient-to-br from-amber-950/40 via-slate-900/90 to-slate-900/90 cursor-pointer hover:ring-amber-300 shadow-amber-500/10'
+                          : isMyMessage
+                          ? 'bg-indigo-950/40 border-indigo-500/30 text-slate-100 rounded-tr-sm'
+                          : msg.senderRole === 'tecnico'
+                          ? 'bg-amber-950/30 border-amber-600/30 text-slate-100 rounded-tl-sm'
+                          : msg.senderRole === 'admin'
+                          ? 'bg-slate-800/80 border-slate-700/80 text-slate-100 rounded-tl-sm'
+                          : 'bg-emerald-950/30 border-emerald-600/30 text-slate-100 rounded-tl-sm'
+                      }`}
+                    >
+                      {/* Remitente, Badge de categoría y Marca de Pendiente de Leer */}
                       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/40 pb-2">
                         <div className="flex items-center gap-2">
-                          <span className={`text-[11px] font-bold flex items-center gap-1 ${
-                            msg.senderRole === 'admin'
-                              ? 'text-indigo-400'
-                              : msg.senderRole === 'tecnico'
-                              ? 'text-amber-400'
-                              : 'text-emerald-400'
-                          }`}>
+                          <span
+                            className={`text-[11px] font-bold flex items-center gap-1 ${
+                              msg.senderRole === 'admin'
+                                ? 'text-indigo-400'
+                                : msg.senderRole === 'tecnico'
+                                ? 'text-amber-400'
+                                : 'text-emerald-400'
+                            }`}
+                          >
                             {msg.senderRole === 'admin' ? (
                               <Shield className="w-3 h-3" />
                             ) : msg.senderRole === 'tecnico' ? (
@@ -559,8 +750,23 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
                           </span>
                         </div>
 
-                        {/* Badges de Categoría y Motivo */}
-                        <div className="flex items-center gap-1.5">
+                        {/* Badges de Categoría, Motivo y Marca "Pendiente de leer" */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {esPendienteDeLeer && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarcarMensajeLeido(msg.id);
+                              }}
+                              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/60 text-[10px] font-extrabold animate-pulse hover:bg-amber-500/30 transition-all cursor-pointer shadow-sm"
+                              title="Presiona para marcar como leído y quitar la marca"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                              <span>Pendiente de leer</span>
+                            </button>
+                          )}
+
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${catInfo.badgeClass}`}>
                             {catInfo.label}
                           </span>
@@ -577,9 +783,7 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
                       </div>
 
                       {/* Asunto */}
-                      <div className="text-xs font-bold text-white tracking-wide">
-                        {msg.asunto}
-                      </div>
+                      <div className="text-xs font-bold text-white tracking-wide">{msg.asunto}</div>
 
                       {/* Cuadro de Respuesta / Cita (si aplica) */}
                       {msg.replyToPreview && (
@@ -598,24 +802,125 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
                         {msg.contenido}
                       </p>
 
-                      {/* Footer del mensaje: Botón responder y confirmación de lectura */}
+                      {/* Documentos Adjuntos (Excel, Word, PDF) */}
+                      {msg.adjuntos && msg.adjuntos.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-slate-700/40 space-y-1.5">
+                          <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
+                            <Paperclip className="w-3 h-3 text-slate-400" />
+                            <span>Documentos adjuntos ({msg.adjuntos.length}):</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {msg.adjuntos.map((adj) => {
+                              const isExcel = adj.tipo === 'excel';
+                              const isWord = adj.tipo === 'word';
+
+                              return (
+                                <div
+                                  key={adj.id}
+                                  onClick={(e) => handleDownloadAdjunto(adj, e)}
+                                  className={`p-2 rounded-xl border flex items-center justify-between gap-2.5 transition-all cursor-pointer group ${
+                                    isExcel
+                                      ? 'bg-emerald-950/40 hover:bg-emerald-950/70 border-emerald-500/30 hover:border-emerald-500/60'
+                                      : isWord
+                                      ? 'bg-sky-950/40 hover:bg-sky-950/70 border-sky-500/30 hover:border-sky-500/60'
+                                      : 'bg-rose-950/40 hover:bg-rose-950/70 border-rose-500/30 hover:border-rose-500/60'
+                                  }`}
+                                  title={`Descargar ${adj.nombre} (${formatFileSize(adj.tamano)})`}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div
+                                      className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                        isExcel
+                                          ? 'bg-emerald-600/30 text-emerald-400'
+                                          : isWord
+                                          ? 'bg-sky-600/30 text-sky-400'
+                                          : 'bg-rose-600/30 text-rose-400'
+                                      }`}
+                                    >
+                                      {isExcel ? (
+                                        <FileSpreadsheet className="w-4 h-4" />
+                                      ) : (
+                                        <FileText className="w-4 h-4" />
+                                      )}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="text-xs font-semibold text-white truncate group-hover:text-indigo-200">
+                                        {adj.nombre}
+                                      </div>
+                                      <div className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                                        <span
+                                          className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
+                                            isExcel
+                                              ? 'bg-emerald-900/60 text-emerald-300'
+                                              : isWord
+                                              ? 'bg-sky-900/60 text-sky-300'
+                                              : 'bg-rose-900/60 text-rose-300'
+                                          }`}
+                                        >
+                                          {isExcel ? 'Excel' : isWord ? 'Word' : 'PDF'}
+                                        </span>
+                                        <span>{formatFileSize(adj.tamano)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleDownloadAdjunto(adj, e)}
+                                    className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-indigo-600 text-slate-300 hover:text-white transition-all flex-shrink-0 shadow-sm"
+                                    title="Descargar archivo"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Footer del mensaje: Botón responder y confirmación / acción de lectura */}
                       <div className="flex items-center justify-between pt-1 border-t border-slate-700/30 text-[11px]">
                         <button
-                          onClick={() => handleStartReply(msg)}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartReply(msg);
+                          }}
                           className="text-slate-400 hover:text-indigo-300 font-semibold flex items-center gap-1 transition-colors"
                         >
                           <Reply className="w-3 h-3" />
                           <span>Responder</span>
                         </button>
 
-                        <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                          {msg.leido ? (
-                            <span className="flex items-center gap-1 text-emerald-400 font-medium">
+                        <div className="flex items-center gap-2">
+                          {esPendienteDeLeer ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarcarMensajeLeido(msg.id);
+                              }}
+                              className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-semibold text-[10px] transition-all"
+                              title="Presiona para marcar como leído"
+                            >
                               <CheckCheck className="w-3 h-3" />
-                              Leído
-                            </span>
+                              <span>Marcar como leído</span>
+                            </button>
                           ) : (
-                            <span className="text-slate-500">Pendiente</span>
+                            <div className="flex items-center gap-1 text-[10px]">
+                              {msg.leido ? (
+                                <span className="flex items-center gap-1 text-emerald-400 font-medium">
+                                  <CheckCheck className="w-3 h-3" />
+                                  Leído
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1 text-slate-400">
+                                  <Clock className="w-2.5 h-2.5 text-slate-500" />
+                                  Pendiente
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -631,6 +936,19 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
           {/* FORMULARIO DE ENVÍO / RESPUESTA                                    */}
           {/* ------------------------------------------------------------------ */}
           <div className="p-3.5 sm:p-4 bg-slate-950/90 border-t border-slate-800">
+            {/* Input de archivos oculto para Excel, Word y PDF */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.docx,.doc,.xlsx,.xls,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+              onChange={(e) => {
+                if (e.target.files) handleFilesSelected(e.target.files);
+                e.target.value = '';
+              }}
+              className="hidden"
+            />
+
             <form onSubmit={handleEnviar} className="space-y-3">
               {/* Banner de respuesta activa */}
               {replyingTo && (
@@ -717,6 +1035,60 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
                 />
               </div>
 
+              {/* Lista de adjuntos en preparación */}
+              {adjuntos.length > 0 && (
+                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+                  <div className="text-[11px] font-semibold text-slate-400 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Paperclip className="w-3.5 h-3.5 text-indigo-400" />
+                      Documentos listos para adjuntar ({adjuntos.length}):
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setAdjuntos([])}
+                      className="text-[10px] text-slate-500 hover:text-rose-400 transition-colors"
+                    >
+                      Quitar todos
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {adjuntos.map((adj) => {
+                      const isExcel = adj.tipo === 'excel';
+                      const isWord = adj.tipo === 'word';
+
+                      return (
+                        <div
+                          key={adj.id}
+                          className={`flex items-center gap-2 px-2.5 py-1 rounded-lg border text-xs ${
+                            isExcel
+                              ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+                              : isWord
+                              ? 'bg-sky-950/40 border-sky-500/40 text-sky-200'
+                              : 'bg-rose-950/40 border-rose-500/40 text-rose-200'
+                          }`}
+                        >
+                          {isExcel ? (
+                            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                          ) : (
+                            <FileText className="w-3.5 h-3.5 flex-shrink-0" />
+                          )}
+                          <span className="truncate max-w-[180px] font-medium">{adj.nombre}</span>
+                          <span className="text-[10px] opacity-75">({formatFileSize(adj.tamano)})</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAdjunto(adj.id)}
+                            className="p-0.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-all ml-1"
+                            title="Quitar este archivo"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Mensaje de Error si lo hay */}
               {formError && (
                 <div className="flex items-center gap-1.5 text-xs text-rose-400 bg-rose-950/40 border border-rose-800/50 px-3 py-1.5 rounded-xl">
@@ -725,20 +1097,43 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
                 </div>
               )}
 
-              {/* Botón de Enviar */}
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-[11px] text-slate-500">
-                  {replyingTo ? 'Respondiendo al hilo' : `Enviando a: ${targetInterlocutor.nombre}`}
-                </span>
+              {/* Botones de acción: Adjuntar documento y Enviar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition-all active:scale-[0.98]"
+                    title="Adjuntar planillas Excel (.xlsx, .xls), minutas Word (.docx) o certificados PDF (.pdf)"
+                  >
+                    <Paperclip className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Adjuntar Excel, Word o PDF</span>
+                  </button>
+                  <span className="text-[10px] text-slate-500 hidden sm:inline">
+                    Máx 5 MB por archivo
+                  </span>
+                </div>
 
-                <button
-                  type="submit"
-                  disabled={enviando}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{enviando ? 'Enviando...' : replyingTo ? 'Enviar Respuesta' : 'Enviar Mensaje'}</span>
-                </button>
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] text-slate-500 hidden md:inline">
+                    {replyingTo ? 'Respondiendo al hilo' : `Enviando a: ${targetInterlocutor.nombre}`}
+                  </span>
+
+                  <button
+                    type="submit"
+                    disabled={enviando}
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>
+                      {enviando
+                        ? 'Enviando...'
+                        : replyingTo
+                        ? 'Enviar Respuesta'
+                        : 'Enviar Mensaje'}
+                    </span>
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -754,9 +1149,7 @@ export const CentroMensajes: React.FC<CentroMensajesProps> = ({
   // Modal con backdrop
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-5xl flex justify-center">
-        {content}
-      </div>
+      <div className="w-full max-w-5xl flex justify-center">{content}</div>
     </div>
   );
 };

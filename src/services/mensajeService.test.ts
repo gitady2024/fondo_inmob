@@ -4,9 +4,11 @@ import {
   enviarMensaje,
   responderMensaje,
   getUnreadCount,
+  marcarMensajeComoLeido,
   saveStoredMensajes
 } from './mensajeService';
 import type { UserProfile } from '../types/auth';
+import type { AdjuntoMensaje } from '../types/mensajes';
 
 const ADMIN: UserProfile = {
   id: 'admin-1',
@@ -189,5 +191,91 @@ describe('mensajeService - Aislamiento Estricto y Gestión de Mensajes', () => {
 
     // Ahora Socio 1 tiene 1 no leído
     expect(getUnreadCount('fondo-test', SOCIO_1)).toBe(1);
+  });
+
+  it('permite marcar mensajes como leídos individualmente y actualiza fechaLectura', async () => {
+    const msg = await enviarMensaje(
+      {
+        fondoId: 'fondo-test',
+        receiverRole: 'admin',
+        categoria: 'consulta_general',
+        asunto: 'Aviso de transferencia',
+        contenido: 'Adjunto comprobante.'
+      },
+      SOCIO_1
+    );
+
+    expect(msg.leido).toBe(false);
+    expect(getUnreadCount('fondo-test', ADMIN)).toBe(1);
+
+    // Marcar como leído
+    const modificado = await marcarMensajeComoLeido(msg.id);
+    expect(modificado).toBe(true);
+
+    const msgsActuales = getMensajesForUser('fondo-test', ADMIN);
+    const msgLeido = msgsActuales.find((m) => m.id === msg.id);
+    expect(msgLeido?.leido).toBe(true);
+    expect(msgLeido?.fechaLectura).toBeDefined();
+
+    // El contador de no leídos debe bajar a 0
+    expect(getUnreadCount('fondo-test', ADMIN)).toBe(0);
+  });
+
+  it('permite adjuntar documentos Excel, Word y PDF tanto en nuevo mensaje como en respuesta', async () => {
+    const adjuntoPdf: AdjuntoMensaje = {
+      id: 'adj-test-1',
+      nombre: 'Certificado_Avance.pdf',
+      tamano: 102400,
+      tipo: 'pdf',
+      mimeType: 'application/pdf',
+      dataUrl: 'data:application/pdf;base64,JVBERi0xLjQK'
+    };
+
+    const adjuntoExcel: AdjuntoMensaje = {
+      id: 'adj-test-2',
+      nombre: 'Planilla_Costos.xlsx',
+      tamano: 54320,
+      tipo: 'excel',
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      dataUrl: 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,UEsDBBQ='
+    };
+
+    // 1. Técnico envía mensaje con PDF y Excel al Administrador
+    const msgTec = await enviarMensaje(
+      {
+        fondoId: 'fondo-test',
+        receiverRole: 'admin',
+        categoria: 'avance_obra',
+        asunto: 'Certificación de Obra Mensual',
+        contenido: 'Adjuntamos certificado PDF y planilla Excel detallada.',
+        adjuntos: [adjuntoPdf, adjuntoExcel]
+      },
+      TECNICO
+    );
+
+    expect(msgTec.adjuntos).toHaveLength(2);
+    expect(msgTec.adjuntos?.[0].tipo).toBe('pdf');
+    expect(msgTec.adjuntos?.[1].tipo).toBe('excel');
+
+    // 2. Administrador responde adjuntando un documento Word
+    const adjuntoWord: AdjuntoMensaje = {
+      id: 'adj-test-3',
+      nombre: 'Acta_Aprobacion_Certificado.docx',
+      tamano: 32000,
+      tipo: 'word',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      dataUrl: 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,UEsDBBQ='
+    };
+
+    const rtaAdmin = await responderMensaje(
+      msgTec,
+      'Recibido y aprobado. Remito acta de aprobación.',
+      ADMIN,
+      [adjuntoWord]
+    );
+
+    expect(rtaAdmin.adjuntos).toHaveLength(1);
+    expect(rtaAdmin.adjuntos?.[0].nombre).toBe('Acta_Aprobacion_Certificado.docx');
+    expect(rtaAdmin.adjuntos?.[0].tipo).toBe('word');
   });
 });
