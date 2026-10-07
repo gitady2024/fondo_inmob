@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import type { FlujoSocioCalculado } from '../types/fondo';
 import { formatFecha } from '../utils/calculations';
-import { KeyRound, Home, Calendar, ChevronRight, User } from 'lucide-react';
+import { KeyRound, Home, Calendar, ChevronRight, User, ArrowDownUp, Info } from 'lucide-react';
 
 export interface PossessionNode {
   socioId: number;
   cuotaPosesion: number;
   fechaProyectada: string;
   fechaCorta: string;
+  ordenEntrega: number;
   isSelected?: boolean;
 }
 
@@ -24,46 +25,97 @@ export const PossessionTimeline: React.FC<PossessionTimelineProps> = ({
   socioSeleccionado,
   onSelectSocio
 }) => {
-  // Ordenar socios cronológicamente por su cuota de posesión
-  const timelineNodes = React.useMemo(() => {
+  const [criterioOrden, setCriterioOrden] = useState<'cronologico' | 'socio'>('cronologico');
+
+  // Procesar y ordenar nodos
+  const timelineNodes = useMemo(() => {
     if (!flujosSocios || flujosSocios.length === 0) return [];
 
-    return [...flujosSocios]
+    // Primero calculamos el ranking cronológico de cada socio
+    const rankingCronologico = [...flujosSocios]
       .sort((a, b) => a.cuotaPosesion - b.cuotaPosesion)
-      .map((fs, index) => {
-        const { fechaCorta, fechaLarga } = formatFecha(fechaInicio, fs.cuotaPosesion);
-        return {
-          socioId: fs.socioId,
-          cuotaPosesion: fs.cuotaPosesion,
-          fechaProyectada: fechaLarga,
-          fechaCorta,
-          ordenEntrega: index + 1,
-          isSelected: fs.socioId === socioSeleccionado
-        };
-      });
-  }, [flujosSocios, fechaInicio, socioSeleccionado]);
+      .reduce((acc, fs, idx) => {
+        acc[fs.socioId] = idx + 1;
+        return acc;
+      }, {} as Record<number, number>);
+
+    // Luego ordenamos según el criterio seleccionado
+    const lista = [...flujosSocios].sort((a, b) => {
+      if (criterioOrden === 'cronologico') {
+        return a.cuotaPosesion - b.cuotaPosesion;
+      }
+      return a.socioId - b.socioId;
+    });
+
+    return lista.map((fs) => {
+      const { fechaCorta, fechaLarga } = formatFecha(fechaInicio, fs.cuotaPosesion);
+      return {
+        socioId: fs.socioId,
+        cuotaPosesion: fs.cuotaPosesion,
+        fechaProyectada: fechaLarga,
+        fechaCorta,
+        ordenEntrega: rankingCronologico[fs.socioId] || 1,
+        isSelected: fs.socioId === socioSeleccionado
+      };
+    });
+  }, [flujosSocios, fechaInicio, socioSeleccionado, criterioOrden]);
 
   return (
     <section className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4 no-print transition-all">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-2 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2 border-b border-slate-800">
         <div>
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <KeyRound className="w-5 h-5 text-amber-400" />
             <span>Línea de Tiempo de Posesiones y Adjudicación</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Cronograma secuencial de entrega de unidades (haz clic en un socio para ver su cuenta)
+            Cronograma secuencial de entrega de unidades (haz clic en un socio para auditar su cuenta)
           </p>
         </div>
 
-        <span className="text-[11px] font-mono text-slate-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
-          {timelineNodes.length} Unidades Funcionales
+        {/* Controles de orden */}
+        <div className="flex items-center gap-2">
+          <div className="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center text-xs">
+            <span className="text-[10px] text-slate-400 px-2 font-semibold flex items-center gap-1">
+              <ArrowDownUp className="w-3 h-3 text-indigo-400" /> Ordenar:
+            </span>
+            <button
+              onClick={() => setCriterioOrden('cronologico')}
+              className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                criterioOrden === 'cronologico'
+                  ? 'bg-amber-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Ordenado por fecha de entrega de llaves"
+            >
+              Cronológico (Fecha)
+            </button>
+            <button
+              onClick={() => setCriterioOrden('socio')}
+              className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                criterioOrden === 'socio'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Ordenado por número de unidad (D1, D2, D3...)"
+            >
+              Por Socio (D1 a DN)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Nota explicativa de orden de entrega */}
+      <div className="bg-slate-950/60 border border-slate-800/80 px-3.5 py-2 rounded-xl text-xs text-slate-400 flex items-center gap-2">
+        <Info className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+        <span>
+          El orden de entrega refleja el mes en que cada socio recibe la posesión. Podés modificar el mes de adjudicación de cualquier socio desde su campo <strong className="text-amber-300 font-mono">"Adjudica Cuota"</strong>.
         </span>
       </div>
 
       {/* Horizontal Stepped Progress Bar (Scrollable en desktop y tablet) */}
-      <div className="relative pt-4 pb-2 overflow-x-auto scrollbar-thin">
-        <div className="flex items-center min-w-max gap-3 sm:gap-4 px-2">
+      <div className="relative pt-2 pb-2 overflow-x-auto scrollbar-thin">
+        <div className="flex items-center min-w-max gap-3 sm:gap-4 px-1">
           {timelineNodes.map((node, index) => {
             const isLast = index === timelineNodes.length - 1;
 
