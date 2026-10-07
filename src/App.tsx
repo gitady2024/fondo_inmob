@@ -38,6 +38,8 @@ import { SupabaseModal } from './components/SupabaseModal';
 import { ModuloTecnico } from './components/ModuloTecnico';
 import { ContratoModal } from './components/ContratoModal';
 import { CentroMensajes } from './components/CentroMensajes';
+import { HeroSection } from './components/HeroSection';
+import { Footer } from './components/Footer';
 import { getUnreadCount } from './services/mensajeService';
 import type { DatosTecnicosProyecto } from './types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from './types/tecnico';
@@ -374,6 +376,23 @@ export const App: React.FC = () => {
           onOpenMensajes={() => setIsMensajesOpen(true)}
         />
 
+        {/* Hero Header / Landing de Conversión Fintech */}
+        {currentUser.role !== 'socio' && (
+          <HeroSection
+            nombreFondoActivo={currentFondo.nombre}
+            onStartSimulation={() => {
+              setAdminTab('financiero');
+              setTimeout(() => {
+                const el = document.getElementById('simulador-parametros');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }, 50);
+            }}
+            onOpenContrato={() => setIsContratoOpen(true)}
+          />
+        )}
+
         {/* ------------------------------------------------------------------ */}
         {/* VISTA 1: PORTAL DEL SOCIO (ACCESO RESTRINGIDO A SU UNIDAD)          */}
         {/* ------------------------------------------------------------------ */}
@@ -644,6 +663,12 @@ export const App: React.FC = () => {
           cantidadSocios={currentFondo.params.cantidadDeptos}
           initialContactRole={adminTab === 'tecnico' ? 'tecnico' : 'socio'}
           initialSocioId={socioSeleccionado}
+        />
+
+        {/* Footer Institucional y Disclaimer Legal Argentino */}
+        <Footer
+          onOpenContrato={() => setIsContratoOpen(true)}
+          onOpenPersistencia={() => setIsPersistenciaOpen(true)}
         />
       </div>
     </div>

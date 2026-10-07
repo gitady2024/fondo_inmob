@@ -3,6 +3,7 @@ import type { GastosConfigState } from '../types/fondo';
 
 import { fmtMoneda, calcularGastos } from '../utils/calculations';
 import { Scale, Briefcase, Percent } from 'lucide-react';
+import { CurrencyInput } from './common/CurrencyInput';
 
 interface GastosAdjudicacionProps {
   costoDepto: number;
@@ -105,11 +106,9 @@ export const GastosAdjudicacion: React.FC<GastosAdjudicacionProps> = ({
               <span className="text-slate-300 font-medium">Otros Gastos Fijos ($)</span>
               <span className="text-slate-400 font-mono font-medium">{fmtMoneda(gastos.otrosGastos)}</span>
             </div>
-            <input
-              type="number"
-              step="50"
+            <CurrencyInput
               value={gastos.otrosGastos}
-              onChange={(e) => onChange({ otrosGastos: parseFloat(e.target.value) || 0 })}
+              onChange={(val) => onChange({ otrosGastos: val })}
               className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none font-mono focus:border-slate-500"
             />
           </div>
