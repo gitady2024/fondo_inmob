@@ -40,6 +40,8 @@ import { ContratoModal } from './components/ContratoModal';
 import { CentroMensajes } from './components/CentroMensajes';
 import { HeroSection } from './components/HeroSection';
 import { Footer } from './components/Footer';
+import { StickyKPIs } from './components/StickyKPIs';
+import { CapitalFlowChart } from './components/CapitalFlowChart';
 import { getUnreadCount } from './services/mensajeService';
 import type { DatosTecnicosProyecto } from './types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from './types/tecnico';
@@ -57,6 +59,7 @@ export const App: React.FC = () => {
   const [isNewModalOpen, setIsNewModalOpen] = useState<boolean>(false);
   const [adminTab, setAdminTab] = useState<'financiero' | 'tecnico' | 'mensajeria'>('financiero');
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [isCalculating, setIsCalculating] = useState<boolean>(false);
 
   // Inicializar fondos al montar
   useEffect(() => {
@@ -100,6 +103,23 @@ export const App: React.FC = () => {
   useEffect(() => {
     refreshUnreadCount();
   }, [refreshUnreadCount]);
+
+  // Feedback visual de recálculo (microinteracción con debounce)
+  useEffect(() => {
+    setIsCalculating(true);
+    const timer = setTimeout(() => {
+      setIsCalculating(false);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [
+    currentFondo.params,
+    currentFondo.gastos,
+    currentFondo.anticipos,
+    currentFondo.ajustes,
+    currentFondo.adelanto,
+    currentFondo.cesion,
+    currentFondo.adjudicacionFijada
+  ]);
 
   // Sincronizar actualización de campos en el fondo activo (Admin y Técnico)
   const updateCurrentFondo = (updater: (prev: FondoGuardado) => FondoGuardado) => {
@@ -360,6 +380,19 @@ export const App: React.FC = () => {
   const activeSocioIndex = (currentUser.role === 'socio' && currentUser.socioId ? currentUser.socioId : socioSeleccionado) - 1;
   const socioActual = flujosSocios[activeSocioIndex] || flujosSocios[0];
 
+  // Métricas reactivas para el Sticky KPI Dashboard
+  const kpiCuotaPura = socioActual?.cuotaInmInicial || currentFondo.params.valorCuotaBase;
+  const kpiCuotaPostPosesion = useMemo(() => {
+    if (!socioActual || !socioActual.flujo) return 0;
+    const post = socioActual.flujo.find((m) => m.mes > socioActual.cuotaPosesion);
+    return post ? post.abonadoMes : (socioActual.cuotaFinInicial || 0);
+  }, [socioActual]);
+  const kpiCostoTotalPlan = socioActual?.totalAbonado || (currentFondo.params.costoDepto + gastosCalculados.gastosTotales);
+  const kpiPorcentajeIntegrado = useMemo(() => {
+    if (!socioActual || socioActual.totalAbonado <= 0) return 0;
+    return (socioActual.anticipoMes0 / socioActual.totalAbonado) * 100;
+  }, [socioActual]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -567,37 +600,67 @@ export const App: React.FC = () => {
                   onChangeAjustes={handleAjustesChange}
                 />
 
-                {/* Estado de Cuenta Individual (Vista Admin) */}
+                {/* 2. Sticky KPI Dashboard (Siempre visible en el scroll) */}
+                <StickyKPIs
+                  cuotaPura={kpiCuotaPura}
+                  cuotaPostPosesion={kpiCuotaPostPosesion}
+                  costoTotalPlan={kpiCostoTotalPlan}
+                  porcentajeIntegrado={kpiPorcentajeIntegrado}
+                  mesPosesion={socioActual?.cuotaPosesion}
+                  socioLabel={`Socio D${socioSeleccionado}`}
+                  isCalculating={isCalculating}
+                  onScrollToChart={() => {
+                    document.getElementById('grafico-flujo-capital')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  onScrollToTable={() => {
+                    document.getElementById('seccionCuentaIndividual')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                />
+
+                {/* 3. Gráfico de Flujo de Capital (Visualización Inmediata) */}
                 {socioActual && (
-                  <CuentaIndividual
-                    cantidadSocios={currentFondo.params.cantidadDeptos}
-                    socioSeleccionado={socioSeleccionado}
+                  <CapitalFlowChart
                     flujoSocio={socioActual}
                     fechaInicio={currentFondo.params.fechaInicio}
+                    isCalculating={isCalculating}
                     costoDepto={currentFondo.params.costoDepto}
-                    formaPagoGastos={currentFondo.gastos.formaPagoGastos}
-                    params={currentFondo.params}
-                    gastos={currentFondo.gastos}
-                    onSelectSocio={(id) => setSocioSeleccionado(id)}
-                    onAdjudicacionChange={handleAdjudicacionChange}
                   />
                 )}
 
-                {/* Resumen Consolidado */}
-                <ResumenConsolidado
-                  flujosSocios={flujosSocios}
-                  fechaInicio={currentFondo.params.fechaInicio}
-                  params={currentFondo.params}
-                  gastos={currentFondo.gastos}
-                  adjudicacionFijada={currentFondo.adjudicacionFijada}
-                  cesionActiva={currentFondo.cesion.activo}
-                  socioCedente={currentFondo.cesion.socioCedente}
-                  cuotaSalidaCesion={currentFondo.cesion.cuotaSalida}
-                  adelantoActivo={currentFondo.adelanto.activo}
-                  socioAdelanta={currentFondo.adelanto.socioAdelanta}
-                  cuotaAdelanto={currentFondo.adelanto.cuota}
-                  onSelectSocio={(id) => setSocioSeleccionado(id)}
-                />
+                {/* 4. Tablas Detalladas (Con transición suave durante recálculo) */}
+                <div className={`space-y-6 transition-all duration-300 ${isCalculating ? 'opacity-60 blur-[0.5px]' : 'opacity-100'}`}>
+                  {/* Estado de Cuenta Individual (Vista Admin) */}
+                  {socioActual && (
+                    <CuentaIndividual
+                      cantidadSocios={currentFondo.params.cantidadDeptos}
+                      socioSeleccionado={socioSeleccionado}
+                      flujoSocio={socioActual}
+                      fechaInicio={currentFondo.params.fechaInicio}
+                      costoDepto={currentFondo.params.costoDepto}
+                      formaPagoGastos={currentFondo.gastos.formaPagoGastos}
+                      params={currentFondo.params}
+                      gastos={currentFondo.gastos}
+                      onSelectSocio={(id) => setSocioSeleccionado(id)}
+                      onAdjudicacionChange={handleAdjudicacionChange}
+                    />
+                  )}
+
+                  {/* Resumen Consolidado */}
+                  <ResumenConsolidado
+                    flujosSocios={flujosSocios}
+                    fechaInicio={currentFondo.params.fechaInicio}
+                    params={currentFondo.params}
+                    gastos={currentFondo.gastos}
+                    adjudicacionFijada={currentFondo.adjudicacionFijada}
+                    cesionActiva={currentFondo.cesion.activo}
+                    socioCedente={currentFondo.cesion.socioCedente}
+                    cuotaSalidaCesion={currentFondo.cesion.cuotaSalida}
+                    adelantoActivo={currentFondo.adelanto.activo}
+                    socioAdelanta={currentFondo.adelanto.socioAdelanta}
+                    cuotaAdelanto={currentFondo.adelanto.cuota}
+                    onSelectSocio={(id) => setSocioSeleccionado(id)}
+                  />
+                </div>
               </>
             )}
           </>
