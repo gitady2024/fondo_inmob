@@ -43,6 +43,11 @@ import { Footer } from './components/Footer';
 import { StickyKPIs } from './components/StickyKPIs';
 import { CapitalFlowChart } from './components/CapitalFlowChart';
 import { PossessionTimeline } from './components/PossessionTimeline';
+import { ScenarioToolbar } from './components/common/ScenarioToolbar';
+import { Toast } from './components/common/Toast';
+import { useUrlState, type UrlScenarioParams } from './hooks/useUrlState';
+import { exportarReporteEjecutivoPDF } from './utils/exportToPDF';
+import { exportarCuadroMarchaCSV } from './utils/exportToCSV';
 import { getUnreadCount } from './services/mensajeService';
 import type { DatosTecnicosProyecto } from './types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from './types/tecnico';
@@ -394,6 +399,69 @@ export const App: React.FC = () => {
     return (socioActual.anticipoMes0 / socioActual.totalAbonado) * 100;
   }, [socioActual]);
 
+  // Notificación Toast
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Sincronización del estado vía URL (Fase 4: Shareable Links)
+  const handleApplyInitialUrlParams = useCallback((urlParams: UrlScenarioParams) => {
+    if (urlParams.socioId) {
+      setSocioSeleccionado(urlParams.socioId);
+    }
+    if (urlParams.fondoId) {
+      setCurrentFondoId(urlParams.fondoId);
+    }
+    updateCurrentFondo((prev) => ({
+      ...prev,
+      params: {
+        ...prev.params,
+        ...(urlParams.costoDepto ? { costoDepto: urlParams.costoDepto } : {}),
+        ...(urlParams.cantidadCuotas ? { cantidadCuotas: urlParams.cantidadCuotas } : {}),
+        ...(urlParams.cantidadDeptos ? { cantidadDeptos: urlParams.cantidadDeptos } : {}),
+        ...(urlParams.fechaInicio ? { fechaInicio: urlParams.fechaInicio } : {}),
+        ...(urlParams.modalidadAnticipo ? { modalidadAnticipo: urlParams.modalidadAnticipo } : {})
+      }
+    }));
+  }, []);
+
+  const { getShareableUrl } = useUrlState(
+    currentFondo.params,
+    socioSeleccionado,
+    currentFondo.id,
+    handleApplyInitialUrlParams
+  );
+
+  const handleShareScenario = () => {
+    const url = getShareableUrl();
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).catch(() => {});
+    }
+    setToastMessage('✅ Link copiado al portapapeles. Listo para compartir por WhatsApp o email.');
+  };
+
+  const handleExportPDF = async () => {
+    if (!socioActual) return;
+    await exportarReporteEjecutivoPDF(
+      socioActual,
+      currentFondo.params,
+      currentFondo.gastos,
+      currentFondo.params.fechaInicio,
+      currentFondo.nombre
+    );
+    setToastMessage('📄 Reporte Ejecutivo en PDF generado y descargado.');
+  };
+
+  const handleExportCSV = () => {
+    if (!socioActual) return;
+    exportarCuadroMarchaCSV(
+      socioActual,
+      currentFondo.params,
+      currentFondo.gastos,
+      currentFondo.params.fechaInicio,
+      currentFondo.nombre
+    );
+    setToastMessage('📊 Cuadro de marcha exportado en formato Excel / CSV.');
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -480,46 +548,58 @@ export const App: React.FC = () => {
               onDelete={handleDelete}
             />
 
-            {/* Barra de alternancia de módulo para el Administrador */}
-            <div className="flex flex-wrap sm:flex-nowrap bg-slate-900 border border-slate-800 p-1.5 rounded-2xl max-w-2xl gap-2 shadow-lg no-print">
-              <button
-                onClick={() => setAdminTab('financiero')}
-                className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                  adminTab === 'financiero'
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                }`}
-              >
-                <Calculator className="w-4 h-4" />
-                <span>Gestión Financiera</span>
-              </button>
-              <button
-                onClick={() => setAdminTab('tecnico')}
-                className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                  adminTab === 'tecnico'
-                    ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                }`}
-              >
-                <HardHat className="w-4 h-4" />
-                <span>Gestión Técnica</span>
-              </button>
-              <button
-                onClick={() => setAdminTab('mensajeria')}
-                className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                  adminTab === 'mensajeria'
-                    ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                }`}
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>Mensajería Fiduciaria</span>
-                {unreadCount > 0 && (
-                  <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-extrabold animate-pulse">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
+            {/* Barra de alternancia de módulo y Acciones Ejecutivas */}
+            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 no-print">
+              <div className="flex flex-wrap sm:flex-nowrap bg-slate-900 border border-slate-800 p-1.5 rounded-2xl max-w-2xl gap-2 shadow-lg">
+                <button
+                  onClick={() => setAdminTab('financiero')}
+                  className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                    adminTab === 'financiero'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                  }`}
+                >
+                  <Calculator className="w-4 h-4" />
+                  <span>Gestión Financiera</span>
+                </button>
+                <button
+                  onClick={() => setAdminTab('tecnico')}
+                  className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                    adminTab === 'tecnico'
+                      ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                  }`}
+                >
+                  <HardHat className="w-4 h-4" />
+                  <span>Gestión Técnica</span>
+                </button>
+                <button
+                  onClick={() => setAdminTab('mensajeria')}
+                  className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                    adminTab === 'mensajeria'
+                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                  }`}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Mensajería Fiduciaria</span>
+                  {unreadCount > 0 && (
+                    <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-extrabold animate-pulse">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Barra de Herramientas del Escenario (Compartir Link, PDF, CSV, Imprimir) */}
+              {adminTab === 'financiero' && (
+                <ScenarioToolbar
+                  onShare={handleShareScenario}
+                  onExportPDF={handleExportPDF}
+                  onExportCSV={handleExportCSV}
+                  onPrint={() => window.print()}
+                />
+              )}
             </div>
 
             {adminTab === 'tecnico' ? (
@@ -741,6 +821,13 @@ export const App: React.FC = () => {
         <Footer
           onOpenContrato={() => setIsContratoOpen(true)}
           onOpenPersistencia={() => setIsPersistenciaOpen(true)}
+        />
+
+        {/* Notificación Toast para Copiar Link y Feedback de Exportación */}
+        <Toast
+          message={toastMessage || ''}
+          isVisible={!!toastMessage}
+          onClose={() => setToastMessage(null)}
         />
       </div>
     </div>
