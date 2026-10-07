@@ -42,6 +42,7 @@ import { HeroSection } from './components/HeroSection';
 import { Footer } from './components/Footer';
 import { StickyKPIs } from './components/StickyKPIs';
 import { CapitalFlowChart } from './components/CapitalFlowChart';
+import { PossessionTimeline } from './components/PossessionTimeline';
 import { getUnreadCount } from './services/mensajeService';
 import type { DatosTecnicosProyecto } from './types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from './types/tecnico';
@@ -627,7 +628,15 @@ export const App: React.FC = () => {
                   />
                 )}
 
-                {/* 4. Tablas Detalladas (Con transición suave durante recálculo) */}
+                {/* 4. Línea de Tiempo de Posesiones y Adjudicación */}
+                <PossessionTimeline
+                  flujosSocios={flujosSocios}
+                  fechaInicio={currentFondo.params.fechaInicio}
+                  socioSeleccionado={socioSeleccionado}
+                  onSelectSocio={(id) => setSocioSeleccionado(id)}
+                />
+
+                {/* 5. Tablas Detalladas (Con transición suave durante recálculo) */}
                 <div className={`space-y-6 transition-all duration-300 ${isCalculating ? 'opacity-60 blur-[0.5px]' : 'opacity-100'}`}>
                   {/* Estado de Cuenta Individual (Vista Admin) */}
                   {socioActual && (

@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { FlujoSocioCalculado, FormaPagoGastos, ParametrosFondoState, GastosConfigState } from '../types/fondo';
 import { fmtMoneda, formatFecha } from '../utils/calculations';
 import { exportarFichaSocioPDF, exportarFichaSocioExcel } from '../utils/exportReports';
+import { SmartFilters } from './common/SmartFilters';
+import type { FilterMode } from './common/SmartFilters';
+import { MobileCardsList } from './common/MobileCardsList';
+import type { ResumenMesCardItem } from './common/MobileCardsList';
 import {
   User,
   Printer,
   KeyRound,
-  Eye,
-  EyeOff,
   FileDown,
   FileSpreadsheet
 } from 'lucide-react';
@@ -25,7 +27,6 @@ interface CuentaIndividualProps {
   onAdjudicacionChange: (socioId: number, cuota: number) => void;
 }
 
-
 export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
   cantidadSocios,
   socioSeleccionado,
@@ -39,7 +40,9 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
   onAdjudicacionChange
 }) => {
   const [mesSimulado, setMesSimulado] = useState<number>(0);
-  const [mostrarTodasLasCuotas, setMostrarTodasLasCuotas] = useState<boolean>(true);
+  const [filterMode, setFilterMode] = useState<FilterMode>('hitos');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 12;
 
   const mPos = flujoSocio.cuotaPosesion;
   const mesesTotales = flujoSocio.mesesTotales;
@@ -72,10 +75,83 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
 
   const estadoActual = estadoUnidad();
 
+  // Helper para generar el texto descriptivo del concepto liquidado
+  const getConceptoLiquidado = (f: any) => {
+    let str = 'Cuota Mensual Inmueble';
+    if (f.porcentajeAjuste) {
+      str += ` (+${f.porcentajeAjuste}% CAC)`;
+    }
+    if (f.adelanto > 0) {
+      str += ` + Adelanto (${fmtMoneda(f.adelanto)})`;
+    }
+    if (f.mes === mPos && flujoSocio.pagoFinalGastos > 0) {
+      str += ` + Gastos Adjudicación (${fmtMoneda(flujoSocio.pagoFinalGastos)})`;
+    } else if (flujoSocio.recargoGastosPorCuota > 0) {
+      str += ` + Gastos Prorrateados (${fmtMoneda(flujoSocio.recargoGastosPorCuota)})`;
+    }
+    return str;
+  };
+
+  // Cuotas filtradas según el modo (Hitos vs Todo)
+  const cuotasFiltradas = useMemo(() => {
+    if (filterMode === 'hitos') {
+      const hitosSet = new Set([1, mPos, mesesTotales, mesSimulado]);
+      return flujoSocio.flujo.filter(
+        (f) => hitosSet.has(f.mes) || (f.porcentajeAjuste && f.porcentajeAjuste > 0) || f.adelanto > 0
+      );
+    }
+    return flujoSocio.flujo;
+  }, [filterMode, flujoSocio.flujo, mPos, mesesTotales, mesSimulado]);
+
+  // Paginación para modo 'todo'
+  const totalPages = Math.ceil(cuotasFiltradas.length / itemsPerPage);
+  const cuotasPaginadas = useMemo(() => {
+    if (filterMode === 'hitos') return cuotasFiltradas;
+    const start = (currentPage - 1) * itemsPerPage;
+    return cuotasFiltradas.slice(start, start + itemsPerPage);
+  }, [filterMode, cuotasFiltradas, currentPage, itemsPerPage]);
+
+  // Transformar datos para Cards en Mobile
+  const mobileCardsItems = useMemo<ResumenMesCardItem[]>(() => {
+    const list: ResumenMesCardItem[] = [];
+
+    // Incluir Mes 0 si estamos en modo hitos o en la página 1
+    if (filterMode === 'hitos' || currentPage === 1) {
+      list.push({
+        mes: 0,
+        esMesCero: true,
+        fechaCorta: '-',
+        concepto: 'Anticipo de Suscripción / Entrega Inicial Mes 0',
+        abonadoMes: flujoSocio.anticipoMes0,
+        totalAcumulado: flujoSocio.anticipoMes0,
+        saldoRemanente: Math.max(0, costoDepto - flujoSocio.anticipoMes0)
+      });
+    }
+
+    for (const f of cuotasPaginadas) {
+      const { fechaCorta } = formatFecha(fechaInicio, f.mes);
+      list.push({
+        mes: f.mes,
+        fechaCorta,
+        concepto: getConceptoLiquidado(f),
+        abonadoMes: f.abonadoMes,
+        totalAcumulado: f.totalAcumulado,
+        saldoRemanente: f.saldoRemanente,
+        isPosesion: f.mes === mPos,
+        isCancelado: f.mes === mesesTotales,
+        isMesActual: f.mes === mesSimulado,
+        porcentajeAjuste: f.porcentajeAjuste,
+        motivoAjuste: f.motivoAjuste
+      });
+    }
+
+    return list;
+  }, [cuotasPaginadas, filterMode, currentPage, flujoSocio, costoDepto, fechaInicio, mPos, mesesTotales, mesSimulado]);
+
   return (
     <section
       id="seccionCuentaIndividual"
-      className="bg-slate-800/95 border-2 border-indigo-500/40 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-6 transition-all"
+      className="bg-slate-800/95 border-2 border-indigo-500/40 rounded-2xl p-4 sm:p-7 shadow-2xl space-y-6 transition-all"
     >
       {/* Cabecera de la ficha */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-700/80 pb-5">
@@ -88,89 +164,75 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
               Estado de Cuenta Corriente Individual
             </h2>
             <p className="text-slate-400 text-xs mt-0.5">
-              Ficha contable del suscriptor, cartola de movimientos y asignación de posesión
+              Cartola financiera, evolución del capital integrado y amortización de saldo
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 no-print">
-          <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl shadow-sm">
-            <label className="text-xs text-slate-300 font-bold">Ver Socio:</label>
+        {/* Acciones de exportación y cambio de socio */}
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+          {/* Selector de Socio */}
+          <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-xl p-1 shadow-inner">
+            <span className="text-xs font-semibold text-slate-400 pl-2">Socio:</span>
             <select
               value={socioSeleccionado}
-              onChange={(e) => onSelectSocio(parseInt(e.target.value) || 1)}
-              className="bg-slate-800 text-amber-300 font-bold text-xs rounded-lg px-2.5 py-1 outline-none border border-slate-600 focus:border-amber-400"
+              onChange={(e) => onSelectSocio(parseInt(e.target.value, 10))}
+              className="bg-slate-800 border-none rounded-lg px-2.5 py-1 text-xs font-bold text-amber-300 outline-none cursor-pointer"
             >
-              {Array.from({ length: cantidadSocios }, (_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  Socio D{i + 1} (Depto {i + 1})
+              {Array.from({ length: cantidadSocios }, (_, i) => i + 1).map((id) => (
+                <option key={id} value={id}>
+                  Socio D{id} {id === socioSeleccionado ? '(Seleccionado)' : ''}
                 </option>
               ))}
             </select>
           </div>
 
+          {/* Selector de Adjudicación Mes */}
+          <div className="flex items-center gap-1.5 bg-slate-900 border border-amber-500/30 rounded-xl px-2.5 py-1 text-xs">
+            <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-slate-400">Adjudica Cuota:</span>
+            <input
+              type="number"
+              min="1"
+              max={mesesTotales}
+              value={mPos}
+              onChange={(e) => onAdjudicacionChange(socioSeleccionado, parseInt(e.target.value, 10) || 1)}
+              className="w-12 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 font-mono text-center font-bold text-amber-300 outline-none"
+            />
+          </div>
+
+          {/* Botones de Descarga e Impresión */}
           <button
             onClick={() => exportarFichaSocioPDF(flujoSocio, params, gastos, fechaInicio, mesSimulado)}
-            title="Descargar Ficha en formato PDF oficial"
-            className="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-sm"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+            title="Descargar Ficha en PDF"
           >
-            <FileDown className="w-4 h-4" />
-            <span>Descargar PDF</span>
+            <FileDown className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Descargar PDF</span>
           </button>
 
           <button
             onClick={() => exportarFichaSocioExcel(flujoSocio, params, gastos, fechaInicio)}
-            title="Exportar Cartola en Excel (.xlsx)"
-            className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-sm"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+            title="Exportar Cartola a Excel"
           >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Excel</span>
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Excel</span>
           </button>
 
           <button
             onClick={() => window.print()}
-            title="Imprimir cartola o guardar con diálogo del navegador"
-            className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition-all hover:scale-[1.02]"
+            className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+            title="Imprimir Cartola"
           >
-            <Printer className="w-4 h-4" />
-            <span>Imprimir</span>
+            <Printer className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Imprimir</span>
           </button>
         </div>
       </div>
 
-
-      {/* Selector de cuota de adjudicación */}
-      <div className="bg-slate-900/90 border border-amber-500/40 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print shadow-sm">
-        <div className="flex items-center gap-2">
-          <KeyRound className="w-5 h-5 text-amber-400 shrink-0" />
-          <div>
-            <span className="text-xs sm:text-sm font-bold text-amber-300">
-              Elección de Cuota de Adjudicación / Posesión:
-            </span>
-            <p className="text-[11px] text-slate-400">
-              Fija el mes en que este socio recibe la llave de su departamento
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 bg-slate-800/90 border border-amber-500/50 px-3.5 py-2 rounded-xl">
-          <label className="text-xs font-bold text-slate-200">Adjudicar en Cuota:</label>
-          <input
-            type="number"
-            min="1"
-            max="240"
-            value={mPos}
-            onChange={(e) => onAdjudicacionChange(socioSeleccionado, parseInt(e.target.value) || 1)}
-            className="w-20 bg-slate-900 text-amber-300 text-sm px-2 py-1 rounded-lg border border-amber-500/60 font-mono font-bold text-center outline-none focus:ring-1 focus:ring-amber-400"
-          />
-          <span className="text-xs text-emerald-400 font-mono font-bold">
-            ({fechaPosesion.fechaCorta})
-          </span>
-        </div>
-      </div>
-
       {/* Tarjetas KPI */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-slate-900/80 border border-slate-700/80 p-4 rounded-xl shadow-sm">
           <span className="text-[11px] font-medium text-slate-400">Costo Total del Plan</span>
           <div className="text-lg sm:text-xl font-bold text-white mt-1 font-mono">
@@ -212,23 +274,8 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
         </div>
       </div>
 
-      {/* Banner de Ajuste por Mayores Costos si aplica */}
-      {(flujoSocio.totalAjustesPorcentaje || 0) > 0 && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
-          <div className="flex items-center gap-2 text-amber-300 font-semibold">
-            <span className="text-base">📈</span>
-            <span>
-              Plan con Redeterminación de Precios / CAC: <strong>+{flujoSocio.totalAjustesPorcentaje}% acumulado</strong>
-            </span>
-          </div>
-          <div className="text-slate-300 font-mono text-[11px]">
-            Cuota Inicial: <strong className="text-slate-200">{fmtMoneda(flujoSocio.cuotaInmInicial)}</strong> ➔ Cuota Actual: <strong className="text-emerald-400">{fmtMoneda(flujoSocio.cuotaInmActual || flujoSocio.cuotaInmInicial)}</strong>
-          </div>
-        </div>
-      )}
-
       {/* Barra de progreso y simulación interactiva */}
-      <div className="bg-slate-900/80 border border-slate-700/80 p-5 rounded-2xl space-y-4">
+      <div className="bg-slate-900/80 border border-slate-700/80 p-4 sm:p-5 rounded-2xl space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="text-xs sm:text-sm font-bold text-slate-200">
@@ -246,26 +293,27 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
               min="0"
               max={mesesTotales}
               value={mesSimulado}
-              onChange={(e) => setMesSimulado(parseInt(e.target.value) || 0)}
+              onChange={(e) => setMesSimulado(parseInt(e.target.value, 10) || 0)}
               className="accent-indigo-500 cursor-pointer w-32 sm:w-40"
             />
-            <span className="text-xs font-mono font-bold text-amber-300 w-16 text-right">
-              {mesSimulado === 0 ? 'Mes 0' : `Cuota ${mesSimulado}`}
+            <span className="text-xs font-bold text-indigo-300 font-mono w-8 text-right">
+              M{mesSimulado}
             </span>
           </div>
         </div>
 
-        <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-700/80 p-0.5">
+        {/* Barra Visual */}
+        <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden p-0.5 border border-slate-800">
           <div
-            className="bg-gradient-to-r from-indigo-500 via-emerald-400 to-amber-300 h-full rounded-full transition-all duration-300 shadow-sm"
+            className="h-full bg-gradient-to-r from-indigo-500 via-sky-400 to-emerald-400 rounded-full transition-all duration-300"
             style={{ width: `${porcentajePagado}%` }}
-          ></div>
+          />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1 border-t border-slate-800">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-mono pt-1">
           <div className="flex justify-between sm:justify-start gap-1.5">
-            <span className="text-slate-400">Abonado al mes seleccionado:</span>
-            <strong className="font-mono text-emerald-300">{fmtMoneda(abonadoSimulado)}</strong>
+            <span className="text-slate-400">Total integrado acumulado:</span>
+            <strong className="font-mono text-emerald-400">{fmtMoneda(abonadoSimulado)}</strong>
           </div>
           <div className="flex justify-between sm:justify-start gap-1.5">
             <span className="text-slate-400">Saldo remanente de pago:</span>
@@ -278,29 +326,25 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
         </div>
       </div>
 
-      {/* Controles de tabla */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-1 no-print">
-        <div className="text-xs text-slate-400 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
-          <span>
-            {mostrarTodasLasCuotas
-              ? 'Mostrando todas las cuotas completas del plan'
-              : 'Mostrando únicamente hitos clave (resumido)'}
-          </span>
-        </div>
+      {/* Controles de Filtros Inteligentes de Hitos y Paginación */}
+      <SmartFilters
+        filterMode={filterMode}
+        onFilterModeChange={(mode) => {
+          setFilterMode(mode);
+          setCurrentPage(1);
+        }}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={(page) => setCurrentPage(page)}
+        totalItems={flujoSocio.flujo.length}
+        showingCount={cuotasPaginadas.length}
+      />
 
-        <button
-          type="button"
-          onClick={() => setMostrarTodasLasCuotas(!mostrarTodasLasCuotas)}
-          className="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-600 px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-colors shadow-sm"
-        >
-          {mostrarTodasLasCuotas ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-          <span>{mostrarTodasLasCuotas ? 'Colapsar a hitos clave' : 'Desplegar todas las cuotas'}</span>
-        </button>
-      </div>
+      {/* Vista 1: Tarjetas Responsivas en Mobile (<MobileCardsList />) */}
+      <MobileCardsList items={mobileCardsItems} />
 
-      {/* Tabla Cartola */}
-      <div className="overflow-x-auto border border-slate-700/80 rounded-2xl max-h-[580px] overflow-y-auto shadow-inner bg-slate-900/50 relative">
+      {/* Vista 2: Tabla Desktop Tradicional con Sticky Header */}
+      <div className="hidden lg:block overflow-x-auto border border-slate-700/80 rounded-2xl max-h-[580px] overflow-y-auto shadow-inner bg-slate-900/50 relative">
         <table className="w-full text-left text-xs">
           <thead className="bg-slate-900 text-slate-400 uppercase tracking-wider text-[10px] sticky top-0 z-10 shadow-md border-b border-slate-700">
             <tr>
@@ -315,49 +359,32 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
           </thead>
           <tbody className="divide-y divide-slate-800/80 font-mono text-xs">
             {/* Mes 0 */}
-            <tr className="bg-slate-900/80 hover:bg-slate-800/50 transition-colors">
-              <td className="py-2.5 px-4 font-bold text-emerald-400">Mes 0</td>
-              <td className="py-2.5 px-4 text-slate-400">-</td>
-              <td className="py-2.5 px-4 font-sans font-medium text-slate-200">
-                Anticipo de Suscripción / Entrega Inicial
-              </td>
-              <td className="py-2.5 px-4 text-right font-bold text-emerald-300">
-                {fmtMoneda(flujoSocio.anticipoMes0)}
-              </td>
-              <td className="py-2.5 px-4 text-right font-bold text-white">
-                {fmtMoneda(flujoSocio.anticipoMes0)}
-              </td>
-              <td className="py-2.5 px-4 text-right text-slate-400">
-                {fmtMoneda(costoDepto - flujoSocio.anticipoMes0)}
-              </td>
-              <td className="py-2.5 px-4 text-center">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800/80 font-sans font-semibold">
-                  Integrado
-                </span>
-              </td>
-            </tr>
+            {(filterMode === 'hitos' || currentPage === 1) && (
+              <tr className="bg-slate-900/80 hover:bg-slate-800/50 transition-colors">
+                <td className="py-2.5 px-4 font-bold text-emerald-400">Mes 0</td>
+                <td className="py-2.5 px-4 text-slate-400">-</td>
+                <td className="py-2.5 px-4 font-sans font-medium text-slate-200">
+                  Anticipo de Suscripción / Entrega Inicial
+                </td>
+                <td className="py-2.5 px-4 text-right font-bold text-emerald-300">
+                  {fmtMoneda(flujoSocio.anticipoMes0)}
+                </td>
+                <td className="py-2.5 px-4 text-right font-bold text-white">
+                  {fmtMoneda(flujoSocio.anticipoMes0)}
+                </td>
+                <td className="py-2.5 px-4 text-right text-slate-400">
+                  {fmtMoneda(costoDepto - flujoSocio.anticipoMes0)}
+                </td>
+                <td className="py-2.5 px-4 text-center">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800/80 font-sans font-semibold">
+                    Integrado
+                  </span>
+                </td>
+              </tr>
+            )}
 
-            {/* Cuotas 1 a N */}
-            {flujoSocio.flujo.map((f, idx, arr) => {
-              const hitosRelevantes = [1, mPos, mesesTotales, mesSimulado];
-              const mostrarEstaFila = mostrarTodasLasCuotas || hitosRelevantes.includes(f.mes);
-
-              if (!mostrarEstaFila) {
-                // Si la cuota previa se mostró y la siguiente también, mostrar separador de cuotas intermedias
-                const prev = arr[idx - 1];
-                const prevShown = prev && (mostrarTodasLasCuotas || hitosRelevantes.includes(prev.mes));
-                if (prevShown) {
-                  return (
-                    <tr key={`sep-${f.mes}`} className="bg-slate-900/40 text-slate-500 text-center">
-                      <td colSpan={7} className="py-1.5 px-4 text-[11px] italic font-sans">
-                        ••• Cuotas intermedias resumidas •••
-                      </td>
-                    </tr>
-                  );
-                }
-                return null;
-              }
-
+            {/* Cuotas filtradas / paginadas */}
+            {cuotasPaginadas.map((f) => {
               let rClass = 'hover:bg-slate-800/40 transition-colors';
               let hitoHtml = (
                 <span className="text-slate-500 text-[10px] font-sans">Devengado</span>
@@ -386,19 +413,6 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
                 rClass = 'bg-indigo-950/20 border-l-4 border-indigo-500';
               }
 
-              let strConcepto = 'Cuota Mensual Inmueble';
-              if (f.porcentajeAjuste) {
-                strConcepto += ` (+${f.porcentajeAjuste}% Ajuste Costos)`;
-              }
-              if (f.adelanto > 0) {
-                strConcepto += ` + Adelanto (${fmtMoneda(f.adelanto)})`;
-              }
-              if (f.mes === mPos && flujoSocio.pagoFinalGastos > 0) {
-                strConcepto += ` + Gastos al Adjudicar (${fmtMoneda(flujoSocio.pagoFinalGastos)})`;
-              } else if (flujoSocio.recargoGastosPorCuota > 0) {
-                strConcepto += ` + Gastos Prorrateados (${fmtMoneda(flujoSocio.recargoGastosPorCuota)})`;
-              }
-
               const fecha = formatFecha(fechaInicio, f.mes);
 
               return (
@@ -420,7 +434,7 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
                     {fecha.fechaCorta}
                   </td>
                   <td className="py-2.5 px-4 text-slate-200 text-[11px] font-sans">
-                    {strConcepto}
+                    {getConceptoLiquidado(f)}
                   </td>
                   <td className="py-2.5 px-4 text-right font-mono font-bold text-indigo-300">
                     {fmtMoneda(f.abonadoMes)}
@@ -441,3 +455,5 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
     </section>
   );
 };
+
+export default CuentaIndividual;
