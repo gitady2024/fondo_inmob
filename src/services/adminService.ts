@@ -36,6 +36,10 @@ const MESES_NOMBRES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
+export const isValidUUID = (str: string): boolean => {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+};
+
 export const formatFechaCuotaAdmin = (fechaInicioStr: string, nroMes: number, diaVencimiento: number = 10): string => {
   const [startYear, startMonth] = (fechaInicioStr || '2027-01').split('-').map(Number);
   const targetMonthIndex = (startMonth || 1) - 1 + (nroMes - 1);
@@ -71,7 +75,7 @@ export const fetchFondoParticipacionesYCuotas = async (
   fondoId: string,
   fechaInicioStr: string = '2027-01'
 ): Promise<{ cuotas: AdminCuotaRow[]; health: AdminFondoHealth }> => {
-  if (isSupabaseConfigured() && fondoId) {
+  if (isSupabaseConfigured() && fondoId && isValidUUID(fondoId)) {
     try {
       // Consultar participaciones del fondo
       const { data: participaciones, error: pError } = await supabase
@@ -141,7 +145,7 @@ export const togglePagoCuotaEnSupabase = async (
   cuotaId: string,
   nuevoEstado: boolean
 ): Promise<{ success: boolean; error?: string }> => {
-  if (!isSupabaseConfigured()) {
+  if (!isSupabaseConfigured() || !isValidUUID(cuotaId)) {
     return { success: true }; // Modo local/demo instantáneo
   }
 
@@ -177,7 +181,10 @@ export const crearYGuardarFondoEnSupabase = async (
   ajustes: AjusteCuota[],
   adminId: string
 ): Promise<{ success: boolean; fondoId: string; error?: string }> => {
-  const fondoId = typeof crypto !== 'undefined' ? crypto.randomUUID() : `fondo-${Date.now()}`;
+  const fondoId =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : 'a0000000-0000-4000-8000-000000000001';
   const now = new Date().toISOString();
 
   const parametrosJson = {
@@ -190,7 +197,7 @@ export const crearYGuardarFondoEnSupabase = async (
     ajustes
   };
 
-  if (isSupabaseConfigured() && adminId) {
+  if (isSupabaseConfigured() && adminId && isValidUUID(adminId)) {
     try {
       // 1. INSERT en tabla 'fondos'
       const { error: fondoError } = await supabase.from('fondos').insert({
