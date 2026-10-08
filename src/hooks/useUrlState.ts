@@ -9,6 +9,7 @@ export interface UrlScenarioParams {
   modalidadAnticipo?: 'reducir_cuota' | 'reducir_plazo';
   socioId?: number;
   fondoId?: string;
+  role?: 'admin' | 'tecnico' | 'socio';
 }
 
 export const parseUrlParams = (searchQuery?: string): UrlScenarioParams => {
@@ -65,6 +66,12 @@ export const parseUrlParams = (searchQuery?: string): UrlScenarioParams => {
     const fondoRaw = searchParams.get('fondo');
     if (fondoRaw) {
       parsed.fondoId = fondoRaw;
+    }
+
+    // Validar rol de acceso o invitación
+    const roleRaw = searchParams.get('role') || searchParams.get('acceso');
+    if (roleRaw === 'admin' || roleRaw === 'tecnico' || roleRaw === 'socio') {
+      parsed.role = roleRaw;
     }
 
     return parsed;

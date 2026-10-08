@@ -181,6 +181,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  const handleCopyTecnicoInviteLink = () => {
+    const url = `${window.location.origin}${window.location.pathname}?role=tecnico&fondo=${currentFondo.id}`;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).catch(() => {});
+    }
+    onShowToast('👷 Enlace de acceso al Equipo Técnico copiado. ¡Listo para compartir por WhatsApp o Email!');
+  };
+
   // Filtrado de cuotas en la tabla interactiva
   const mesActualReferencia = 4; // Mes de ejercicio actual
 
@@ -659,6 +667,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ==================================================================== */}
       {activeModule === 'tecnico' && childrenTecnico && (
         <div className="space-y-6 animate-fade-in">
+          {/* Banner de gestión y enlaces de invitación para profesionales de obra */}
+          <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-amber-950/30 border border-amber-500/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                <HardHat className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>Portal del Equipo Técnico & Dirección de Obra</span>
+                  <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-semibold">
+                    Acceso Colaborativo
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Permite a arquitectos, agrimensores y constructores actualizar certificados de avance y expedientes sin acceso a finanzas.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleCopyTecnicoInviteLink}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 shrink-0 cursor-pointer active:scale-95"
+              title="Copiar enlace directo para enviar al arquitecto o jefe de obra"
+            >
+              <HardHat className="w-3.5 h-3.5" />
+              <span>Copiar Enlace de Acceso Técnico</span>
+            </button>
+          </div>
+
           {childrenTecnico}
         </div>
       )}

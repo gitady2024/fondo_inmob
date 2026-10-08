@@ -11,7 +11,7 @@ export interface UseAuthReturn {
   loading: boolean;
   error: string | null;
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signUp: (email: string, password: string, nombre?: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
+  signUp: (email: string, password: string, nombre?: string, role?: UserRole, especialidad?: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   setDevUser: (profile: UserProfile | null) => void;
 }
@@ -130,7 +130,13 @@ export const useAuth = (): UseAuthReturn => {
     }
   };
 
-  const signUp = async (email: string, password: string, nombre?: string, roleParam: UserRole = 'socio') => {
+  const signUp = async (
+    email: string,
+    password: string,
+    nombre?: string,
+    roleParam: UserRole = 'socio',
+    especialidad?: string
+  ) => {
     setError(null);
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({
@@ -139,7 +145,8 @@ export const useAuth = (): UseAuthReturn => {
         options: {
           data: {
             nombre: nombre || email.split('@')[0],
-            role: roleParam
+            role: roleParam,
+            especialidad: especialidad || (roleParam === 'tecnico' ? 'Dirección de Obra y Planos' : undefined)
           }
         }
       });

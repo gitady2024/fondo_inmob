@@ -8,7 +8,7 @@ import type {
   FlujoSocioCalculado
 } from './types/fondo';
 import type { UserProfile } from './types/auth';
-import { ADMIN_USER } from './types/auth';
+import { ADMIN_USER, TECNICO_USER } from './types/auth';
 import { calcularGastos, calcularFlujoIndividual } from './utils/calculations';
 import {
   getAllFondos,
@@ -52,7 +52,7 @@ import { exportarCuadroMarchaCSV } from './utils/exportToCSV';
 import { getUnreadCount } from './services/mensajeService';
 import type { DatosTecnicosProyecto } from './types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from './types/tecnico';
-import { Shield, User, Sparkles } from 'lucide-react';
+import { Shield, User, Sparkles, HardHat } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 
 export const App: React.FC = () => {
@@ -424,6 +424,15 @@ export const App: React.FC = () => {
     if (urlParams.fondoId) {
       setCurrentFondoId(urlParams.fondoId);
     }
+    if (urlParams.role) {
+      if (urlParams.role === 'tecnico') {
+        setDevUserOverride(TECNICO_USER);
+        setDevUser(TECNICO_USER);
+      } else if (urlParams.role === 'admin') {
+        setDevUserOverride(ADMIN_USER);
+        setDevUser(ADMIN_USER);
+      }
+    }
     updateCurrentFondo((prev) => ({
       ...prev,
       params: {
@@ -524,10 +533,10 @@ export const App: React.FC = () => {
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
+              <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3.5 pt-2">
                 <button
                   onClick={() => setIsLoginOpen(true)}
-                  className="w-full sm:w-auto px-7 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Shield className="w-4 h-4" />
                   <span>Iniciar Sesión / Registrarse</span>
@@ -537,10 +546,20 @@ export const App: React.FC = () => {
                     setDevUserOverride(ADMIN_USER);
                     setDevUser(ADMIN_USER);
                   }}
-                  className="w-full sm:w-auto px-7 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4 text-indigo-400" />
                   <span>Explorar como Admin (Demo)</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setDevUserOverride(TECNICO_USER);
+                    setDevUser(TECNICO_USER);
+                  }}
+                  className="w-full sm:w-auto px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-slate-700 hover:border-amber-500/40 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <HardHat className="w-4 h-4 text-amber-400" />
+                  <span>Equipo Técnico (Demo)</span>
                 </button>
                 <button
                   onClick={() => {
@@ -554,7 +573,7 @@ export const App: React.FC = () => {
                     setDevUserOverride(socioDemo);
                     setDevUser(socioDemo);
                   }}
-                  className="w-full sm:w-auto px-7 py-3.5 bg-slate-800 hover:bg-slate-700 text-emerald-300 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-emerald-300 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <User className="w-4 h-4 text-emerald-400" />
                   <span>Ver como Socio (Demo)</span>
