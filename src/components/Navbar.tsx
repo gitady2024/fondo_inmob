@@ -1,10 +1,10 @@
 import React from 'react';
 import type { UserProfile } from '../types/auth';
-import { Building2, Sparkles, RefreshCw, Printer, Database, User, Shield, HardHat, ScrollText, MessageSquare } from 'lucide-react';
+import { Building2, Sparkles, RefreshCw, Printer, Database, User, Shield, HardHat, ScrollText, MessageSquare, LogIn, LogOut } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/supabase';
 
 interface NavbarProps {
-  user: UserProfile;
+  user: UserProfile | null;
   unreadCount?: number;
   onReset: () => void;
   onPrint: () => void;
@@ -12,6 +12,7 @@ interface NavbarProps {
   onOpenLogin: () => void;
   onOpenContrato: () => void;
   onOpenMensajes: () => void;
+  onSignOut?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -22,7 +23,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPersistencia,
   onOpenLogin,
   onOpenContrato,
-  onOpenMensajes
+  onOpenMensajes,
+  onSignOut
 }) => {
   const isCloud = isSupabaseConfigured();
 
@@ -49,37 +51,59 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 self-end md:self-auto">
-          {/* Badge y botón de perfil de usuario */}
-          <button
-            onClick={onOpenLogin}
-            title="Cambiar perfil / rol de usuario"
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 border transition-all shadow-sm ${
-              user.role === 'admin'
-                ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/30'
-                : user.role === 'tecnico'
-                ? 'bg-amber-600/20 border-amber-500/50 text-amber-300 hover:bg-amber-600/30'
-                : 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/30'
-            }`}
-          >
-            {user.role === 'admin' ? (
-              <>
-                <Shield className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Perfil: Admin Fiduciario</span>
-              </>
-            ) : user.role === 'tecnico' ? (
-              <>
-                <HardHat className="w-3.5 h-3.5 text-amber-400" />
-                <span>Perfil: Equipo Técnico & Obra</span>
-              </>
-            ) : (
-              <>
-                <User className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Perfil: Socio D{user.socioId}</span>
-              </>
-            )}
-          </button>
+          {/* Badge y botón de perfil de usuario o botón de login si no está autenticado */}
+          {user ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={onOpenLogin}
+                title="Cambiar perfil / rol de usuario"
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 border transition-all shadow-sm ${
+                  user.role === 'admin'
+                    ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/30'
+                    : user.role === 'tecnico'
+                    ? 'bg-amber-600/20 border-amber-500/50 text-amber-300 hover:bg-amber-600/30'
+                    : 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/30'
+                }`}
+              >
+                {user.role === 'admin' ? (
+                  <>
+                    <Shield className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Admin Fiduciario</span>
+                  </>
+                ) : user.role === 'tecnico' ? (
+                  <>
+                    <HardHat className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Equipo Técnico & Obra</span>
+                  </>
+                ) : (
+                  <>
+                    <User className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Socio D{user.socioId || 1}</span>
+                  </>
+                )}
+              </button>
 
-          {user.role === 'admin' && (
+              {onSignOut && (
+                <button
+                  onClick={onSignOut}
+                  title="Cerrar sesión"
+                  className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 rounded-lg transition-colors text-xs"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={onOpenLogin}
+              className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 transition-all cursor-pointer"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Acceder al Sistema</span>
+            </button>
+          )}
+
+          {user && user.role === 'admin' && (
             <button
               onClick={onOpenPersistencia}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all ${
@@ -93,7 +117,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {user.role === 'admin' && (
+          {user && user.role === 'admin' && (
             <button
               onClick={onReset}
               title="Restablecer valores originales"
@@ -104,19 +128,21 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          <button
-            onClick={onOpenMensajes}
-            title="Centro de Comunicaciones Fiduciarias"
-            className="relative bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all shadow-sm"
-          >
-            <MessageSquare className="w-4 h-4 text-indigo-400" />
-            <span className="hidden sm:inline">Mensajes</span>
-            {unreadCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-extrabold shadow-sm animate-pulse">
-                {unreadCount}
-              </span>
-            )}
-          </button>
+          {user && (
+            <button
+              onClick={onOpenMensajes}
+              title="Centro de Comunicaciones Fiduciarias"
+              className="relative bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all shadow-sm"
+            >
+              <MessageSquare className="w-4 h-4 text-indigo-400" />
+              <span className="hidden sm:inline">Mensajes</span>
+              {unreadCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-extrabold shadow-sm animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+          )}
 
           <button
             onClick={onOpenContrato}
@@ -139,5 +165,3 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };
-
-

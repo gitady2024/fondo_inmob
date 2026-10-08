@@ -25,7 +25,8 @@ import { Navbar } from './components/Navbar';
 import { FundSwitcher } from './components/FundSwitcher';
 import { NewFundModal } from './components/NewFundModal';
 import { LoginModal } from './components/LoginModal';
-import { PortalSocio } from './components/PortalSocio';
+import { SocioPortal } from './components/SocioPortal';
+import { AdminDashboard } from './components/AdminDashboard';
 import { ParametrosFondo } from './components/ParametrosFondo';
 import { GastosAdjudicacion } from './components/GastosAdjudicacion';
 import { MatrizAnticipos } from './components/MatrizAnticipos';
@@ -51,10 +52,20 @@ import { exportarCuadroMarchaCSV } from './utils/exportToCSV';
 import { getUnreadCount } from './services/mensajeService';
 import type { DatosTecnicosProyecto } from './types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from './types/tecnico';
-import { Calculator, HardHat, MessageSquare } from 'lucide-react';
+import { Shield, User, Sparkles } from 'lucide-react';
+import { useAuth } from './hooks/useAuth';
 
 export const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<UserProfile>(ADMIN_USER);
+  const {
+    userProfile: authProfile,
+    signIn: handleSupabaseSignIn,
+    signUp: handleSupabaseSignUp,
+    signOut: handleSupabaseSignOut,
+    setDevUser
+  } = useAuth();
+
+  const [devUser, setDevUserOverride] = useState<UserProfile | null>(null);
+  const currentUser: UserProfile | null = authProfile || devUser;
   const [isLoginOpen, setIsLoginOpen] = useState<boolean>(false);
   const [isContratoOpen, setIsContratoOpen] = useState<boolean>(false);
   const [isMensajesOpen, setIsMensajesOpen] = useState<boolean>(false);
@@ -63,7 +74,6 @@ export const App: React.FC = () => {
   const [socioSeleccionado, setSocioSeleccionado] = useState<number>(1);
   const [isPersistenciaOpen, setIsPersistenciaOpen] = useState<boolean>(false);
   const [isNewModalOpen, setIsNewModalOpen] = useState<boolean>(false);
-  const [adminTab, setAdminTab] = useState<'financiero' | 'tecnico' | 'mensajeria'>('financiero');
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
 
@@ -84,7 +94,7 @@ export const App: React.FC = () => {
 
   // Si el usuario cambia a rol 'socio', asegurar que socioSeleccionado sea su socioId
   useEffect(() => {
-    if (currentUser.role === 'socio' && currentUser.socioId) {
+    if (currentUser?.role === 'socio' && currentUser.socioId) {
       setSocioSeleccionado(currentUser.socioId);
     }
   }, [currentUser]);
@@ -103,6 +113,10 @@ export const App: React.FC = () => {
 
   // Contador de mensajes no leídos
   const refreshUnreadCount = useCallback(() => {
+    if (!currentUser) {
+      setUnreadCount(0);
+      return;
+    }
     setUnreadCount(getUnreadCount(currentFondo.id, currentUser));
   }, [currentFondo.id, currentUser]);
 
@@ -129,7 +143,7 @@ export const App: React.FC = () => {
 
   // Sincronizar actualización de campos en el fondo activo (Admin y Técnico)
   const updateCurrentFondo = (updater: (prev: FondoGuardado) => FondoGuardado) => {
-    if (currentUser.role === 'socio') return; // Bloqueo estricto para inversores socios
+    if (!currentUser || currentUser.role === 'socio') return; // Bloqueo estricto para inversores socios o no autenticados
     setFondosList((prevList) => {
       const index = prevList.findIndex((f) => f.id === currentFondo.id);
       if (index === -1) return prevList;
@@ -383,7 +397,7 @@ export const App: React.FC = () => {
     gastosCalculados
   ]);
 
-  const activeSocioIndex = (currentUser.role === 'socio' && currentUser.socioId ? currentUser.socioId : socioSeleccionado) - 1;
+  const activeSocioIndex = (currentUser?.role === 'socio' && currentUser.socioId ? currentUser.socioId : socioSeleccionado) - 1;
   const socioActual = flujosSocios[activeSocioIndex] || flujosSocios[0];
 
   // Métricas reactivas para el Sticky KPI Dashboard
@@ -476,156 +490,109 @@ export const App: React.FC = () => {
           onOpenLogin={() => setIsLoginOpen(true)}
           onOpenContrato={() => setIsContratoOpen(true)}
           onOpenMensajes={() => setIsMensajesOpen(true)}
+          onSignOut={async () => {
+            await handleSupabaseSignOut();
+            setDevUserOverride(null);
+            setDevUser(null);
+          }}
         />
 
-        {/* Hero Header / Landing de Conversión Fintech */}
-        {currentUser.role !== 'socio' && (
-          <HeroSection
-            nombreFondoActivo={currentFondo.nombre}
-            onStartSimulation={() => {
-              setAdminTab('financiero');
-              setTimeout(() => {
-                const el = document.getElementById('simulador-parametros');
-                if (el) {
-                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-              }, 50);
-            }}
-            onOpenContrato={() => setIsContratoOpen(true)}
-          />
-        )}
-
         {/* ------------------------------------------------------------------ */}
-        {/* VISTA 1: PORTAL DEL SOCIO (ACCESO RESTRINGIDO A SU UNIDAD)          */}
+        {/* ESQUEMA CONDICIONAL: LANDING vs ADMIN DASHBOARD vs PORTAL SOCIO    */}
         {/* ------------------------------------------------------------------ */}
-        {currentUser.role === 'socio' ? (
-          <PortalSocio
-            user={currentUser}
-            currentFondo={currentFondo}
-            flujoSocio={socioActual}
-            fechaInicio={currentFondo.params.fechaInicio}
-            params={currentFondo.params}
-            gastos={currentFondo.gastos}
-            onOpenContrato={() => setIsContratoOpen(true)}
-          />
-        ) : currentUser.role === 'tecnico' ? (
-          /* ------------------------------------------------------------------ */
-          /* VISTA 2: PANEL DEL EQUIPO TÉCNICO (TRÁMITES, PLANOS, OBRA)        */
-          /* ------------------------------------------------------------------ */
-          <div className="space-y-6">
-            <FundSwitcher
-              currentFondo={currentFondo}
-              fondosList={fondosList}
-              onSelectFondo={handleSelectFondo}
-              onOpenNewModal={() => setIsNewModalOpen(true)}
-              onDuplicate={handleDuplicate}
-              onRename={handleRename}
-              onDelete={handleDelete}
+        {!currentUser ? (
+          /* CASO 1: USUARIO NO LOGUEADO -> LANDING ACTUAL */
+          <div className="space-y-8 animate-fade-in">
+            <HeroSection
+              nombreFondoActivo={currentFondo.nombre}
+              onStartSimulation={() => setIsLoginOpen(true)}
+              onOpenContrato={() => setIsContratoOpen(true)}
             />
 
-            <ModuloTecnico
-              datosTecnicos={currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT}
-              fondoNombre={currentFondo.nombre}
-              fondoId={currentFondo.id}
-              currentUser={currentUser}
-              isReadOnly={false}
-              onUpdateDatosTecnicos={handleDatosTecnicosChange}
-            />
-          </div>
-        ) : (
-          /* ------------------------------------------------------------------ */
-          /* VISTA 3: PANEL DEL ADMINISTRADOR FIDUCIARIO (CONTROL COMPLETO)     */
-          /* ------------------------------------------------------------------ */
-          <>
-            {/* Selector y Gestor de Múltiples Fondos / Planes */}
-            <FundSwitcher
-              currentFondo={currentFondo}
-              fondosList={fondosList}
-              onSelectFondo={handleSelectFondo}
-              onOpenNewModal={() => setIsNewModalOpen(true)}
-              onDuplicate={handleDuplicate}
-              onRename={handleRename}
-              onDelete={handleDelete}
-            />
-
-            {/* Barra de alternancia de módulo y Acciones Ejecutivas */}
-            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 no-print">
-              <div className="flex flex-wrap sm:flex-nowrap bg-slate-900 border border-slate-800 p-1.5 rounded-2xl max-w-2xl gap-2 shadow-lg">
-                <button
-                  onClick={() => setAdminTab('financiero')}
-                  className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                    adminTab === 'financiero'
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <Calculator className="w-4 h-4" />
-                  <span>Gestión Financiera</span>
-                </button>
-                <button
-                  onClick={() => setAdminTab('tecnico')}
-                  className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                    adminTab === 'tecnico'
-                      ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <HardHat className="w-4 h-4" />
-                  <span>Gestión Técnica</span>
-                </button>
-                <button
-                  onClick={() => setAdminTab('mensajeria')}
-                  className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                    adminTab === 'mensajeria'
-                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  <span>Mensajería Fiduciaria</span>
-                  {unreadCount > 0 && (
-                    <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-extrabold animate-pulse">
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
+            {/* Tarjeta de bienvenida y acceso para visitante */}
+            <div className="bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-12 text-center space-y-6 shadow-2xl">
+              <div className="max-w-2xl mx-auto space-y-3">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 text-indigo-300 text-xs font-semibold border border-indigo-500/20">
+                  <Shield className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>SaaS Fiduciario • Supabase Auth & RLS Activo</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
+                  Plataforma de Ahorro Previo Mutuo
+                </h2>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  Inicia sesión con tu cuenta de Supabase o accede al entorno de demostración para gestionar tu fondo o consultar tu departamento como socio inversor.
+                </p>
               </div>
 
-              {/* Barra de Herramientas del Escenario (Compartir Link, PDF, CSV, Imprimir) */}
-              {adminTab === 'financiero' && (
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
+                <button
+                  onClick={() => setIsLoginOpen(true)}
+                  className="w-full sm:w-auto px-7 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span>Iniciar Sesión / Registrarse</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setDevUserOverride(ADMIN_USER);
+                    setDevUser(ADMIN_USER);
+                  }}
+                  className="w-full sm:w-auto px-7 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4 text-indigo-400" />
+                  <span>Explorar como Admin (Demo)</span>
+                </button>
+                <button
+                  onClick={() => {
+                    const socioDemo: UserProfile = {
+                      id: 'socio-1',
+                      role: 'socio',
+                      socioId: 1,
+                      nombre: 'Socio Demo Unidad 1',
+                      email: 'socio1@fondoinmobil.com'
+                    };
+                    setDevUserOverride(socioDemo);
+                    setDevUser(socioDemo);
+                  }}
+                  className="w-full sm:w-auto px-7 py-3.5 bg-slate-800 hover:bg-slate-700 text-emerald-300 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <User className="w-4 h-4 text-emerald-400" />
+                  <span>Ver como Socio (Demo)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : currentUser.role === 'admin' ? (
+          /* CASO 2: USUARIO LOGUEADO Y ES ADMIN -> ADMIN DASHBOARD */
+          <AdminDashboard
+            currentUser={currentUser}
+            currentFondo={currentFondo}
+            fondosList={fondosList}
+            onSelectFondo={handleSelectFondo}
+            onOpenNewModal={() => setIsNewModalOpen(true)}
+            onShowToast={(msg) => setToastMessage(msg)}
+            unreadCount={unreadCount}
+            childrenSimulador={
+              <>
+                {/* Selector y Gestor de Múltiples Fondos / Planes */}
+                <FundSwitcher
+                  currentFondo={currentFondo}
+                  fondosList={fondosList}
+                  onSelectFondo={handleSelectFondo}
+                  onOpenNewModal={() => setIsNewModalOpen(true)}
+                  onDuplicate={handleDuplicate}
+                  onRename={handleRename}
+                  onDelete={handleDelete}
+                />
+
+                {/* Barra de Herramientas del Escenario (Compartir Link, PDF, CSV, Imprimir) */}
                 <ScenarioToolbar
                   onShare={handleShareScenario}
                   onExportPDF={handleExportPDF}
                   onExportCSV={handleExportCSV}
                   onPrint={() => window.print()}
                 />
-              )}
-            </div>
 
-            {adminTab === 'tecnico' ? (
-              <ModuloTecnico
-                datosTecnicos={currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT}
-                fondoNombre={currentFondo.nombre}
-                fondoId={currentFondo.id}
-                currentUser={currentUser}
-                isReadOnly={false}
-                onUpdateDatosTecnicos={handleDatosTecnicosChange}
-              />
-            ) : adminTab === 'mensajeria' ? (
-              <div className="space-y-4">
-                <CentroMensajes
-                  user={currentUser}
-                  fondoId={currentFondo.id}
-                  fondoNombre={currentFondo.nombre}
-                  cantidadSocios={currentFondo.params.cantidadDeptos}
-                  isEmbedded={true}
-                  initialContactRole="socio"
-                  initialSocioId={socioSeleccionado}
-                  onRefreshBadges={refreshUnreadCount}
-                />
-              </div>
-            ) : (
-              <>
                 {/* Fila 1: Parámetros del Fondo y Gastos de Adjudicación */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 no-print">
                   <div className="lg:col-span-2">
@@ -751,8 +718,67 @@ export const App: React.FC = () => {
                   />
                 </div>
               </>
-            )}
-          </>
+            }
+            childrenTecnico={
+              <ModuloTecnico
+                datosTecnicos={currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT}
+                fondoNombre={currentFondo.nombre}
+                fondoId={currentFondo.id}
+                currentUser={currentUser}
+                isReadOnly={false}
+                onUpdateDatosTecnicos={handleDatosTecnicosChange}
+              />
+            }
+            childrenMensajeria={
+              <div className="space-y-4">
+                <CentroMensajes
+                  user={currentUser}
+                  fondoId={currentFondo.id}
+                  fondoNombre={currentFondo.nombre}
+                  cantidadSocios={currentFondo.params.cantidadDeptos}
+                  isEmbedded={true}
+                  initialContactRole="socio"
+                  initialSocioId={socioSeleccionado}
+                  onRefreshBadges={refreshUnreadCount}
+                />
+              </div>
+            }
+          />
+        ) : currentUser.role === 'socio' ? (
+          /* CASO 3: USUARIO LOGUEADO Y ES SOCIO -> PORTAL DEL SOCIO (FINTECH READ-ONLY) */
+          <div className="space-y-6 animate-fade-in">
+            <SocioPortal
+              user={currentUser}
+              currentFondo={currentFondo}
+              flujoSocio={socioActual}
+              fechaInicio={currentFondo.params.fechaInicio}
+              params={currentFondo.params}
+              gastos={currentFondo.gastos}
+              onOpenContrato={() => setIsContratoOpen(true)}
+            />
+          </div>
+        ) : (
+          /* Rol Técnico */
+          <div className="space-y-6 animate-fade-in">
+            <FundSwitcher
+              currentFondo={currentFondo}
+              fondosList={fondosList}
+              onSelectFondo={handleSelectFondo}
+              onOpenNewModal={() => setIsNewModalOpen(true)}
+              onDuplicate={handleDuplicate}
+              onRename={handleRename}
+              onDelete={handleDelete}
+            />
+
+            <ModuloTecnico
+              datosTecnicos={currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT}
+              fondoNombre={currentFondo.nombre}
+              fondoId={currentFondo.id}
+              currentUser={currentUser}
+              isReadOnly={false}
+              onUpdateDatosTecnicos={handleDatosTecnicosChange}
+            />
+          </div>
         )}
 
         {/* Modal de Login / Cambio de Perfil */}
@@ -761,7 +787,12 @@ export const App: React.FC = () => {
           onClose={() => setIsLoginOpen(false)}
           cantidadSocios={currentFondo.params.cantidadDeptos}
           currentFondoNombre={currentFondo.nombre}
-          onLogin={(user) => setCurrentUser(user)}
+          onLogin={(user) => {
+            setDevUserOverride(user);
+            setDevUser(user);
+          }}
+          onSupabaseSignIn={handleSupabaseSignIn}
+          onSupabaseSignUp={handleSupabaseSignUp}
         />
 
         {/* Modal de Creación de Nuevo Plan */}
@@ -791,7 +822,7 @@ export const App: React.FC = () => {
         <ContratoModal
           isOpen={isContratoOpen}
           onClose={() => setIsContratoOpen(false)}
-          user={currentUser}
+          user={currentUser || ADMIN_USER}
           fondoNombre={currentFondo.nombre}
           params={currentFondo.params}
           gastos={currentFondo.gastos}
@@ -809,11 +840,11 @@ export const App: React.FC = () => {
             refreshUnreadCount();
           }}
           onRefreshBadges={refreshUnreadCount}
-          user={currentUser}
+          user={currentUser || ADMIN_USER}
           fondoId={currentFondo.id}
           fondoNombre={currentFondo.nombre}
           cantidadSocios={currentFondo.params.cantidadDeptos}
-          initialContactRole={adminTab === 'tecnico' ? 'tecnico' : 'socio'}
+          initialContactRole={currentUser?.role === 'tecnico' ? 'tecnico' : 'socio'}
           initialSocioId={socioSeleccionado}
         />
 
