@@ -567,7 +567,18 @@ export const App: React.FC = () => {
           vistaPublica === 'landing' ? (
             /* VISTA DE ENTRADA: LANDING PAGE VENDEDORA CON BOTÓN DE STAFF */
             <LandingPage
-              onStartSimulation={() => {
+              proyectos={fondosList}
+              proyectoActivoId={currentFondoId}
+              onAdoptarProyecto={(p) => {
+                handleSelectFondo(p.id);
+                setDevUserOverride(GUEST_SOCIO_USER);
+                setDevUser(GUEST_SOCIO_USER);
+                setToastMessage(`🏗️ Proyecto ${p.nombre} cargado en el simulador.`);
+              }}
+              onStartSimulation={(proyecto) => {
+                if (proyecto) {
+                  handleSelectFondo(proyecto.id);
+                }
                 setDevUserOverride(GUEST_SOCIO_USER);
                 setDevUser(GUEST_SOCIO_USER);
                 setToastMessage('📊 Bienvenido al Simulador de Inversión');

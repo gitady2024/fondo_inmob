@@ -1,22 +1,54 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Calendar, ArrowRight, ShieldCheck, Sparkles, Building2, Lock } from 'lucide-react';
+import type { FondoGuardado } from '../services/fondoService';
+import { PLANTILLAS_PREDEFINIDAS } from '../services/fondoService';
+import { ProyectosActivosCTA } from './ProyectosActivosCTA';
+import { PreinscripcionModal } from './PreinscripcionModal';
 
 interface LandingPageProps {
-  onStartSimulation: () => void;
+  onStartSimulation: (proyecto?: FondoGuardado) => void;
   onOpenStaffLogin: () => void;
   onOpenPerfiles?: () => void;
+  proyectos?: FondoGuardado[];
+  proyectoActivoId?: string;
+  onAdoptarProyecto?: (proyecto: FondoGuardado) => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onStartSimulation,
   onOpenStaffLogin,
-  onOpenPerfiles
+  onOpenPerfiles,
+  proyectos,
+  proyectoActivoId,
+  onAdoptarProyecto
 }) => {
+  const [modalPreinscripcionOpen, setModalPreinscripcionOpen] = useState(false);
+  const [preinscripcionTarget, setPreinscripcionTarget] = useState<{
+    nombre: string;
+    id?: string;
+    cuota?: number;
+    anticipo?: number;
+  }>({ nombre: '' });
+
+  // Lista de proyectos con fallback a las plantillas predefinidas
+  const proyectosDisponibles: FondoGuardado[] =
+    proyectos && proyectos.length > 0
+      ? proyectos
+      : (PLANTILLAS_PREDEFINIDAS.map((p, idx) => ({
+          ...p,
+          id: `tpl-${idx}`,
+          updated_at: new Date().toISOString()
+        })) as FondoGuardado[]);
+
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  };
+
+  const handleInvertiAhora = () => {
+    scrollToSection('obras-activas');
   };
 
   return (
@@ -55,6 +87,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="hidden md:flex items-center space-x-6 text-sm font-medium">
             <button
               type="button"
+              onClick={() => scrollToSection('obras-activas')}
+              className="text-amber-300 hover:text-amber-200 font-semibold transition cursor-pointer flex items-center gap-1.5"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Obras Activas</span>
+            </button>
+            <button
+              type="button"
               onClick={() => scrollToSection('comparativa')}
               className="text-slate-300 hover:text-white transition cursor-pointer"
             >
@@ -89,7 +129,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </button>
             <button
               type="button"
-              onClick={onStartSimulation}
+              onClick={() => onStartSimulation()}
               className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold px-4 sm:px-5 py-2.5 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transition transform hover:scale-105 cursor-pointer"
             >
               Simular Inversión
@@ -117,22 +157,32 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           Ingresá al mercado inmobiliario al costo con un anticipo desde <strong className="text-white font-semibold">USD 10.000</strong>. Sin la trampa de la inflación UVA, sin intereses usureros y con la libertad de vender tu contrato cuando quieras.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4">
           <button
             type="button"
-            onClick={onStartSimulation}
-            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white text-sm sm:text-base font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-emerald-600/30 transition transform hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2"
+            onClick={() => onStartSimulation()}
+            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white text-sm sm:text-base font-bold px-7 py-3.5 rounded-xl shadow-lg shadow-emerald-600/30 transition transform hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2"
           >
             <Sparkles className="w-4 h-4 text-emerald-200" />
             <span>Diseñar mi Plan a Medida</span>
             <ArrowRight className="w-4 h-4" />
+          </button>
+
+          {/* BOTÓN: INVERTÍ AHORA */}
+          <button
+            type="button"
+            onClick={handleInvertiAhora}
+            className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-sm sm:text-base font-extrabold px-7 py-3.5 rounded-xl shadow-lg shadow-amber-500/25 transition transform hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2"
+          >
+            <Building2 className="w-4 h-4 text-slate-950" />
+            <span>Invertí Ahora</span>
           </button>
           
           <a
             href="https://calendar.app.google/aacxfmLJk73KnyB39"
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:w-auto bg-slate-800 border border-slate-700 hover:bg-slate-700 text-white text-sm sm:text-base font-bold px-8 py-3.5 rounded-xl shadow transition flex items-center justify-center gap-2"
+            className="w-full sm:w-auto bg-slate-800 border border-slate-700 hover:bg-slate-700 text-white text-sm sm:text-base font-bold px-6 py-3.5 rounded-xl shadow transition flex items-center justify-center gap-2"
           >
             <Calendar className="w-4 h-4 text-indigo-400" />
             <span>Agendar Videollamada</span>
@@ -153,9 +203,39 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* ========================================== */}
+      {/* CUADRO DE OBRAS ACTIVAS EN MARCHA         */}
+      {/* ========================================== */}
+      <section id="obras-activas" className="mb-12 scroll-mt-24">
+        <ProyectosActivosCTA
+          proyectos={proyectosDisponibles}
+          proyectoActivoId={proyectoActivoId}
+          onAdoptarProyecto={(p) => {
+            if (onAdoptarProyecto) {
+              onAdoptarProyecto(p);
+            } else {
+              onStartSimulation(p);
+            }
+          }}
+          onPreinscribirProyecto={(p, cuota) => {
+            setPreinscripcionTarget({
+              nombre: p.nombre,
+              id: p.id,
+              cuota,
+              anticipo: Math.round(p.params.costoDepto * 0.1)
+            });
+            setModalPreinscripcionOpen(true);
+          }}
+          onContactarProyecto={(nombre) => {
+            setPreinscripcionTarget({ nombre });
+            setModalPreinscripcionOpen(true);
+          }}
+        />
+      </section>
+
+      {/* ========================================== */}
       {/* COMPARATIVA (FONDO VS UVA)                */}
       {/* ========================================== */}
-      <section id="comparativa" className="py-14 border-t border-slate-800">
+      <section id="comparativa" className="py-14 border-t border-slate-800 scroll-mt-24">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-3">
@@ -228,7 +308,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* ========================================== */}
       {/* CÓMO FUNCIONA                             */}
       {/* ========================================== */}
-      <section id="como-funciona" className="py-14 border-t border-slate-800">
+      <section id="como-funciona" className="py-14 border-t border-slate-800 scroll-mt-24">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-10">
             Un proceso transparente en 3 simples pasos
@@ -271,7 +351,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* ========================================== */}
       {/* SEGURIDAD LEGAL Y CTA                     */}
       {/* ========================================== */}
-      <section id="seguridad" className="py-16 border-t border-slate-800">
+      <section id="seguridad" className="py-16 border-t border-slate-800 scroll-mt-24">
         <div className="max-w-4xl mx-auto text-center space-y-6">
           <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mx-auto">
             <ShieldCheck className="w-6 h-6" />
@@ -305,7 +385,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 
                 <button
                   type="button"
-                  onClick={onStartSimulation}
+                  onClick={() => onStartSimulation()}
                   className="w-full bg-transparent border-2 border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-white font-bold py-3 px-6 rounded-xl transition text-xs sm:text-sm text-center cursor-pointer"
                 >
                   Ir al Simulador
@@ -315,6 +395,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Modal de Preinscripción a Obra Activa */}
+      <PreinscripcionModal
+        isOpen={modalPreinscripcionOpen}
+        onClose={() => setModalPreinscripcionOpen(false)}
+        proyectoNombre={preinscripcionTarget.nombre}
+        proyectoId={preinscripcionTarget.id}
+        cuotaEstimada={preinscripcionTarget.cuota}
+        anticipoEstimado={preinscripcionTarget.anticipo}
+      />
     </div>
   );
 };
