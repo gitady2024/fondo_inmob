@@ -7,6 +7,7 @@ export interface UserProfile {
   socioId?: number; // Para el rol 'socio' (1-indexed)
   email?: string;
   especialidad?: string; // Ej: 'Dirección de Obras y Gestoría Pública'
+  isGuest?: boolean;
 }
 
 export const ADMIN_USER: UserProfile = {
@@ -22,5 +23,13 @@ export const TECNICO_USER: UserProfile = {
   nombre: 'Equipo Técnico & Gestoría de Obras',
   email: 'tecnico@fondoinmobil.com',
   especialidad: 'Dirección de Obra, Planos y Trámites Públicos'
+};
+
+export const GUEST_SOCIO_USER: UserProfile = {
+  id: 'invitado',
+  role: 'socio',
+  nombre: 'Inversor Invitado',
+  socioId: 1,
+  isGuest: true
 };
 

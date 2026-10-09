@@ -5,6 +5,7 @@ import {
   HardHat,
   Lock,
   ArrowRight,
+  Sparkles,
   Building2,
   FileText,
   KeyRound,
@@ -15,6 +16,7 @@ import {
 interface PortalAccesoPerfilesProps {
   currentFondoNombre: string;
   cantidadSocios: number;
+  onSimularLibre: () => void;
   onSelectSocio: (socioId: number) => void;
   onSelectTecnico: () => void;
   onSelectAdmin: () => void;
@@ -25,6 +27,7 @@ interface PortalAccesoPerfilesProps {
 export const PortalAccesoPerfiles: React.FC<PortalAccesoPerfilesProps> = ({
   currentFondoNombre,
   cantidadSocios,
+  onSimularLibre,
   onSelectSocio,
   onSelectTecnico,
   onSelectAdmin,
@@ -83,59 +86,75 @@ export const PortalAccesoPerfiles: React.FC<PortalAccesoPerfilesProps> = ({
                 Socio Aportante
               </h3>
               <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                Portal exclusivo del inversor para consultar tu departamento, cronograma de cuotas y proyecciones.
+                Simula y diseña tu plan de inversión libremente, o consulta el estado de tu departamento asignado.
               </p>
             </div>
 
             <ul className="space-y-2 text-xs text-slate-300 pt-1">
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Estado de cuenta de tu unidad</span>
+                <span>Simulador interactivo 100% abierto</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Simulador interactivo de inversión</span>
+                <span>Sin necesidad de crear cuenta ni registrarse</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Proyección de adelantos y cuotas</span>
+                <span>Proyección de anticipos, cuotas y posesión</span>
               </li>
             </ul>
           </div>
 
           <div className="space-y-3 pt-2">
-            {/* Selector de departamento en modo demostración/consulta */}
-            <div className="flex items-center justify-between bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs">
-              <span className="text-slate-400 font-medium">Unidad asignada:</span>
-              <select
-                value={socioUnit}
-                onChange={(e) => setSocioUnit(Number(e.target.value))}
-                className="bg-transparent font-bold text-emerald-400 outline-none cursor-pointer"
-              >
-                {Array.from({ length: cantidadSocios }, (_, i) => i + 1).map((num) => (
-                  <option key={num} value={num} className="bg-slate-900 text-white">
-                    Depto {num} (Socio D{num})
-                  </option>
-                ))}
-              </select>
-            </div>
-
+            {/* BOTÓN PRINCIPAL: SIMULACIÓN LIBRE SIN REGISTRO */}
             <button
               type="button"
-              onClick={() => onSelectSocio(socioUnit)}
-              className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer group-hover:shadow-emerald-600/30"
+              onClick={onSimularLibre}
+              className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer group-hover:shadow-emerald-600/40"
             >
-              <span>Ingresar como Socio D{socioUnit}</span>
+              <Sparkles className="w-4 h-4 text-emerald-200" />
+              <span>Simular mi Plan (Sin Registro)</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </button>
 
-            <button
-              type="button"
-              onClick={() => onOpenLoginModal('socio')}
-              className="w-full text-center text-[11px] text-slate-400 hover:text-emerald-300 font-semibold transition-colors cursor-pointer"
-            >
-              Iniciar sesión con correo de socio →
-            </button>
+            {/* SECCIÓN SECUNDARIA: PARA SOCIOS YA ADHERIDOS */}
+            <div className="pt-2 border-t border-slate-800/80 space-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block text-center">
+                ¿Ya tienes departamento asignado?
+              </span>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 flex items-center justify-between bg-slate-950/80 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs">
+                  <span className="text-slate-400 text-[11px]">Unidad:</span>
+                  <select
+                    value={socioUnit}
+                    onChange={(e) => setSocioUnit(Number(e.target.value))}
+                    className="bg-transparent font-bold text-emerald-400 text-xs outline-none cursor-pointer"
+                  >
+                    {Array.from({ length: cantidadSocios }, (_, i) => i + 1).map((num) => (
+                      <option key={num} value={num} className="bg-slate-900 text-white">
+                        Depto {num}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onSelectSocio(socioUnit)}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-300 hover:text-white font-bold text-xs rounded-xl border border-slate-700 transition-all cursor-pointer whitespace-nowrap"
+                >
+                  Ver D{socioUnit} →
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onOpenLoginModal('socio')}
+                className="w-full text-center text-[11px] text-slate-400 hover:text-emerald-300 font-semibold transition-colors cursor-pointer"
+              >
+                Iniciar sesión con correo de socio
+              </button>
+            </div>
           </div>
         </div>
 

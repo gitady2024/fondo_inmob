@@ -86,18 +86,19 @@ export const SocioPortal: React.FC<SocioPortalProps> = ({
   onOpenContrato,
   onOpenMensajes
 }) => {
-  const esPlanSimulacion = currentFondo?.estadoPlan === 'simulacion';
+  const esInvitado = user.id === 'invitado' || user.isGuest;
+  const esPlanSimulacion = currentFondo?.estadoPlan === 'simulacion' || esInvitado;
   const [modoVista, setModoVista] = useState<'cuenta' | 'simulador' | 'adelantos'>(
     esPlanSimulacion ? 'simulador' : 'cuenta'
   );
 
   useEffect(() => {
-    if (currentFondo?.estadoPlan === 'simulacion') {
+    if (esInvitado || currentFondo?.estadoPlan === 'simulacion') {
       setModoVista('simulador');
     } else {
       setModoVista('cuenta');
     }
-  }, [currentFondo?.id, currentFondo?.estadoPlan]);
+  }, [currentFondo?.id, currentFondo?.estadoPlan, esInvitado]);
 
   const [activeTab, setActiveTab] = useState<'pendientes' | 'historial'>('pendientes');
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -400,7 +401,12 @@ export const SocioPortal: React.FC<SocioPortalProps> = ({
       {/* ==================================================================== */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-sm">
         <div className="flex items-center gap-2">
-          {esPlanSimulacion ? (
+          {esInvitado ? (
+            <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>Modo Invitado: Simula libremente sin crear cuenta ni compromiso</span>
+            </span>
+          ) : esPlanSimulacion ? (
             <span className="px-3 py-1.5 rounded-xl bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 text-xs font-bold flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
               <span>Modo Simulación: Totalidad de variables disponibles para diseñar tu plan</span>

@@ -75,6 +75,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <HardHat className="w-3.5 h-3.5 text-amber-400" />
                     <span>Equipo Técnico & Obra</span>
                   </>
+                ) : user.isGuest || user.id === 'invitado' ? (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Inversor Invitado (Libre)</span>
+                  </>
                 ) : (
                   <>
                     <User className="w-3.5 h-3.5 text-emerald-400" />

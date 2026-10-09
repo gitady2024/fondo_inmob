@@ -9,7 +9,7 @@ import type {
   EstadoPlanFondo
 } from './types/fondo';
 import type { UserProfile, UserRole } from './types/auth';
-import { ADMIN_USER, TECNICO_USER } from './types/auth';
+import { ADMIN_USER, TECNICO_USER, GUEST_SOCIO_USER } from './types/auth';
 import { calcularGastos, calcularFlujoIndividual } from './utils/calculations';
 import {
   getAllFondos,
@@ -530,6 +530,11 @@ export const App: React.FC = () => {
           <PortalAccesoPerfiles
             currentFondoNombre={currentFondo.nombre}
             cantidadSocios={currentFondo.params.cantidadDeptos}
+            onSimularLibre={() => {
+              setDevUserOverride(GUEST_SOCIO_USER);
+              setDevUser(GUEST_SOCIO_USER);
+              setToastMessage('🧪 Acceso libre al Simulador Inmobiliario (Modo Invitado / Sin Registro)');
+            }}
             onSelectSocio={(socioId) => {
               const socioUser: UserProfile = {
                 id: `socio-${socioId}`,
