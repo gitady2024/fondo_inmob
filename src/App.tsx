@@ -5,7 +5,8 @@ import type {
   CesionConfigState,
   AdelantoConfigState,
   AjusteCuota,
-  FlujoSocioCalculado
+  FlujoSocioCalculado,
+  EstadoPlanFondo
 } from './types/fondo';
 import type { UserProfile } from './types/auth';
 import { ADMIN_USER, TECNICO_USER } from './types/auth';
@@ -163,7 +164,8 @@ export const App: React.FC = () => {
         updated.descripcion,
         updated.datosTecnicos,
         updated.contratoPersonalizado,
-        updated.ajustes
+        updated.ajustes,
+        updated.estadoPlan
       );
 
       return newList;
@@ -257,6 +259,19 @@ export const App: React.FC = () => {
       ajustes: nuevosAjustes,
       updated_at: new Date().toISOString()
     }));
+  };
+
+  const handleToggleEstadoPlan = (_id: string, nuevoEstado: EstadoPlanFondo) => {
+    updateCurrentFondo((prev) => ({
+      ...prev,
+      estadoPlan: nuevoEstado,
+      updated_at: new Date().toISOString()
+    }));
+    setToastMessage(
+      nuevoEstado === 'activo'
+        ? '✅ Plan perfeccionado y marcado como ACTIVO (Condiciones cerradas para socios).'
+        : '🧪 Plan configurado en modo SIMULACIÓN (Variables desbloqueadas para socios).'
+    );
   };
 
   // Acciones de Gestión de Planes
@@ -602,6 +617,7 @@ export const App: React.FC = () => {
                   onDuplicate={handleDuplicate}
                   onRename={handleRename}
                   onDelete={handleDelete}
+                  onToggleEstadoPlan={handleToggleEstadoPlan}
                 />
 
                 {/* Barra de Herramientas del Escenario (Compartir Link, PDF, CSV, Imprimir) */}
@@ -764,7 +780,7 @@ export const App: React.FC = () => {
             }
           />
         ) : currentUser.role === 'socio' ? (
-          /* CASO 3: USUARIO LOGUEADO Y ES SOCIO -> PORTAL DEL SOCIO (FINTECH READ-ONLY) */
+          /* CASO 3: USUARIO LOGUEADO Y ES SOCIO -> PORTAL DEL SOCIO (SIMULADOR O PLAN ACTIVO) */
           <div className="space-y-6 animate-fade-in">
             <SocioPortal
               user={currentUser}
@@ -774,29 +790,91 @@ export const App: React.FC = () => {
               params={currentFondo.params}
               gastos={currentFondo.gastos}
               onOpenContrato={() => setIsContratoOpen(true)}
+              onOpenMensajes={() => setIsMensajesOpen(true)}
             />
           </div>
         ) : (
-          /* Rol Técnico */
+          /* Rol Técnico: Aislamiento total de finanzas/simulación, exclusivo para planes activos */
           <div className="space-y-6 animate-fade-in">
-            <FundSwitcher
-              currentFondo={currentFondo}
-              fondosList={fondosList}
-              onSelectFondo={handleSelectFondo}
-              onOpenNewModal={() => setIsNewModalOpen(true)}
-              onDuplicate={handleDuplicate}
-              onRename={handleRename}
-              onDelete={handleDelete}
-            />
+            {currentFondo.estadoPlan === 'simulacion' ? (
+              <div className="bg-slate-900/90 border border-amber-500/30 rounded-3xl p-8 sm:p-10 shadow-2xl text-center space-y-5">
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
+                  <HardHat className="w-7 h-7" />
+                </div>
+                <div className="max-w-xl mx-auto space-y-2">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30 inline-block">
+                    Plan en Estructuración / Simulación Fiduciaria
+                  </span>
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-white">
+                    {currentFondo.nombre} aún no está perfeccionado
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Como Gestor Técnico, no tienes acceso a simulaciones financieras. La carga y certificación de datos técnicos (obras, trámites municipales, planos y resoluciones) se habilitará una vez que el círculo de socios esté cerrado y el contrato se encuentre perfeccionado y activo.
+                  </p>
+                </div>
 
-            <ModuloTecnico
-              datosTecnicos={currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT}
-              fondoNombre={currentFondo.nombre}
-              fondoId={currentFondo.id}
-              currentUser={currentUser}
-              isReadOnly={false}
-              onUpdateDatosTecnicos={handleDatosTecnicosChange}
-            />
+                {fondosList.some((f) => f.estadoPlan !== 'simulacion' && f.id !== currentFondo.id) && (
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const fondoActivo = fondosList.find((f) => f.estadoPlan !== 'simulacion');
+                        if (fondoActivo) handleSelectFondo(fondoActivo.id);
+                      }}
+                      className="px-5 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all cursor-pointer inline-flex items-center gap-2"
+                    >
+                      <HardHat className="w-4 h-4" />
+                      <span>Ir a Proyecto Activo y Perfeccionado</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Selector exclusivo de Proyectos Activos (Sin simuladores ni creación financiera) */}
+                <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md backdrop-blur-md">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                      <HardHat className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">
+                        Proyecto Fiduciario Perfeccionado y Activo
+                      </span>
+                      <strong className="text-sm sm:text-base text-white">{currentFondo.nombre}</strong>
+                    </div>
+                  </div>
+
+                  {fondosList.filter((f) => f.estadoPlan !== 'simulacion').length > 1 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400 font-semibold hidden sm:inline">Cambiar Obra:</span>
+                      <select
+                        value={currentFondo.id}
+                        onChange={(e) => handleSelectFondo(e.target.value)}
+                        className="bg-slate-950 border border-slate-700 hover:border-amber-500/50 text-xs text-white rounded-xl px-3 py-2 outline-none font-bold cursor-pointer"
+                      >
+                        {fondosList
+                          .filter((f) => f.estadoPlan !== 'simulacion')
+                          .map((f) => (
+                            <option key={f.id} value={f.id}>
+                              🏗️ {f.nombre}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <ModuloTecnico
+                  datosTecnicos={currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT}
+                  fondoNombre={currentFondo.nombre}
+                  fondoId={currentFondo.id}
+                  currentUser={currentUser}
+                  isReadOnly={false}
+                  onUpdateDatosTecnicos={handleDatosTecnicosChange}
+                />
+              </>
+            )}
           </div>
         )}
 

@@ -4,7 +4,8 @@ import type {
   GastosConfigState,
   CesionConfigState,
   AdelantoConfigState,
-  AjusteCuota
+  AjusteCuota,
+  EstadoPlanFondo
 } from '../types/fondo';
 
 import type { DatosTecnicosProyecto } from '../types/tecnico';
@@ -15,6 +16,7 @@ export interface FondoGuardado {
   nombre: string;
   descripcion?: string;
   updated_at: string;
+  estadoPlan?: EstadoPlanFondo;
   params: ParametrosFondoState;
   gastos: GastosConfigState;
   anticipos: number[];
@@ -33,7 +35,8 @@ const CURRENT_FONDO_ID_KEY = 'fondo_inmobil_current_id';
 export const PLANTILLAS_PREDEFINIDAS: Omit<FondoGuardado, 'id' | 'updated_at'>[] = [
   {
     nombre: 'Torre Central (10 Deptos • 48 Meses)',
-    descripcion: 'Plan estándar balanceado con anticipo inicial del 10% en unidad 1 y gastos al adjudicar.',
+    descripcion: 'Plan fiduciario activo con suscripciones completas y avance de cuotas en marcha.',
+    estadoPlan: 'activo',
     params: {
       costoDepto: 65000,
       cantidadDeptos: 10,
@@ -67,8 +70,45 @@ export const PLANTILLAS_PREDEFINIDAS: Omit<FondoGuardado, 'id' | 'updated_at'>[]
     ajustes: []
   },
   {
+    nombre: 'Laboratorio de Simulación Abierta (Editable)',
+    descripcion: 'Espacio interactivo para que los socios jueguen libremente con todas las variables antes de cerrar el círculo.',
+    estadoPlan: 'simulacion',
+    params: {
+      costoDepto: 70000,
+      cantidadDeptos: 8,
+      cantidadCuotas: 48,
+      valorCuotaBase: 1458,
+      fechaInicio: '2027-01',
+      modalidadAnticipo: 'reducir_cuota'
+    },
+    gastos: {
+      formaPagoGastos: 'final',
+      comisionGestion: 7,
+      comisionEscribania: 3,
+      otrosGastos: 500
+    },
+    anticipos: [0, 0, 0, 0, 0, 0, 0, 0],
+    adjudicacionFijada: { 1: 12 },
+    cesion: {
+      activo: false,
+      socioCedente: 1,
+      cuotaSalida: 12,
+      primaCesion: 10,
+      mecanismoSalida: 'tercero'
+    },
+    adelanto: {
+      activo: false,
+      socioAdelanta: 1,
+      monto: 10000,
+      cuota: 12,
+      estrategia: 'reducir_cuota'
+    },
+    ajustes: []
+  },
+  {
     nombre: 'Complejo Casas del Parque (6 Casas • 36 Meses)',
     descripcion: 'Círculo ágil de viviendas de mayor metraje con amortización en 3 años y gastos prorrateados.',
+    estadoPlan: 'activo',
     params: {
       costoDepto: 90000,
       cantidadDeptos: 6,
@@ -104,6 +144,7 @@ export const PLANTILLAS_PREDEFINIDAS: Omit<FondoGuardado, 'id' | 'updated_at'>[]
   {
     nombre: 'Edificio Studio Suites (16 Unidades • 60 Meses)',
     descripcion: 'Microdepartamentos para inversores con cuota accesible financiada a 5 años.',
+    estadoPlan: 'activo',
     params: {
       costoDepto: 45000,
       cantidadDeptos: 16,
@@ -276,7 +317,8 @@ export const saveFondo = async (
   descripcion?: string,
   datosTecnicos?: DatosTecnicosProyecto,
   contratoPersonalizado?: string,
-  ajustes?: AjusteCuota[]
+  ajustes?: AjusteCuota[],
+  estadoPlan?: EstadoPlanFondo
 ): Promise<{ id: string; guardadoEn: 'supabase' | 'local' }> => {
   const client = getSupabaseClient();
   const id = existenteId || (typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Date.now()));
@@ -323,6 +365,7 @@ export const saveFondo = async (
   let existingTecnicos: DatosTecnicosProyecto | undefined = undefined;
   let existingContrato: string | undefined = undefined;
   let existingAjustes: AjusteCuota[] | undefined = undefined;
+  let existingEstadoPlan: EstadoPlanFondo | undefined = undefined;
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
     if (raw) {
@@ -331,6 +374,7 @@ export const saveFondo = async (
       if (match?.datosTecnicos) existingTecnicos = match.datosTecnicos;
       if (match?.contratoPersonalizado) existingContrato = match.contratoPersonalizado;
       if (match?.ajustes) existingAjustes = match.ajustes;
+      if (match?.estadoPlan) existingEstadoPlan = match.estadoPlan;
     }
   } catch {}
 
@@ -339,6 +383,7 @@ export const saveFondo = async (
     nombre,
     descripcion: descripcion || '',
     updated_at: updatedAt,
+    estadoPlan: estadoPlan !== undefined ? estadoPlan : (existingEstadoPlan || 'activo'),
     params,
     gastos,
     anticipos,

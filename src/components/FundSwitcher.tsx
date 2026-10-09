@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { FondoGuardado } from '../services/fondoService';
+import type { EstadoPlanFondo } from '../types/fondo';
 import { fmtMoneda } from '../utils/calculations';
 import {
   Building2,
@@ -9,10 +10,9 @@ import {
   Edit2,
   Trash2,
   Check,
-  Layers
+  Layers,
+  Sparkles
 } from 'lucide-react';
-
-
 
 interface FundSwitcherProps {
   currentFondo: FondoGuardado;
@@ -22,6 +22,7 @@ interface FundSwitcherProps {
   onDuplicate: (id: string) => void;
   onRename: (id: string, newName: string) => void;
   onDelete: (id: string) => void;
+  onToggleEstadoPlan?: (id: string, nuevoEstado: EstadoPlanFondo) => void;
 }
 
 export const FundSwitcher: React.FC<FundSwitcherProps> = ({
@@ -31,7 +32,8 @@ export const FundSwitcher: React.FC<FundSwitcherProps> = ({
   onOpenNewModal,
   onDuplicate,
   onRename,
-  onDelete
+  onDelete,
+  onToggleEstadoPlan
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -177,6 +179,31 @@ export const FundSwitcher: React.FC<FundSwitcherProps> = ({
 
         {/* Acciones Rápidas del Plan */}
         <div className="flex flex-wrap items-center gap-2 self-end lg:self-auto">
+          {onToggleEstadoPlan && (
+            <button
+              type="button"
+              onClick={() => onToggleEstadoPlan(currentFondo.id, currentFondo.estadoPlan === 'simulacion' ? 'activo' : 'simulacion')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
+                currentFondo.estadoPlan === 'simulacion'
+                  ? 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/40 shadow-sm'
+                  : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/40 shadow-sm'
+              }`}
+              title="Haz clic para alternar entre Modo Simulación y Plan Activo"
+            >
+              {currentFondo.estadoPlan === 'simulacion' ? (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>🧪 Simulación Abierta</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>✅ Plan Activo</span>
+                </>
+              )}
+            </button>
+          )}
+
           <button
             onClick={() => setIsEditingName(true)}
             title="Renombrar plan actual"

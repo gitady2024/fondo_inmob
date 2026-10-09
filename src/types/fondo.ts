@@ -2,6 +2,28 @@ export type ModalidadAnticipo = 'reducir_cuota' | 'reducir_plazo';
 export type FormaPagoGastos = 'final' | 'prorrateado';
 export type MecanismoSalida = 'tercero' | 'preferencia' | 'diferido';
 export type EstrategiaImpactoAdelanto = 'reducir_cuota' | 'acelerar';
+export type EstadoPlanFondo = 'simulacion' | 'activo';
+
+export interface SimulacionSocioConfig {
+  costoDepto: number;
+  cantidadCuotas: number;
+  cantidadDeptos: number;
+  fechaInicio: string;
+  modalidadAnticipo: ModalidadAnticipo;
+  anticipoMes0: number;
+  formaPagoGastos: FormaPagoGastos;
+  comisionGestion: number;
+  comisionEscribania: number;
+  otrosGastos: number;
+  cuotaPosesionObjetivo: number;
+  adelantoActivo: boolean;
+  adelantoMonto: number;
+  adelantoCuota: number;
+  adelantoEstrategia: EstrategiaImpactoAdelanto;
+  cesionActiva: boolean;
+  cesionCuotaSalida: number;
+  cesionPrima: number;
+}
 
 export interface ParametrosFondoState {
   costoDepto: number;

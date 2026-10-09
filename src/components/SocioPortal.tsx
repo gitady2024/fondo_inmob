@@ -3,6 +3,9 @@ import type { UserProfile } from '../types/auth';
 import type { FondoGuardado } from '../services/fondoService';
 import type { FlujoSocioCalculado, ParametrosFondoState, GastosConfigState } from '../types/fondo';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { calcularGastos } from '../utils/calculations';
+import { SimuladorSocio } from './SimuladorSocio';
+import { AdelantoSocioActivo } from './AdelantoSocioActivo';
 import {
   Wallet,
   Calendar,
@@ -15,7 +18,11 @@ import {
   RefreshCw,
   AlertCircle,
   FileText,
-  ChevronRight
+  ChevronRight,
+  Sliders,
+  Lock,
+  Zap,
+  Sparkles
 } from 'lucide-react';
 
 export interface CuotaItem {
@@ -45,6 +52,7 @@ interface SocioPortalProps {
   params?: ParametrosFondoState;
   gastos?: GastosConfigState;
   onOpenContrato?: () => void;
+  onOpenMensajes?: () => void;
 }
 
 const MESES_NOMBRES = [
@@ -74,8 +82,23 @@ export const SocioPortal: React.FC<SocioPortalProps> = ({
   flujoSocio,
   fechaInicio = '2027-01',
   params,
-  onOpenContrato
+  gastos,
+  onOpenContrato,
+  onOpenMensajes
 }) => {
+  const esPlanSimulacion = currentFondo?.estadoPlan === 'simulacion';
+  const [modoVista, setModoVista] = useState<'cuenta' | 'simulador' | 'adelantos'>(
+    esPlanSimulacion ? 'simulador' : 'cuenta'
+  );
+
+  useEffect(() => {
+    if (currentFondo?.estadoPlan === 'simulacion') {
+      setModoVista('simulador');
+    } else {
+      setModoVista('cuenta');
+    }
+  }, [currentFondo?.id, currentFondo?.estadoPlan]);
+
   const [activeTab, setActiveTab] = useState<'pendientes' | 'historial'>('pendientes');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -92,6 +115,19 @@ export const SocioPortal: React.FC<SocioPortalProps> = ({
   const totalCuotasPlan = currentFondo?.params.cantidadCuotas || params?.cantidadCuotas || 48;
   const cantidadDeptos = currentFondo?.params.cantidadDeptos || params?.cantidadDeptos || 10;
   const valorCuotaBase = currentFondo?.params.valorCuotaBase || params?.valorCuotaBase || 1354;
+
+  const gastosCalculados = useMemo(() => {
+    return calcularGastos(
+      currentFondo?.params.costoDepto || params?.costoDepto || 65000,
+      currentFondo?.gastos || gastos || {
+        formaPagoGastos: 'final',
+        comisionGestion: 7,
+        comisionEscribania: 3,
+        otrosGastos: 500
+      },
+      totalCuotasPlan
+    );
+  }, [currentFondo, params, gastos, totalCuotasPlan]);
 
   // Mes de posesión asignado al socio
   const mesPosesionEstimada = useMemo(() => {
@@ -360,9 +396,144 @@ export const SocioPortal: React.FC<SocioPortalProps> = ({
       </section>
 
       {/* ==================================================================== */}
-      {/* 2. PANEL DE RESUMEN (TOP 3 KPIS FINTECH)                             */}
+      {/* SELECTOR DE MODO: SIMULACIÓN ABIERTA VS GESTIÓN DE PLAN ACTIVO      */}
       {/* ==================================================================== */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-2">
+          {esPlanSimulacion ? (
+            <span className="px-3 py-1.5 rounded-xl bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 text-xs font-bold flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+              <span>Modo Simulación: Totalidad de variables disponibles para diseñar tu plan</span>
+            </span>
+          ) : (
+            <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>Plan Activo: Condiciones contractuales fijas. Puedes modificar aportes y adelantos</span>
+            </span>
+          )}
+        </div>
+
+        <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 self-start sm:self-auto">
+          {esPlanSimulacion ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setModoVista('simulador')}
+                className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  modoVista === 'simulador'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                <span>Simulador Integral</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoVista('cuenta')}
+                className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  modoVista === 'cuenta'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Vista Previa Cuotas</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setModoVista('cuenta')}
+                className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  modoVista === 'cuenta'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Cronograma y Pagos</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoVista('adelantos')}
+                className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  modoVista === 'adelantos'
+                    ? 'bg-amber-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Proyectar Adelantos</span>
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* RENDERIZADO SEGÚN MODO SELECCIONADO */}
+      {modoVista === 'simulador' ? (
+        <SimuladorSocio
+          user={user}
+          fondoNombre={currentFondo?.nombre || 'Fondo Inmobiliario'}
+          initialParams={currentFondo?.params || params || {
+            costoDepto: 65000,
+            cantidadDeptos: 10,
+            cantidadCuotas: 48,
+            valorCuotaBase: 1354,
+            fechaInicio: '2027-01',
+            modalidadAnticipo: 'reducir_cuota'
+          }}
+          initialGastos={currentFondo?.gastos || gastos || {
+            formaPagoGastos: 'final',
+            comisionGestion: 7,
+            comisionEscribania: 3,
+            otrosGastos: 500
+          }}
+          onOpenContrato={onOpenContrato}
+          onOpenMensajes={onOpenMensajes}
+        />
+      ) : modoVista === 'adelantos' ? (
+        <AdelantoSocioActivo
+          socioId={socioId}
+          socioNombre={user.nombre}
+          flujoActual={flujoSocio || {
+            socioId,
+            anticipoMes0: 0,
+            cuotaPosesion: mesPosesionEstimada,
+            cuotaInmInicial: valorCuotaBase,
+            cuotaFinInicial: valorCuotaBase,
+            pagoFinalGastos: gastosCalculados.pagoFinalGastos,
+            recargoGastosPorCuota: gastosCalculados.recargoGastosPorCuota,
+            mesesTotales: totalCuotasPlan,
+            totalAbonado: (params?.costoDepto || 65000),
+            flujo: []
+          }}
+          params={currentFondo?.params || params || {
+            costoDepto: 65000,
+            cantidadDeptos: 10,
+            cantidadCuotas: 48,
+            valorCuotaBase: 1354,
+            fechaInicio: '2027-01',
+            modalidadAnticipo: 'reducir_cuota'
+          }}
+          gastos={currentFondo?.gastos || gastos || {
+            formaPagoGastos: 'final',
+            comisionGestion: 7,
+            comisionEscribania: 3,
+            otrosGastos: 500
+          }}
+          pagoFinalGastos={gastosCalculados.pagoFinalGastos}
+          recargoGastosPorCuota={gastosCalculados.recargoGastosPorCuota}
+          onOpenMensajes={onOpenMensajes}
+        />
+      ) : (
+        <>
+          {/* ==================================================================== */}
+          {/* 2. PANEL DE RESUMEN (TOP 3 KPIS FINTECH)                             */}
+          {/* ==================================================================== */}
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
         
         {/* CARD 1: CAPITAL INTEGRADO */}
         <div className="bg-slate-900/60 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-5 sm:p-6 transition-all shadow-sm space-y-3">
@@ -687,12 +858,11 @@ export const SocioPortal: React.FC<SocioPortalProps> = ({
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>Vista de Solo Lectura protegida por Row Level Security (RLS) en Supabase</span>
         </div>
-        <div className="text-slate-500 text-[11px]">
-          Fideicomiso al Costo • Arts. 1666-1707 Código Civil y Comercial de la Nación
-        </div>
       </footer>
+    </>
+  )}
 
-    </div>
+</div>
   );
 };
 
