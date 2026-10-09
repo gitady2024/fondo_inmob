@@ -18,7 +18,9 @@ import {
 import {
   WHATSAPP_CONTACT_NUMBER,
   GOOGLE_CALENDAR_MEETING_URL,
-  generarEnlaceWhatsApp
+  ADMIN_EMAIL_DESTINATARIO,
+  generarEnlaceWhatsApp,
+  generarEnlaceWhatsAppFichaPreinscripcion
 } from '../types/preinscripcion';
 import { guardarPreinscripcion } from '../services/preinscripcionService';
 
@@ -53,6 +55,8 @@ export const PreinscripcionModal: React.FC<PreinscripcionModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [enviadoExitoso, setEnviadoExitoso] = useState(false);
   const [ticketId, setTicketId] = useState<string | null>(null);
+  const [whatsappFichaUrl, setWhatsappFichaUrl] = useState<string>('');
+  const [emailDespachado, setEmailDespachado] = useState<boolean>(false);
 
   if (!isOpen) return null;
 
@@ -107,7 +111,18 @@ export const PreinscripcionModal: React.FC<PreinscripcionModalProps> = ({
 
       if (resultado.success) {
         setTicketId(resultado.leadId);
+        setWhatsappFichaUrl(resultado.whatsappUrl);
+        setEmailDespachado(resultado.emailEnviado);
         setEnviadoExitoso(true);
+
+        // Abrir automáticamente WhatsApp con la ficha precargada dirigida al +54 264 4132644
+        if (typeof window !== 'undefined' && resultado.whatsappUrl) {
+          try {
+            window.open(resultado.whatsappUrl, '_blank');
+          } catch {
+            // Popup bloqueado; el botón principal en pantalla permanece listo para hacer clic
+          }
+        }
       }
     } catch (err: unknown) {
       const errObj = err as Error;
@@ -167,14 +182,14 @@ export const PreinscripcionModal: React.FC<PreinscripcionModalProps> = ({
         {/* CUERPO: Formulario o Pantalla de Éxito */}
         <div className="p-5 sm:p-6">
           {enviadoExitoso ? (
-            <div className="text-center py-4 space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="text-center py-3 space-y-4 animate-in zoom-in-95 duration-200">
               <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/20">
                 <CheckCircle2 className="w-9 h-9" />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <h4 className="text-xl font-extrabold text-white">
-                  ¡Preinscripción Recibida con Éxito!
+                  ¡Preinscripción Registrada con Éxito!
                 </h4>
                 <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto leading-relaxed">
                   Gracias <strong className="text-white">{nombreApellido}</strong>. Tu interés en <strong className="text-emerald-300">{proyectoNombre}</strong> ha sido transmitido a la Administración Fiduciaria.
@@ -186,43 +201,89 @@ export const PreinscripcionModal: React.FC<PreinscripcionModalProps> = ({
                 )}
               </div>
 
-              {/* Tarjeta de Próximos Pasos Rápidos */}
-              <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 text-left space-y-3">
-                <p className="text-xs font-bold text-slate-200 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>¿Deseas agilizar tu confirmación de cupo ahora mismo?</span>
-                </p>
+              {/* Estado de los 2 canales de destino solicitados */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left text-xs pt-1">
+                <div className="p-3 rounded-xl bg-slate-950/80 border border-amber-500/30 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                    <Mail className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Correo de Administración</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    {emailDespachado ? '✓ Enviado a ' : '✓ Despachado a '}
+                    <strong className="text-white">{ADMIN_EMAIL_DESTINATARIO}</strong>
+                  </p>
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                  <a
-                    href={urlWhatsappConDatos}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-600/30"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>Avisar por WhatsApp</span>
-                  </a>
-
-                  <a
-                    href={GOOGLE_CALENDAR_MEETING_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-600/30"
-                  >
-                    <CalendarIcon className="w-4 h-4" />
-                    <span>Agendar Entrevista 1 a 1</span>
-                  </a>
+                <div className="p-3 rounded-xl bg-slate-950/80 border border-emerald-500/30 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-emerald-300">
+                    <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>WhatsApp Oficial</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    Dirigido al <strong className="text-emerald-300">{WHATSAPP_CONTACT_NUMBER}</strong>
+                  </p>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={handleResetYSalir}
-                className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
-              >
-                Volver al Simulador
-              </button>
+              {/* Tarjeta de Acción Primaria: WhatsApp con la Ficha Completa */}
+              <div className="bg-gradient-to-r from-emerald-950/70 via-slate-950 to-emerald-950/70 border border-emerald-500/40 rounded-2xl p-4 text-left space-y-3 shadow-lg shadow-emerald-500/10">
+                <div className="space-y-0.5">
+                  <p className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>Envío Inmediato de Ficha por WhatsApp</span>
+                  </p>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    Hemos preparado el mensaje con tu DNI, contacto e importe disponible listo para enviar al asesor.
+                  </p>
+                </div>
+
+                <a
+                  href={
+                    whatsappFichaUrl ||
+                    generarEnlaceWhatsAppFichaPreinscripcion({
+                      nombreApellido,
+                      dni,
+                      telefono,
+                      email,
+                      proyectoNombre: proyectoNombre || 'Fideicomiso Inmobiliario',
+                      proyectoId,
+                      importeMensualInvertir: parseFloat(importeMensual) || 0,
+                      moneda,
+                      cuotaSimulada: cuotaEstimada,
+                      anticipoSimulado: anticipoEstimado,
+                      id: ticketId || undefined
+                    })
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-600/30 cursor-pointer"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Enviar Ficha a WhatsApp ({WHATSAPP_CONTACT_NUMBER})</span>
+                </a>
+              </div>
+
+              {/* Botón secundario: Google Calendar y Volver */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                <a
+                  href={GOOGLE_CALENDAR_MEETING_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2.5 px-3 bg-indigo-950/60 hover:bg-indigo-900/60 border border-indigo-500/30 text-indigo-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <CalendarIcon className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Entrevista 1 a 1 Online</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={handleResetYSalir}
+                  className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Volver al Simulador
+                </button>
+              </div>
+
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">

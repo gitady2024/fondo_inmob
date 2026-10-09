@@ -1,4 +1,8 @@
 import type { DatosPreinscripcion } from '../types/preinscripcion';
+import {
+  ADMIN_EMAIL_DESTINATARIO,
+  generarEnlaceWhatsAppFichaPreinscripcion
+} from '../types/preinscripcion';
 import { enviarMensaje } from './mensajeService';
 import type { UserProfile } from '../types/auth';
 
@@ -6,9 +10,51 @@ const LOCAL_STORAGE_PREINSCRIPCIONES_KEY = 'fondo_inmobil_preinscripciones_leads
 
 let memoryPreinscripciones: DatosPreinscripcion[] = [];
 
+/**
+ * Despacho automático de correo electrónico fiduciario hacia el administrador (qdoblea@gmail.com)
+ */
+export const enviarEmailPreinscripcion = async (
+  datos: DatosPreinscripcion
+): Promise<{ success: boolean; status?: string }> => {
+  try {
+    const payload = {
+      _subject: `Nueva Preinscripción Fiduciaria: ${datos.nombreApellido} - ${datos.proyectoNombre}`,
+      "Interesado": datos.nombreApellido,
+      "DNI_CUIT": datos.dni,
+      "Telefono": datos.telefono,
+      "Email": datos.email,
+      "Proyecto": datos.proyectoNombre,
+      "Importe_Mensual_Invertir": `${datos.moneda} $${datos.importeMensualInvertir.toLocaleString('es-AR')}`,
+      "Cuota_Simulada": datos.cuotaSimulada ? `USD $${Math.round(datos.cuotaSimulada).toLocaleString('es-AR')}` : 'No calculada',
+      "Anticipo_Simulado": datos.anticipoSimulado ? `USD $${Math.round(datos.anticipoSimulado).toLocaleString('es-AR')}` : 'No calculado',
+      "Codigo_Registro": datos.id,
+      "Fecha_Hora": new Date().toLocaleString('es-AR'),
+      _template: 'table',
+      _captcha: 'false'
+    };
+
+    const response = await fetch(`https://formsubmit.co/ajax/${ADMIN_EMAIL_DESTINATARIO}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      return { success: true, status: 'sent' };
+    }
+    return { success: false, status: `http_${response.status}` };
+  } catch (err) {
+    console.warn('Advertencia al enviar email fiduciario via endpoint:', err);
+    return { success: false, status: 'network_fallback' };
+  }
+};
+
 export const guardarPreinscripcion = async (
   datos: Omit<DatosPreinscripcion, 'id' | 'created_at'>
-): Promise<{ success: boolean; leadId: string }> => {
+): Promise<{ success: boolean; leadId: string; emailEnviado: boolean; whatsappUrl: string }> => {
   const leadId = typeof crypto !== 'undefined' && crypto.randomUUID 
     ? crypto.randomUUID() 
     : `lead-${Date.now()}`;
@@ -62,7 +108,18 @@ export const guardarPreinscripcion = async (
     console.warn('Error al notificar preinscripción a administración:', err);
   }
 
-  return { success: true, leadId };
+  // 3. Despachar email al correo del administrador (qdoblea@gmail.com)
+  const emailRes = await enviarEmailPreinscripcion(registroCompleto);
+
+  // 4. Generar URL con ficha fiduciaria completa para WhatsApp (+54 264 4132644)
+  const whatsappUrl = generarEnlaceWhatsAppFichaPreinscripcion(registroCompleto);
+
+  return {
+    success: true,
+    leadId,
+    emailEnviado: emailRes.success,
+    whatsappUrl
+  };
 };
 
 export const getPreinscripcionesGuardadas = (): DatosPreinscripcion[] => {
