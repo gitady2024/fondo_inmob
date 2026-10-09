@@ -53,8 +53,9 @@ import { exportarCuadroMarchaCSV } from './utils/exportToCSV';
 import { getUnreadCount } from './services/mensajeService';
 import type { DatosTecnicosProyecto } from './types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from './types/tecnico';
-import { HardHat } from 'lucide-react';
+import { HardHat, Lock } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
+import { LandingPage } from './components/LandingPage';
 
 export const App: React.FC = () => {
   const {
@@ -69,6 +70,7 @@ export const App: React.FC = () => {
   const currentUser: UserProfile | null = authProfile || devUser;
   const [loginInitialRole, setLoginInitialRole] = useState<UserRole>('admin');
   const [isLoginOpen, setIsLoginOpen] = useState<boolean>(false);
+  const [vistaPublica, setVistaPublica] = useState<'landing' | 'perfiles'>('landing');
   const [isContratoOpen, setIsContratoOpen] = useState<boolean>(false);
   const [isMensajesOpen, setIsMensajesOpen] = useState<boolean>(false);
   const [fondosList, setFondosList] = useState<FondoGuardado[]>([]);
@@ -505,64 +507,125 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Barra de Navegación Principal */}
-        <Navbar
-          user={currentUser}
-          unreadCount={unreadCount}
-          onReset={handleResetCurrent}
-          onPrint={() => window.print()}
-          onOpenPersistencia={() => setIsPersistenciaOpen(true)}
-          onOpenLogin={() => setIsLoginOpen(true)}
-          onOpenContrato={() => setIsContratoOpen(true)}
-          onOpenMensajes={() => setIsMensajesOpen(true)}
-          onSignOut={async () => {
-            await handleSupabaseSignOut();
-            setDevUserOverride(null);
-            setDevUser(null);
-          }}
-        />
+        {/* Barra de Navegación Principal (Visible cuando hay usuario activo o en el selector de perfiles) */}
+        {(currentUser || vistaPublica === 'perfiles') && (
+          <Navbar
+            user={currentUser}
+            unreadCount={unreadCount}
+            onReset={handleResetCurrent}
+            onPrint={() => window.print()}
+            onOpenPersistencia={() => setIsPersistenciaOpen(true)}
+            onOpenLogin={() => setIsLoginOpen(true)}
+            onOpenContrato={() => setIsContratoOpen(true)}
+            onOpenMensajes={() => setIsMensajesOpen(true)}
+            onSignOut={async () => {
+              await handleSupabaseSignOut();
+              setDevUserOverride(null);
+              setDevUser(null);
+              setVistaPublica('landing');
+            }}
+          />
+        )}
+
+        {/* Banner superior cuando se navega en modo simulador invitado */}
+        {currentUser && (currentUser.isGuest || currentUser.id === 'invitado') && (
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl no-print">
+            <span className="text-xs text-slate-300">
+              Estás en el <strong className="text-emerald-400">Simulador de Inversión</strong> (Modo Abierto).
+            </span>
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setDevUserOverride(null);
+                  setDevUser(null);
+                  setVistaPublica('landing');
+                }}
+                className="text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer"
+              >
+                ← Volver a la Portada
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginInitialRole('admin');
+                  setIsLoginOpen(true);
+                }}
+                className="text-xs font-bold text-amber-300 hover:text-white bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5"
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Acceso Staff</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ------------------------------------------------------------------ */}
         {/* ESQUEMA CONDICIONAL: LANDING vs ADMIN DASHBOARD vs PORTAL SOCIO    */}
         {/* ------------------------------------------------------------------ */}
         {!currentUser ? (
-          /* CASO 1: USUARIO NO LOGUEADO -> SELECTOR DE PERFIL DE ENTRADA */
-          <PortalAccesoPerfiles
-            currentFondoNombre={currentFondo.nombre}
-            cantidadSocios={currentFondo.params.cantidadDeptos}
-            onSimularLibre={() => {
-              setDevUserOverride(GUEST_SOCIO_USER);
-              setDevUser(GUEST_SOCIO_USER);
-              setToastMessage('🧪 Acceso libre al Simulador Inmobiliario (Modo Invitado / Sin Registro)');
-            }}
-            onSelectSocio={(socioId) => {
-              const socioUser: UserProfile = {
-                id: `socio-${socioId}`,
-                role: 'socio',
-                socioId: socioId,
-                nombre: `Socio Unidad ${socioId}`,
-                email: `socio${socioId}@fondoinmobil.com`
-              };
-              setDevUserOverride(socioUser);
-              setDevUser(socioUser);
-              setSocioSeleccionado(socioId);
-              setToastMessage(`👋 Bienvenido al Portal del Socio (Unidad D${socioId})`);
-            }}
-            onSelectTecnico={() => {
-              setDevUserOverride(TECNICO_USER);
-              setDevUser(TECNICO_USER);
-              setToastMessage('👷 Bienvenido al Módulo Técnico y de Obras');
-            }}
-            onSelectAdmin={() => {
-              setLoginInitialRole('admin');
-              setIsLoginOpen(true);
-            }}
-            onOpenLoginModal={(role) => {
-              setLoginInitialRole(role || 'socio');
-              setIsLoginOpen(true);
-            }}
-            onOpenContrato={() => setIsContratoOpen(true)}
-          />
+          vistaPublica === 'landing' ? (
+            /* VISTA DE ENTRADA: LANDING PAGE VENDEDORA CON BOTÓN DE STAFF */
+            <LandingPage
+              onStartSimulation={() => {
+                setDevUserOverride(GUEST_SOCIO_USER);
+                setDevUser(GUEST_SOCIO_USER);
+                setToastMessage('📊 Bienvenido al Simulador de Inversión');
+              }}
+              onOpenStaffLogin={() => {
+                setLoginInitialRole('admin');
+                setIsLoginOpen(true);
+              }}
+              onOpenPerfiles={() => setVistaPublica('perfiles')}
+            />
+          ) : (
+            /* SELECTOR DE PERFILES COMPLETO */
+            <div className="space-y-4">
+              <button
+                type="button"
+                onClick={() => setVistaPublica('landing')}
+                className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg cursor-pointer"
+              >
+                ← Volver a la Portada
+              </button>
+              <PortalAccesoPerfiles
+                currentFondoNombre={currentFondo.nombre}
+                cantidadSocios={currentFondo.params.cantidadDeptos}
+                onSimularLibre={() => {
+                  setDevUserOverride(GUEST_SOCIO_USER);
+                  setDevUser(GUEST_SOCIO_USER);
+                  setToastMessage('🧪 Acceso libre al Simulador Inmobiliario (Modo Invitado / Sin Registro)');
+                }}
+                onSelectSocio={(socioId) => {
+                  const socioUser: UserProfile = {
+                    id: `socio-${socioId}`,
+                    role: 'socio',
+                    socioId: socioId,
+                    nombre: `Socio Unidad ${socioId}`,
+                    email: `socio${socioId}@fondoinmobil.com`
+                  };
+                  setDevUserOverride(socioUser);
+                  setDevUser(socioUser);
+                  setSocioSeleccionado(socioId);
+                  setToastMessage(`👋 Bienvenido al Portal del Socio (Unidad D${socioId})`);
+                }}
+                onSelectTecnico={() => {
+                  setDevUserOverride(TECNICO_USER);
+                  setDevUser(TECNICO_USER);
+                  setToastMessage('👷 Bienvenido al Módulo Técnico y de Obras');
+                }}
+                onSelectAdmin={() => {
+                  setLoginInitialRole('admin');
+                  setIsLoginOpen(true);
+                }}
+                onOpenLoginModal={(role) => {
+                  setLoginInitialRole(role || 'socio');
+                  setIsLoginOpen(true);
+                }}
+                onOpenContrato={() => setIsContratoOpen(true)}
+              />
+            </div>
+          )
         ) : currentUser.role === 'admin' ? (
           /* CASO 2: USUARIO LOGUEADO Y ES ADMIN -> ADMIN DASHBOARD */
           <AdminDashboard
