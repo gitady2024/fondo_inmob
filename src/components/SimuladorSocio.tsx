@@ -7,6 +7,8 @@ import type {
   FormaPagoGastos,
   EstrategiaImpactoAdelanto
 } from '../types/fondo';
+import type { FondoGuardado } from '../services/fondoService';
+import { ProyectosActivosCTA } from './ProyectosActivosCTA';
 import { calcularGastos, calcularFlujoIndividual, fmtMoneda, formatFecha } from '../utils/calculations';
 import {
   Sliders,
@@ -27,6 +29,9 @@ interface SimuladorSocioProps {
   fondoNombre: string;
   initialParams: ParametrosFondoState;
   initialGastos: GastosConfigState;
+  fondosList?: FondoGuardado[];
+  currentFondoId?: string;
+  onSelectFondo?: (fondoId: string) => void;
   onOpenContrato?: () => void;
   onOpenMensajes?: () => void;
 }
@@ -36,6 +41,9 @@ export const SimuladorSocio: React.FC<SimuladorSocioProps> = ({
   fondoNombre,
   initialParams,
   initialGastos,
+  fondosList = [],
+  currentFondoId,
+  onSelectFondo,
   onOpenContrato,
   onOpenMensajes
 }) => {
@@ -43,6 +51,28 @@ export const SimuladorSocio: React.FC<SimuladorSocioProps> = ({
   const [costoDepto, setCostoDepto] = useState<number>(initialParams.costoDepto || 65000);
   const [cantidadCuotas, setCantidadCuotas] = useState<number>(initialParams.cantidadCuotas || 48);
   const [cantidadDeptos, setCantidadDeptos] = useState<number>(initialParams.cantidadDeptos || 10);
+  const [proyectoAdoptado, setProyectoAdoptado] = useState<FondoGuardado | null>(null);
+  const [notificacionAdopcion, setNotificacionAdopcion] = useState<string | null>(null);
+
+  const handleAdoptarProyecto = (proyecto: FondoGuardado) => {
+    setCostoDepto(proyecto.params.costoDepto);
+    setCantidadCuotas(proyecto.params.cantidadCuotas);
+    setCantidadDeptos(proyecto.params.cantidadDeptos);
+    setFechaInicio(proyecto.params.fechaInicio);
+    setModalidadAnticipo(proyecto.params.modalidadAnticipo);
+    setFormaPagoGastos(proyecto.gastos.formaPagoGastos);
+    setComisionGestion(proyecto.gastos.comisionGestion);
+    setComisionEscribania(proyecto.gastos.comisionEscribania);
+    setOtrosGastos(proyecto.gastos.otrosGastos);
+    setAnticipoMes0(Math.round(proyecto.params.costoDepto * 0.1));
+    setCuotaPosesionObjetivo(Math.round(proyecto.params.cantidadCuotas / 3));
+    setProyectoAdoptado(proyecto);
+    setNotificacionAdopcion(`Parámetros oficiales cargados desde "${proyecto.nombre}"`);
+    if (onSelectFondo) {
+      onSelectFondo(proyecto.id);
+    }
+    setTimeout(() => setNotificacionAdopcion(null), 5000);
+  };
   const [fechaInicio, setFechaInicio] = useState<string>(initialParams.fechaInicio || '2027-01');
   const [modalidadAnticipo, setModalidadAnticipo] = useState<ModalidadAnticipo>(
     initialParams.modalidadAnticipo || 'reducir_cuota'
@@ -208,7 +238,32 @@ export const SimuladorSocio: React.FC<SimuladorSocioProps> = ({
         </div>
       </div>
 
-      {/* 2. KPIs Comparativos Inmediatos */}
+      {/* FEEDBACK DE PROYECTO ADOPTADO */}
+      {notificacionAdopcion && (
+        <div className="bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 p-4 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-between gap-3 shadow-lg animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>✅ {notificacionAdopcion}</span>
+          </div>
+          <span className="text-[11px] text-emerald-400/80 font-mono hidden sm:inline">
+            Valores recalculados al 100%
+          </span>
+        </div>
+      )}
+
+      {/* 2. CATÁLOGO DE PROYECTOS ACTIVOS DISPONIBLES (CTA EN 1-CLIC) */}
+      {fondosList && fondosList.length > 0 && (
+        <ProyectosActivosCTA
+          proyectos={fondosList}
+          proyectoActivoId={proyectoAdoptado?.id || currentFondoId}
+          onAdoptarProyecto={handleAdoptarProyecto}
+          onContactarProyecto={(_nombre) => {
+            if (onOpenMensajes) onOpenMensajes();
+          }}
+        />
+      )}
+
+      {/* 3. KPIs Comparativos Inmediatos */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* KPI 1: Cuota Mensual Simulada */}

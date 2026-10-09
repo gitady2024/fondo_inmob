@@ -756,6 +756,8 @@ export const App: React.FC = () => {
               fechaInicio={currentFondo.params.fechaInicio}
               params={currentFondo.params}
               gastos={currentFondo.gastos}
+              fondosList={fondosList}
+              onSelectFondo={handleSelectFondo}
               onOpenContrato={() => setIsContratoOpen(true)}
               onOpenMensajes={() => setIsMensajesOpen(true)}
             />

@@ -51,6 +51,8 @@ interface SocioPortalProps {
   fechaInicio?: string;
   params?: ParametrosFondoState;
   gastos?: GastosConfigState;
+  fondosList?: FondoGuardado[];
+  onSelectFondo?: (id: string) => void;
   onOpenContrato?: () => void;
   onOpenMensajes?: () => void;
 }
@@ -83,6 +85,8 @@ export const SocioPortal: React.FC<SocioPortalProps> = ({
   fechaInicio = '2027-01',
   params,
   gastos,
+  fondosList,
+  onSelectFondo,
   onOpenContrato,
   onOpenMensajes
 }) => {
@@ -497,6 +501,9 @@ export const SocioPortal: React.FC<SocioPortalProps> = ({
             comisionEscribania: 3,
             otrosGastos: 500
           }}
+          fondosList={fondosList}
+          currentFondoId={currentFondo?.id}
+          onSelectFondo={onSelectFondo}
           onOpenContrato={onOpenContrato}
           onOpenMensajes={onOpenMensajes}
         />
