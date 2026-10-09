@@ -31,6 +31,7 @@ interface LoginModalProps {
     role?: UserRole,
     especialidad?: string
   ) => Promise<{ success: boolean; error?: string }>;
+  initialRole?: UserRole;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
@@ -40,9 +41,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   currentFondoNombre,
   onLogin,
   onSupabaseSignIn,
-  onSupabaseSignUp
+  onSupabaseSignUp,
+  initialRole = 'admin'
 }) => {
-  const [selectedRole, setSelectedRole] = useState<UserRole>('admin');
+  const [selectedRole, setSelectedRole] = useState<UserRole>(initialRole);
+
+  React.useEffect(() => {
+    if (isOpen && initialRole) {
+      setSelectedRole(initialRole);
+    }
+  }, [isOpen, initialRole]);
   const [selectedSocioId, setSelectedSocioId] = useState<number>(1);
   const [especialidad, setEspecialidad] = useState('Dirección de Obra y Certificaciones');
 

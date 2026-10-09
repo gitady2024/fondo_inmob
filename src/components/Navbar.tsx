@@ -85,11 +85,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               {onSignOut && (
                 <button
+                  type="button"
                   onClick={onSignOut}
-                  title="Cerrar sesión"
-                  className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 rounded-lg transition-colors text-xs"
+                  title="Cerrar sesión y volver al selector de perfiles"
+                  className="px-2.5 py-1.5 text-slate-300 hover:text-rose-300 hover:bg-rose-500/10 border border-slate-700 hover:border-rose-500/40 rounded-xl transition-all text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-sm"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                  <span className="hidden sm:inline">Cambiar Perfil</span>
                 </button>
               )}
             </div>

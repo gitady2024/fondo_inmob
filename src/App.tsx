@@ -8,7 +8,7 @@ import type {
   FlujoSocioCalculado,
   EstadoPlanFondo
 } from './types/fondo';
-import type { UserProfile } from './types/auth';
+import type { UserProfile, UserRole } from './types/auth';
 import { ADMIN_USER, TECNICO_USER } from './types/auth';
 import { calcularGastos, calcularFlujoIndividual } from './utils/calculations';
 import {
@@ -28,6 +28,7 @@ import { NewFundModal } from './components/NewFundModal';
 import { LoginModal } from './components/LoginModal';
 import { SocioPortal } from './components/SocioPortal';
 import { AdminDashboard } from './components/AdminDashboard';
+import { PortalAccesoPerfiles } from './components/PortalAccesoPerfiles';
 import { ParametrosFondo } from './components/ParametrosFondo';
 import { GastosAdjudicacion } from './components/GastosAdjudicacion';
 import { MatrizAnticipos } from './components/MatrizAnticipos';
@@ -40,7 +41,6 @@ import { SupabaseModal } from './components/SupabaseModal';
 import { ModuloTecnico } from './components/ModuloTecnico';
 import { ContratoModal } from './components/ContratoModal';
 import { CentroMensajes } from './components/CentroMensajes';
-import { HeroSection } from './components/HeroSection';
 import { Footer } from './components/Footer';
 import { StickyKPIs } from './components/StickyKPIs';
 import { CapitalFlowChart } from './components/CapitalFlowChart';
@@ -53,7 +53,7 @@ import { exportarCuadroMarchaCSV } from './utils/exportToCSV';
 import { getUnreadCount } from './services/mensajeService';
 import type { DatosTecnicosProyecto } from './types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from './types/tecnico';
-import { Shield, User, Sparkles, HardHat } from 'lucide-react';
+import { HardHat } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 
 export const App: React.FC = () => {
@@ -67,6 +67,7 @@ export const App: React.FC = () => {
 
   const [devUser, setDevUserOverride] = useState<UserProfile | null>(null);
   const currentUser: UserProfile | null = authProfile || devUser;
+  const [loginInitialRole, setLoginInitialRole] = useState<UserRole>('admin');
   const [isLoginOpen, setIsLoginOpen] = useState<boolean>(false);
   const [isContratoOpen, setIsContratoOpen] = useState<boolean>(false);
   const [isMensajesOpen, setIsMensajesOpen] = useState<boolean>(false);
@@ -525,77 +526,38 @@ export const App: React.FC = () => {
         {/* ESQUEMA CONDICIONAL: LANDING vs ADMIN DASHBOARD vs PORTAL SOCIO    */}
         {/* ------------------------------------------------------------------ */}
         {!currentUser ? (
-          /* CASO 1: USUARIO NO LOGUEADO -> LANDING ACTUAL */
-          <div className="space-y-8 animate-fade-in">
-            <HeroSection
-              nombreFondoActivo={currentFondo.nombre}
-              onStartSimulation={() => setIsLoginOpen(true)}
-              onOpenContrato={() => setIsContratoOpen(true)}
-            />
-
-            {/* Tarjeta de bienvenida y acceso para visitante */}
-            <div className="bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-12 text-center space-y-6 shadow-2xl">
-              <div className="max-w-2xl mx-auto space-y-3">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 text-indigo-300 text-xs font-semibold border border-indigo-500/20">
-                  <Shield className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>SaaS Fiduciario • Supabase Auth & RLS Activo</span>
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-                  Plataforma de Ahorro Previo Mutuo
-                </h2>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Inicia sesión con tu cuenta de Supabase o accede al entorno de demostración para gestionar tu fondo o consultar tu departamento como socio inversor.
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3.5 pt-2">
-                <button
-                  onClick={() => setIsLoginOpen(true)}
-                  className="w-full sm:w-auto px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Shield className="w-4 h-4" />
-                  <span>Iniciar Sesión / Registrarse</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setDevUserOverride(ADMIN_USER);
-                    setDevUser(ADMIN_USER);
-                  }}
-                  className="w-full sm:w-auto px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Sparkles className="w-4 h-4 text-indigo-400" />
-                  <span>Explorar como Admin (Demo)</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setDevUserOverride(TECNICO_USER);
-                    setDevUser(TECNICO_USER);
-                  }}
-                  className="w-full sm:w-auto px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-slate-700 hover:border-amber-500/40 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-                >
-                  <HardHat className="w-4 h-4 text-amber-400" />
-                  <span>Equipo Técnico (Demo)</span>
-                </button>
-                <button
-                  onClick={() => {
-                    const socioDemo: UserProfile = {
-                      id: 'socio-1',
-                      role: 'socio',
-                      socioId: 1,
-                      nombre: 'Socio Demo Unidad 1',
-                      email: 'socio1@fondoinmobil.com'
-                    };
-                    setDevUserOverride(socioDemo);
-                    setDevUser(socioDemo);
-                  }}
-                  className="w-full sm:w-auto px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-emerald-300 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <User className="w-4 h-4 text-emerald-400" />
-                  <span>Ver como Socio (Demo)</span>
-                </button>
-              </div>
-            </div>
-          </div>
+          /* CASO 1: USUARIO NO LOGUEADO -> SELECTOR DE PERFIL DE ENTRADA */
+          <PortalAccesoPerfiles
+            currentFondoNombre={currentFondo.nombre}
+            cantidadSocios={currentFondo.params.cantidadDeptos}
+            onSelectSocio={(socioId) => {
+              const socioUser: UserProfile = {
+                id: `socio-${socioId}`,
+                role: 'socio',
+                socioId: socioId,
+                nombre: `Socio Unidad ${socioId}`,
+                email: `socio${socioId}@fondoinmobil.com`
+              };
+              setDevUserOverride(socioUser);
+              setDevUser(socioUser);
+              setSocioSeleccionado(socioId);
+              setToastMessage(`👋 Bienvenido al Portal del Socio (Unidad D${socioId})`);
+            }}
+            onSelectTecnico={() => {
+              setDevUserOverride(TECNICO_USER);
+              setDevUser(TECNICO_USER);
+              setToastMessage('👷 Bienvenido al Módulo Técnico y de Obras');
+            }}
+            onSelectAdmin={() => {
+              setLoginInitialRole('admin');
+              setIsLoginOpen(true);
+            }}
+            onOpenLoginModal={(role) => {
+              setLoginInitialRole(role || 'socio');
+              setIsLoginOpen(true);
+            }}
+            onOpenContrato={() => setIsContratoOpen(true)}
+          />
         ) : currentUser.role === 'admin' ? (
           /* CASO 2: USUARIO LOGUEADO Y ES ADMIN -> ADMIN DASHBOARD */
           <AdminDashboard
@@ -884,6 +846,7 @@ export const App: React.FC = () => {
           onClose={() => setIsLoginOpen(false)}
           cantidadSocios={currentFondo.params.cantidadDeptos}
           currentFondoNombre={currentFondo.nombre}
+          initialRole={loginInitialRole}
           onLogin={(user) => {
             setDevUserOverride(user);
             setDevUser(user);
