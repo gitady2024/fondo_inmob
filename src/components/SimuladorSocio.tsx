@@ -9,6 +9,8 @@ import type {
 } from '../types/fondo';
 import type { FondoGuardado } from '../services/fondoService';
 import { ProyectosActivosCTA } from './ProyectosActivosCTA';
+import { ConversionHubCTA } from './ConversionHubCTA';
+import { PreinscripcionModal } from './PreinscripcionModal';
 import { calcularGastos, calcularFlujoIndividual, fmtMoneda, formatFecha } from '../utils/calculations';
 import {
   Sliders,
@@ -53,6 +55,35 @@ export const SimuladorSocio: React.FC<SimuladorSocioProps> = ({
   const [cantidadDeptos, setCantidadDeptos] = useState<number>(initialParams.cantidadDeptos || 10);
   const [proyectoAdoptado, setProyectoAdoptado] = useState<FondoGuardado | null>(null);
   const [notificacionAdopcion, setNotificacionAdopcion] = useState<string | null>(null);
+
+  // Estado para el modal de preinscripción fiduciaria oficial
+  const [modalPreinscripcionOpen, setModalPreinscripcionOpen] = useState(false);
+  const [preinscripcionTarget, setPreinscripcionTarget] = useState<{
+    nombre: string;
+    id?: string;
+    cuota?: number;
+    anticipo?: number;
+  }>({
+    nombre: fondoNombre || 'Fideicomiso Inmobiliario',
+    id: currentFondoId,
+    cuota: undefined,
+    anticipo: undefined
+  });
+
+  const handleAbrirPreinscripcion = (
+    nombreProyecto?: string,
+    idProyecto?: string,
+    cuotaEst?: number,
+    anticipoEst?: number
+  ) => {
+    setPreinscripcionTarget({
+      nombre: nombreProyecto || proyectoAdoptado?.nombre || fondoNombre || 'Fideicomiso Inmobiliario',
+      id: idProyecto || proyectoAdoptado?.id || currentFondoId,
+      cuota: cuotaEst !== undefined ? cuotaEst : flujoSimulado.cuotaInmInicial,
+      anticipo: anticipoEst !== undefined ? anticipoEst : anticipoMes0
+    });
+    setModalPreinscripcionOpen(true);
+  };
 
   const handleAdoptarProyecto = (proyecto: FondoGuardado) => {
     setCostoDepto(proyecto.params.costoDepto);
@@ -257,8 +288,11 @@ export const SimuladorSocio: React.FC<SimuladorSocioProps> = ({
           proyectos={fondosList}
           proyectoActivoId={proyectoAdoptado?.id || currentFondoId}
           onAdoptarProyecto={handleAdoptarProyecto}
-          onContactarProyecto={(_nombre) => {
-            if (onOpenMensajes) onOpenMensajes();
+          onPreinscribirProyecto={(p, cuota) => {
+            handleAbrirPreinscripcion(p.nombre, p.id, cuota, Math.round(p.params.costoDepto * 0.1));
+          }}
+          onContactarProyecto={(nombre) => {
+            handleAbrirPreinscripcion(nombre);
           }}
         />
       )}
@@ -710,41 +744,56 @@ export const SimuladorSocio: React.FC<SimuladorSocioProps> = ({
         )}
       </div>
 
-      {/* BANNER DE ACCIÓN PARA INVERSOR INVITADO */}
-      {(user.isGuest || user.id === 'invitado') && (
-        <div className="bg-gradient-to-r from-emerald-950/60 via-slate-900 to-indigo-950/60 border border-emerald-500/30 rounded-3xl p-6 sm:p-7 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-5">
-          <div className="space-y-1.5 text-center sm:text-left">
-            <h4 className="text-base font-bold text-white flex items-center justify-center sm:justify-start gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              <span>¿Te interesa este esquema financiero?</span>
-            </h4>
-            <p className="text-xs text-slate-300 max-w-xl">
-              Puedes imprimir tu simulación en PDF para conservarla o consultar con la administración para solicitar la reserva de tu unidad funcional.
-            </p>
-          </div>
+      {/* 5. CALL TO ACTION DE ALTO IMPACTO (WHATSAPP, CALENDAR, PREINSCRIPCIÓN OFICIAL) */}
+      <ConversionHubCTA
+        proyectoNombre={proyectoAdoptado?.nombre || fondoNombre || 'Fideicomiso Inmobiliario'}
+        cuotaEstimada={flujoSimulado.cuotaInmInicial}
+        anticipoEstimado={anticipoMes0}
+        onAbrirPreinscripcion={() => handleAbrirPreinscripcion()}
+      />
 
-          <div className="flex flex-wrap items-center justify-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-            >
-              <span>🖨️ Imprimir / Guardar Ficha</span>
-            </button>
-            {onOpenMensajes && (
-              <button
-                type="button"
-                onClick={onOpenMensajes}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>Solicitar Reserva / Contactar</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+      {/* BANNER COMPLEMENTARIO DE ACCIONES / IMPRESIÓN */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="space-y-1 text-center sm:text-left">
+          <h4 className="text-sm font-bold text-white flex items-center justify-center sm:justify-start gap-2">
+            <Sparkles className="w-4 h-4 text-emerald-400" />
+            <span>¿Deseas conservar los cálculos de esta simulación?</span>
+          </h4>
+          <p className="text-xs text-slate-400 max-w-xl">
+            Genera una copia impresa o digital en PDF con el cronograma y parámetros proyectados.
+          </p>
         </div>
-      )}
+
+        <div className="flex flex-wrap items-center justify-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+          >
+            <span>🖨️ Imprimir / Guardar en PDF</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAbrirPreinscripcion()}
+            className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 rounded-xl font-extrabold text-xs shadow-lg shadow-amber-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>Preinscribirme en este Plan</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* MODAL DE PREINSCRIPCIÓN OBLIGATORIA (5 CAMPOS VALIDADOS) */}
+      <PreinscripcionModal
+        isOpen={modalPreinscripcionOpen}
+        onClose={() => setModalPreinscripcionOpen(false)}
+        proyectoNombre={preinscripcionTarget.nombre}
+        proyectoId={preinscripcionTarget.id}
+        cuotaEstimada={preinscripcionTarget.cuota}
+        anticipoEstimado={preinscripcionTarget.anticipo}
+      />
 
     </div>
   );
 };
+

@@ -9,14 +9,16 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
-  ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  MessageSquare
 } from 'lucide-react';
+import { generarEnlaceWhatsApp, GOOGLE_CALENDAR_MEETING_URL } from '../types/preinscripcion';
 
 interface ProyectosActivosCTAProps {
   proyectos: FondoGuardado[];
   proyectoActivoId?: string;
   onAdoptarProyecto: (proyecto: FondoGuardado) => void;
+  onPreinscribirProyecto?: (proyecto: FondoGuardado, cuotaEstimada: number) => void;
   onContactarProyecto?: (proyectoNombre: string) => void;
 }
 
@@ -24,6 +26,7 @@ export const ProyectosActivosCTA: React.FC<ProyectosActivosCTAProps> = ({
   proyectos,
   proyectoActivoId,
   onAdoptarProyecto,
+  onPreinscribirProyecto,
   onContactarProyecto
 }) => {
   const [desplegado, setDesplegado] = useState<boolean>(true);
@@ -74,7 +77,7 @@ export const ProyectosActivosCTA: React.FC<ProyectosActivosCTAProps> = ({
       {desplegado && (
         <div className="space-y-3 pt-1 animate-in fade-in duration-200">
           <p className="text-xs text-slate-300">
-            Haz clic en <strong>"Simular este Proyecto"</strong> para que tu simulador adopte automáticamente los costos, plazos y parámetros reales de esa obra.
+            Selecciona una obra para simularla en 1-clic con parámetros reales, o preinscríbete directamente para asegurar tu cupo:
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
@@ -83,6 +86,7 @@ export const ProyectosActivosCTA: React.FC<ProyectosActivosCTAProps> = ({
               const cuotaEstimada = Math.round(
                 p.params.costoDepto / (p.params.cantidadCuotas || 48)
               );
+              const enlaceWa = generarEnlaceWhatsApp(p.nombre, cuotaEstimada);
 
               return (
                 <div
@@ -143,7 +147,7 @@ export const ProyectosActivosCTA: React.FC<ProyectosActivosCTAProps> = ({
                     </div>
                   </div>
 
-                  {/* Acciones para el Proyecto */}
+                  {/* Acciones para el Proyecto de Alto Impacto */}
                   <div className="space-y-2 pt-1">
                     <button
                       type="button"
@@ -159,16 +163,50 @@ export const ProyectosActivosCTA: React.FC<ProyectosActivosCTAProps> = ({
                       {!esSeleccionado && <ArrowRight className="w-3.5 h-3.5" />}
                     </button>
 
-                    {onContactarProyecto && (
+                    {/* Botón de Preinscripción Oficial Llamativo */}
+                    {onPreinscribirProyecto ? (
+                      <button
+                        type="button"
+                        onClick={() => onPreinscribirProyecto(p, cuotaEstimada)}
+                        className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-emerald-500/20 hover:from-amber-500/30 hover:to-emerald-500/30 text-amber-300 border border-amber-500/40 hover:border-amber-400 font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                      >
+                        <Sparkles className="w-3 h-3 text-amber-300" />
+                        <span>Quiero Preinscribirme en este Proyecto</span>
+                      </button>
+                    ) : onContactarProyecto ? (
                       <button
                         type="button"
                         onClick={() => onContactarProyecto(p.nombre)}
-                        className="w-full text-center text-[11px] text-slate-400 hover:text-emerald-300 font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
+                        className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
-                        <span>Quiero Suscribirme / Consultar</span>
-                        <ExternalLink className="w-3 h-3 text-slate-500" />
+                        <span>Consultar / Preinscribirme</span>
                       </button>
-                    )}
+                    ) : null}
+
+                    {/* Enlaces de contacto directo para cada proyecto */}
+                    <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                      <a
+                        href={enlaceWa}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="py-1.5 px-2 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 text-[10px] font-semibold border border-emerald-500/20 flex items-center justify-center gap-1 text-center transition-colors"
+                        title="Consultar por WhatsApp con este proyecto"
+                      >
+                        <MessageSquare className="w-3 h-3 text-emerald-400" />
+                        <span>WhatsApp</span>
+                      </a>
+
+                      <a
+                        href={GOOGLE_CALENDAR_MEETING_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="py-1.5 px-2 rounded-lg bg-indigo-950/40 hover:bg-indigo-900/50 text-indigo-300 text-[10px] font-semibold border border-indigo-500/20 flex items-center justify-center gap-1 text-center transition-colors"
+                        title="Agendar entrevista online"
+                      >
+                        <Calendar className="w-3 h-3 text-indigo-400" />
+                        <span>Entrevista 1 a 1</span>
+                      </a>
+                    </div>
                   </div>
                 </div>
               );
@@ -176,7 +214,6 @@ export const ProyectosActivosCTA: React.FC<ProyectosActivosCTAProps> = ({
           </div>
         </div>
       )}
-
     </div>
   );
 };
