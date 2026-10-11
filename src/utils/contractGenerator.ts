@@ -1,4 +1,15 @@
 import jsPDF from 'jspdf';
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  AlignmentType,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType
+} from 'docx';
 import type { ParametrosFondoState, GastosConfigState } from '../types/fondo';
 import type { DatosTecnicosProyecto } from '../types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from '../types/tecnico';
@@ -464,3 +475,222 @@ export const descargarContratoPDF = (input: ContratoDatosInput) => {
   const fileName = `Contrato_Tripartito_${input.fondoNombre.replace(/\s+/g, '_')}_Depto_${input.socioId}.pdf`;
   doc.save(fileName);
 };
+
+/**
+ * Genera y descarga el archivo Word (.docx) oficial del Contrato
+ */
+export const descargarContratoWord = async (input: ContratoDatosInput) => {
+  const textoProcesado = aplicarVariablesContrato(
+    input.contratoPersonalizado && input.contratoPersonalizado.trim()
+      ? input.contratoPersonalizado
+      : obtenerTextoDefaultContrato(input),
+    input
+  );
+
+  const parrafosLineas = textoProcesado.split('\n');
+  const paragraphs: (Paragraph | Table)[] = [];
+
+  for (const linea of parrafosLineas) {
+    const trimmed = linea.trim();
+    if (!trimmed) {
+      paragraphs.push(new Paragraph({ text: '', spacing: { after: 100 } }));
+      continue;
+    }
+
+    if (trimmed.startsWith('====') || trimmed.startsWith('----')) {
+      continue;
+    }
+
+    const isTitulo = trimmed.startsWith('CONTRATO') || trimmed.startsWith('PROYECTO:');
+    const isClausula =
+      trimmed.startsWith('CLÁUSULA') ||
+      trimmed.startsWith('CLAUSULA') ||
+      trimmed.startsWith('SECCIÓN');
+    const isParte =
+      trimmed.startsWith('1.') ||
+      trimmed.startsWith('2.') ||
+      trimmed.startsWith('3.') ||
+      trimmed.startsWith('COMPARECIENTES');
+
+    if (isTitulo) {
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: trimmed,
+              bold: true,
+              size: 26,
+              color: '1E293B',
+              font: 'Calibri'
+            })
+          ],
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 180, after: 140 }
+        })
+      );
+    } else if (isClausula) {
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: trimmed,
+              bold: true,
+              size: 23,
+              color: '0F172A',
+              font: 'Calibri'
+            })
+          ],
+          spacing: { before: 200, after: 100 }
+        })
+      );
+    } else if (isParte) {
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: trimmed,
+              bold: true,
+              size: 21,
+              color: '334155',
+              font: 'Calibri'
+            })
+          ],
+          spacing: { before: 100, after: 80 }
+        })
+      );
+    } else {
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: trimmed,
+              size: 21,
+              color: '334155',
+              font: 'Calibri'
+            })
+          ],
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: { after: 100, line: 276 }
+        })
+      );
+    }
+  }
+
+  // Cuadro de firmas al final en formato Tabla de Word
+  const tableSignatures = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: 33, type: WidthType.PERCENTAGE },
+            children: [
+              new Paragraph({ text: '', spacing: { before: 600 } }),
+              new Paragraph({
+                children: [new TextRun({ text: '_______________________________', bold: true })],
+                alignment: AlignmentType.CENTER
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: 'POR LA ADMINISTRACIÓN FIDUCIARIA', bold: true, size: 18 })
+                ],
+                alignment: AlignmentType.CENTER
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'Firma y Sello Representante Legal',
+                    size: 16,
+                    color: '64748B'
+                  })
+                ],
+                alignment: AlignmentType.CENTER
+              })
+            ]
+          }),
+          new TableCell({
+            width: { size: 33, type: WidthType.PERCENTAGE },
+            children: [
+              new Paragraph({ text: '', spacing: { before: 600 } }),
+              new Paragraph({
+                children: [new TextRun({ text: '_______________________________', bold: true })],
+                alignment: AlignmentType.CENTER
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: `POR EL SOCIO D${input.socioId}`, bold: true, size: 18 })
+                ],
+                alignment: AlignmentType.CENTER
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `Titular Adjudicatario Unidad ${input.socioId}`,
+                    size: 16,
+                    color: '64748B'
+                  })
+                ],
+                alignment: AlignmentType.CENTER
+              })
+            ]
+          }),
+          new TableCell({
+            width: { size: 33, type: WidthType.PERCENTAGE },
+            children: [
+              new Paragraph({ text: '', spacing: { before: 600 } }),
+              new Paragraph({
+                children: [new TextRun({ text: '_______________________________', bold: true })],
+                alignment: AlignmentType.CENTER
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: 'POR EL EQUIPO TÉCNICO Y OBRA', bold: true, size: 18 })
+                ],
+                alignment: AlignmentType.CENTER
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'Dirección de Obra / Matrícula Colegiada',
+                    size: 16,
+                    color: '64748B'
+                  })
+                ],
+                alignment: AlignmentType.CENTER
+              })
+            ]
+          })
+        ]
+      })
+    ]
+  });
+
+  paragraphs.push(new Paragraph({ text: '', spacing: { before: 240 } }));
+  paragraphs.push(tableSignatures);
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: {
+          page: {
+            margin: { top: 1200, bottom: 1200, left: 1400, right: 1400 }
+          }
+        },
+        children: paragraphs
+      }
+    ]
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const fileName = `Contrato_Tripartito_${input.fondoNombre.replace(/\s+/g, '_')}_Depto_${input.socioId}.docx`;
+
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+};
+

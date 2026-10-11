@@ -7,10 +7,12 @@ import type { UserProfile } from '../types/auth';
 import {
   obtenerTextoDefaultContrato,
   aplicarVariablesContrato,
-  descargarContratoPDF
+  descargarContratoPDF,
+  descargarContratoWord
 } from '../utils/contractGenerator';
 import {
   Download,
+  FileText,
   Printer,
   Copy,
   Check,
@@ -103,6 +105,7 @@ export const ContratoModal: React.FC<ContratoModalProps> = ({
   };
 
   const tieneContratoPropio = Boolean(contratoPersonalizado && contratoPersonalizado.trim());
+  const [descargandoWord, setDescargandoWord] = useState(false);
 
   // Descarga del PDF
   const handleDescargarPDF = () => {
@@ -110,6 +113,22 @@ export const ContratoModal: React.FC<ContratoModalProps> = ({
       ...contratoInput,
       contratoPersonalizado: textoEditor.trim() ? textoEditor : undefined
     });
+  };
+
+  // Descarga del Word (.docx)
+  const handleDescargarWord = async () => {
+    try {
+      setDescargandoWord(true);
+      await descargarContratoWord({
+        ...contratoInput,
+        contratoPersonalizado: textoEditor.trim() ? textoEditor : undefined
+      });
+    } catch (err) {
+      console.error('Error al generar Word:', err);
+      alert('Hubo un error al generar el archivo Word.');
+    } finally {
+      setDescargandoWord(false);
+    }
   };
 
   // Guardar en el fondo activo
@@ -433,6 +452,16 @@ export const ContratoModal: React.FC<ContratoModalProps> = ({
                 >
                   <Printer className="w-4 h-4" />
                   <span>Imprimir</span>
+                </button>
+
+                <button
+                  onClick={handleDescargarWord}
+                  disabled={descargandoWord}
+                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-blue-600/30 transition-all hover:scale-[1.02] disabled:opacity-50"
+                  title="Descargar contrato editable en formato Microsoft Word (.docx)"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>{descargandoWord ? 'Generando Word...' : 'Descargar en Word (.docx)'}</span>
                 </button>
 
                 <button
