@@ -4,9 +4,14 @@ import { ShieldCheck, Building2, Scale, FileText, ExternalLink, Lock } from 'luc
 interface FooterProps {
   onOpenContrato?: () => void;
   onOpenPersistencia?: () => void;
+  onOpenAccesoPrivado?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onOpenContrato, onOpenPersistencia }) => {
+export const Footer: React.FC<FooterProps> = ({ 
+  onOpenContrato, 
+  onOpenPersistencia,
+  onOpenAccesoPrivado 
+}) => {
   return (
     <footer className="mt-16 pt-8 pb-12 border-t border-slate-800/80 bg-slate-950/60 text-slate-400 no-print">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
@@ -44,6 +49,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContrato, onOpenPersistenc
           <div className="flex flex-wrap items-center gap-4">
             {onOpenContrato && (
               <button
+                type="button"
                 onClick={onOpenContrato}
                 className="hover:text-indigo-400 transition-colors flex items-center gap-1 cursor-pointer"
               >
@@ -53,6 +59,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContrato, onOpenPersistenc
             )}
             {onOpenPersistencia && (
               <button
+                type="button"
                 onClick={onOpenPersistencia}
                 className="hover:text-indigo-400 transition-colors flex items-center gap-1 cursor-pointer"
               >
@@ -68,10 +75,30 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContrato, onOpenPersistenc
 
         {/* Legal Disclaimer Box */}
         <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-4 sm:p-5">
-          <p className="text-xs text-gray-500 leading-relaxed text-justify sm:text-left">
-            <strong className="text-slate-400 font-semibold">Disclaimer:</strong> Esta simulación es de carácter estrictamente orientativo y no constituye una oferta vinculante ni un contrato. Los cálculos de cuota pura, ajustes y posesión son estimaciones basadas en los parámetros ingresados. El funcionamiento definitivo del fondo está sujeto a los contratos de fiducia/mutuo y a la normativa de la IGJ, CNV y/o BCRA correspondiente.
+          <p className="text-xs text-slate-400 leading-relaxed text-justify sm:text-left">
+            <strong className="text-slate-300 font-semibold">Disclaimer:</strong> Esta simulación es de carácter estrictamente orientativo y no constituye una oferta vinculante ni un contrato. Los cálculos de cuota pura, ajustes y posesión son estimaciones basadas en los parámetros ingresados. El funcionamiento definitivo del fondo está sujeto a los contratos de fiducia/mutuo y a la normativa de la IGJ, CNV y/o BCRA correspondiente.
           </p>
         </div>
+
+        {/* ======================================================================= */}
+        {/* LOGIN DISCRETO: ACCESO PARA ADMINISTRADORES, TÉCNICOS Y SOCIOS         */}
+        {/* ======================================================================= */}
+        {onOpenAccesoPrivado && (
+          <div className="pt-4 border-t border-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+            <div className="flex items-center gap-2 text-slate-400">
+              <Lock className="w-3.5 h-3.5 text-slate-400" />
+              <span>Portal Privado de Gestión Fiduciaria</span>
+            </div>
+            <button
+              type="button"
+              id="footer-login-link"
+              onClick={onOpenAccesoPrivado}
+              className="text-slate-400 hover:text-indigo-300 transition-colors flex items-center gap-1.5 font-medium cursor-pointer py-1 px-3 rounded-lg hover:bg-slate-900 border border-slate-800/60 hover:border-indigo-500/30"
+            >
+              <span>Acceso Administradores, Técnicos y Socios Adjudicados →</span>
+            </button>
+          </div>
+        )}
 
       </div>
     </footer>

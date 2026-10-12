@@ -53,7 +53,7 @@ import { exportarCuadroMarchaCSV } from './utils/exportToCSV';
 import { getUnreadCount } from './services/mensajeService';
 import type { DatosTecnicosProyecto } from './types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from './types/tecnico';
-import { HardHat, Lock } from 'lucide-react';
+import { HardHat } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { LandingPage } from './components/LandingPage';
 
@@ -70,7 +70,71 @@ export const App: React.FC = () => {
   const currentUser: UserProfile | null = authProfile || devUser;
   const [loginInitialRole, setLoginInitialRole] = useState<UserRole>('admin');
   const [isLoginOpen, setIsLoginOpen] = useState<boolean>(false);
-  const [vistaPublica, setVistaPublica] = useState<'landing' | 'perfiles'>('landing');
+
+  // Detección de ruta inicial: Separación de entornos (/ vs /app o /acceso)
+  const getInitialRoute = (): 'landing' | 'app' => {
+    if (typeof window === 'undefined') return 'landing';
+    const path = window.location.pathname.toLowerCase();
+    const hash = window.location.hash.toLowerCase();
+    if (
+      path.includes('/app') ||
+      path.includes('/acceso') ||
+      hash.includes('/app') ||
+      hash.includes('/acceso')
+    ) {
+      return 'app';
+    }
+    return 'landing';
+  };
+
+  const [currentRoute, setCurrentRoute] = useState<'landing' | 'app'>(getInitialRoute);
+
+  // Navegación fluida entre la landing pública (/) y el entorno de gestión (/app)
+  const navigateTo = useCallback(
+    (route: 'landing' | 'app', options?: { openLoginRole?: UserRole; guestSim?: boolean }) => {
+      setCurrentRoute(route);
+      const targetPath = route === 'landing' ? '/' : '/app';
+      try {
+        if (window.location.protocol === 'file:') {
+          window.location.hash = route === 'landing' ? '#/' : '#/app';
+        } else {
+          window.history.pushState({ route }, '', targetPath);
+        }
+      } catch {
+        window.location.hash = route === 'landing' ? '#/' : '#/app';
+      }
+
+      if (route === 'landing') {
+        if (devUser?.isGuest || devUser?.id === 'invitado') {
+          setDevUserOverride(null);
+          setDevUser(null);
+        }
+      } else if (route === 'app') {
+        if (options?.guestSim) {
+          setDevUserOverride(GUEST_SOCIO_USER);
+          setDevUser(GUEST_SOCIO_USER);
+        }
+        if (options?.openLoginRole) {
+          setLoginInitialRole(options.openLoginRole);
+          setIsLoginOpen(true);
+        }
+      }
+    },
+    [devUser, setDevUser]
+  );
+
+  // Sincronizar navegación atrás/adelante del navegador
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setCurrentRoute(getInitialRoute());
+    };
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
+  }, []);
   const [isContratoOpen, setIsContratoOpen] = useState<boolean>(false);
   const [isMensajesOpen, setIsMensajesOpen] = useState<boolean>(false);
   const [fondosList, setFondosList] = useState<FondoGuardado[]>([]);
@@ -507,137 +571,121 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Barra de Navegación Principal (Visible cuando hay usuario activo o en el selector de perfiles) */}
-        {(currentUser || vistaPublica === 'perfiles') && (
-          <Navbar
-            user={currentUser}
-            unreadCount={unreadCount}
-            onReset={handleResetCurrent}
-            onPrint={() => window.print()}
-            onOpenPersistencia={() => setIsPersistenciaOpen(true)}
-            onOpenLogin={() => setIsLoginOpen(true)}
-            onOpenContrato={() => setIsContratoOpen(true)}
-            onOpenMensajes={() => setIsMensajesOpen(true)}
-            onSignOut={async () => {
-              await handleSupabaseSignOut();
-              setDevUserOverride(null);
-              setDevUser(null);
-              setVistaPublica('landing');
+        {/* ------------------------------------------------------------------ */}
+        {/* ENTORNO 1: LANDING COMERCIAL AISLADA EN LA RUTA RAÍZ (/)           */}
+        {/* ------------------------------------------------------------------ */}
+        {currentRoute === 'landing' ? (
+          <LandingPage
+            proyectos={fondosList}
+            proyectoActivoId={currentFondoId}
+            onAdoptarProyecto={(p) => {
+              handleSelectFondo(p.id);
+              navigateTo('app', { guestSim: true });
+              setToastMessage(`🏗️ Proyecto ${p.nombre} cargado en el simulador.`);
             }}
+            onStartSimulation={(proyecto) => {
+              if (proyecto) {
+                handleSelectFondo(proyecto.id);
+              }
+              navigateTo('app', { guestSim: true });
+              setToastMessage('📊 Bienvenido al Simulador de Inversión');
+            }}
+            onOpenContrato={() => setIsContratoOpen(true)}
+            onPrint={() => window.print()}
+            onReset={handleResetCurrent}
           />
-        )}
-
-        {/* Banner superior cuando se navega en modo simulador invitado */}
-        {currentUser && (currentUser.isGuest || currentUser.id === 'invitado') && (
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl no-print">
-            <span className="text-xs text-slate-300">
-              Estás en el <strong className="text-emerald-400">Simulador de Inversión</strong> (Modo Abierto).
-            </span>
-            <div className="flex items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setDevUserOverride(null);
-                  setDevUser(null);
-                  setVistaPublica('landing');
-                }}
-                className="text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer"
-              >
-                ← Volver a la Portada
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginInitialRole('admin');
-                  setIsLoginOpen(true);
-                }}
-                className="text-xs font-bold text-amber-300 hover:text-white bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5"
-              >
-                <Lock className="w-3.5 h-3.5 text-amber-400" />
-                <span>Acceso Staff</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ------------------------------------------------------------------ */}
-        {/* ESQUEMA CONDICIONAL: LANDING vs ADMIN DASHBOARD vs PORTAL SOCIO    */}
-        {/* ------------------------------------------------------------------ */}
-        {!currentUser ? (
-          vistaPublica === 'landing' ? (
-            /* VISTA DE ENTRADA: LANDING PAGE VENDEDORA CON BOTÓN DE STAFF */
-            <LandingPage
-              proyectos={fondosList}
-              proyectoActivoId={currentFondoId}
-              onAdoptarProyecto={(p) => {
-                handleSelectFondo(p.id);
+        ) : (
+          /* ------------------------------------------------------------------ */
+          /* ENTORNO 2: SISTEMA PRIVADO Y GESTIÓN EN LA RUTA (/app o /acceso)   */
+          /* ------------------------------------------------------------------ */
+          <>
+            {/* Barra de Navegación del Sistema de Gestión */}
+            <Navbar
+              user={currentUser}
+              unreadCount={unreadCount}
+              onReset={handleResetCurrent}
+              onPrint={() => window.print()}
+              onOpenPersistencia={() => setIsPersistenciaOpen(true)}
+              onOpenLogin={() => setIsLoginOpen(true)}
+              onOpenContrato={() => setIsContratoOpen(true)}
+              onOpenMensajes={() => setIsMensajesOpen(true)}
+              onSignOut={async () => {
+                await handleSupabaseSignOut();
+                setDevUserOverride(null);
+                setDevUser(null);
+              }}
+              onSimularPlan={() => {
                 setDevUserOverride(GUEST_SOCIO_USER);
                 setDevUser(GUEST_SOCIO_USER);
-                setToastMessage(`🏗️ Proyecto ${p.nombre} cargado en el simulador.`);
+                setToastMessage('⚡ Simulador Activo');
               }}
-              onStartSimulation={(proyecto) => {
-                if (proyecto) {
-                  handleSelectFondo(proyecto.id);
-                }
-                setDevUserOverride(GUEST_SOCIO_USER);
-                setDevUser(GUEST_SOCIO_USER);
-                setToastMessage('📊 Bienvenido al Simulador de Inversión');
-              }}
-              onOpenStaffLogin={() => {
-                setLoginInitialRole('admin');
-                setIsLoginOpen(true);
-              }}
-              onOpenPerfiles={() => setVistaPublica('perfiles')}
+              onNavigateLanding={() => navigateTo('landing')}
             />
-          ) : (
-            /* SELECTOR DE PERFILES COMPLETO */
-            <div className="space-y-4">
-              <button
-                type="button"
-                onClick={() => setVistaPublica('landing')}
-                className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg cursor-pointer"
-              >
-                ← Volver a la Portada
-              </button>
-              <PortalAccesoPerfiles
-                currentFondoNombre={currentFondo.nombre}
-                cantidadSocios={currentFondo.params.cantidadDeptos}
-                onSimularLibre={() => {
-                  setDevUserOverride(GUEST_SOCIO_USER);
-                  setDevUser(GUEST_SOCIO_USER);
-                  setToastMessage('🧪 Acceso libre al Simulador Inmobiliario (Modo Invitado / Sin Registro)');
-                }}
-                onSelectSocio={(socioId) => {
-                  const socioUser: UserProfile = {
-                    id: `socio-${socioId}`,
-                    role: 'socio',
-                    socioId: socioId,
-                    nombre: `Socio Unidad ${socioId}`,
-                    email: `socio${socioId}@fondoinmobil.com`
-                  };
-                  setDevUserOverride(socioUser);
-                  setDevUser(socioUser);
-                  setSocioSeleccionado(socioId);
-                  setToastMessage(`👋 Bienvenido al Portal del Socio (Unidad D${socioId})`);
-                }}
-                onSelectTecnico={() => {
-                  setDevUserOverride(TECNICO_USER);
-                  setDevUser(TECNICO_USER);
-                  setToastMessage('👷 Bienvenido al Módulo Técnico y de Obras');
-                }}
-                onSelectAdmin={() => {
-                  setLoginInitialRole('admin');
-                  setIsLoginOpen(true);
-                }}
-                onOpenLoginModal={(role) => {
-                  setLoginInitialRole(role || 'socio');
-                  setIsLoginOpen(true);
-                }}
-                onOpenContrato={() => setIsContratoOpen(true)}
-              />
-            </div>
-          )
-        ) : currentUser.role === 'admin' ? (
+
+            {/* Banner cuando se navega en modo simulador invitado */}
+            {currentUser && (currentUser.isGuest || currentUser.id === 'invitado') && (
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl no-print mb-4">
+                <span className="text-xs text-slate-300">
+                  Estás en el <strong className="text-emerald-400">Simulador de Inversión</strong> (Modo Abierto).
+                </span>
+                <button
+                  type="button"
+                  onClick={() => navigateTo('landing')}
+                  className="text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer"
+                >
+                  ← Volver a la Portada Comercial
+                </button>
+              </div>
+            )}
+
+            {!currentUser ? (
+              /* SELECTOR DE PERFILES PRIVADO EN /app o /acceso */
+              <div className="space-y-4">
+                <button
+                  type="button"
+                  onClick={() => navigateTo('landing')}
+                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg cursor-pointer"
+                >
+                  ← Volver a la Portada Comercial
+                </button>
+                <PortalAccesoPerfiles
+                  currentFondoNombre={currentFondo.nombre}
+                  cantidadSocios={currentFondo.params.cantidadDeptos}
+                  onSimularLibre={() => {
+                    setDevUserOverride(GUEST_SOCIO_USER);
+                    setDevUser(GUEST_SOCIO_USER);
+                    setToastMessage('🧪 Acceso libre al Simulador Inmobiliario');
+                  }}
+                  onSelectSocio={(socioId) => {
+                    const socioUser: UserProfile = {
+                      id: `socio-${socioId}`,
+                      role: 'socio',
+                      socioId: socioId,
+                      nombre: `Socio Unidad ${socioId}`,
+                      email: `socio${socioId}@fondoinmobil.com`
+                    };
+                    setDevUserOverride(socioUser);
+                    setDevUser(socioUser);
+                    setSocioSeleccionado(socioId);
+                    setToastMessage(`👋 Bienvenido al Portal del Socio (Unidad D${socioId})`);
+                  }}
+                  onSelectTecnico={() => {
+                    setDevUserOverride(TECNICO_USER);
+                    setDevUser(TECNICO_USER);
+                    setToastMessage('👷 Bienvenido al Módulo Técnico y de Obras');
+                  }}
+                  onSelectAdmin={() => {
+                    setLoginInitialRole('admin');
+                    setIsLoginOpen(true);
+                  }}
+                  onOpenLoginModal={(role) => {
+                    setLoginInitialRole(role || 'socio');
+                    setIsLoginOpen(true);
+                  }}
+                  onOpenContrato={() => setIsContratoOpen(true)}
+                />
+              </div>
+            ) : currentUser.role === 'admin' ? (
           /* CASO 2: USUARIO LOGUEADO Y ES ADMIN -> ADMIN DASHBOARD */
           <AdminDashboard
             currentUser={currentUser}
@@ -920,8 +968,9 @@ export const App: React.FC = () => {
             )}
           </div>
         )}
+      </>
+    )}
 
-        {/* Modal de Login / Cambio de Perfil */}
         <LoginModal
           isOpen={isLoginOpen}
           onClose={() => setIsLoginOpen(false)}
@@ -993,6 +1042,7 @@ export const App: React.FC = () => {
         <Footer
           onOpenContrato={() => setIsContratoOpen(true)}
           onOpenPersistencia={() => setIsPersistenciaOpen(true)}
+          onOpenAccesoPrivado={() => navigateTo('app', { openLoginRole: 'admin' })}
         />
 
         {/* Notificación Toast para Copiar Link y Feedback de Exportación */}

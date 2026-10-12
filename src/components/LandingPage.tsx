@@ -1,5 +1,16 @@
-import React, { useState } from 'react';
-import { Calendar, ArrowRight, ShieldCheck, Sparkles, Building2, Lock } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Calendar,
+  ArrowRight,
+  ShieldCheck,
+  Sparkles,
+  Building2,
+  MoreVertical,
+  ScrollText,
+  Printer,
+  RefreshCw,
+  Calculator
+} from 'lucide-react';
 import type { FondoGuardado } from '../services/fondoService';
 import { PLANTILLAS_PREDEFINIDAS } from '../services/fondoService';
 import { ProyectosActivosCTA } from './ProyectosActivosCTA';
@@ -7,8 +18,9 @@ import { PreinscripcionModal } from './PreinscripcionModal';
 
 interface LandingPageProps {
   onStartSimulation: (proyecto?: FondoGuardado) => void;
-  onOpenStaffLogin: () => void;
-  onOpenPerfiles?: () => void;
+  onOpenContrato?: () => void;
+  onPrint?: () => void;
+  onReset?: () => void;
   proyectos?: FondoGuardado[];
   proyectoActivoId?: string;
   onAdoptarProyecto?: (proyecto: FondoGuardado) => void;
@@ -16,19 +28,38 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onStartSimulation,
-  onOpenStaffLogin,
-  onOpenPerfiles,
+  onOpenContrato,
+  onPrint,
+  onReset,
   proyectos,
   proyectoActivoId,
   onAdoptarProyecto
 }) => {
   const [modalPreinscripcionOpen, setModalPreinscripcionOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   const [preinscripcionTarget, setPreinscripcionTarget] = useState<{
     nombre: string;
     id?: string;
     cuota?: number;
     anticipo?: number;
   }>({ nombre: '' });
+
+  // Cerrar menú ⋮ al hacer clic afuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   // Lista de proyectos con fallback a las plantillas predefinidas
   const proyectosDisponibles: FondoGuardado[] =
@@ -65,10 +96,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <span>Agendar Entrevista para Ingresar</span>
       </a>
 
-      {/* ========================================== */}
-      {/* CABECERA DE LA LANDING                    */}
-      {/* ========================================== */}
-      <nav className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-md mb-8 px-4 sm:px-6 py-4 transition-all">
+      {/* ==================================================================== */}
+      {/* CABECERA DE LA LANDING: UN SOLO CTA ("Simular mi plan") + MENÚ (⋮)   */}
+      {/* ==================================================================== */}
+      <nav className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-md mb-8 px-4 sm:px-6 py-3.5 transition-all sticky top-2 z-30 shadow-lg shadow-black/20">
         <div className="flex justify-between items-center">
           {/* Logo */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
@@ -84,7 +115,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Enlaces Desktop */}
-          <div className="hidden md:flex items-center space-x-6 text-sm font-medium">
+          <div className="hidden lg:flex items-center space-x-6 text-sm font-medium">
             <button
               type="button"
               onClick={() => scrollToSection('obras-activas')}
@@ -116,31 +147,105 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </button>
           </div>
 
-          {/* Botones de Acción */}
-          <div className="flex items-center gap-3">
+          {/* Zona de Acción: Único CTA Principal + Menú Desplegable (⋮) */}
+          <div className="flex items-center gap-2.5">
+            {/* ÚNICO CALL TO ACTION PRINCIPAL */}
             <button
               type="button"
-              onClick={onOpenStaffLogin}
-              title="Acceso exclusivo para administradores fiduciarios y equipo técnico"
-              className="text-xs font-bold text-amber-300 hover:text-white border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
-            >
-              <Lock className="w-3.5 h-3.5 text-amber-400" />
-              <span>Acceso Staff</span>
-            </button>
-            <button
-              type="button"
+              id="landing-cta-simular"
               onClick={() => onStartSimulation()}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold px-4 sm:px-5 py-2.5 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transition transform hover:scale-105 cursor-pointer"
+              className="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs sm:text-sm font-extrabold px-4 sm:px-5 py-2.5 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transition transform hover:scale-[1.02] cursor-pointer flex items-center gap-1.5"
             >
-              Simular Inversión
+              <Calculator className="w-4 h-4 text-emerald-100" />
+              <span>Simular mi plan</span>
             </button>
+
+            {/* MENÚ DESPLEGABLE (⋮) PARA ACCIONES SECUNDARIAS */}
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                id="landing-menu-trigger"
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+                aria-label="Más opciones"
+                title="Más opciones (Contrato, Imprimir, Restablecer)"
+                className={`p-2.5 rounded-xl border text-slate-300 hover:text-white transition cursor-pointer flex items-center justify-center ${
+                  isMenuOpen
+                    ? 'bg-slate-800 border-indigo-500/50 text-white shadow-md'
+                    : 'bg-slate-800/80 hover:bg-slate-700/80 border-slate-700'
+                }`}
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+
+              {isMenuOpen && (
+                <div
+                  id="landing-dropdown-menu"
+                  className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl shadow-black/80 py-2 z-50 animate-fade-in backdrop-blur-xl"
+                >
+                  <div className="px-3 py-1.5 border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Herramientas de Consulta
+                  </div>
+
+                  {onOpenContrato && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onOpenContrato();
+                      }}
+                      className="w-full text-left px-3.5 py-2.5 text-xs text-slate-200 hover:text-white hover:bg-indigo-600/20 flex items-center gap-2.5 transition cursor-pointer"
+                    >
+                      <ScrollText className="w-4 h-4 text-amber-400 shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="font-semibold">Contrato Tripartito</span>
+                        <span className="text-[10px] text-slate-400">Modelo marco y descarga</span>
+                      </div>
+                    </button>
+                  )}
+
+                  {onPrint && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onPrint();
+                      }}
+                      className="w-full text-left px-3.5 py-2.5 text-xs text-slate-200 hover:text-white hover:bg-indigo-600/20 flex items-center gap-2.5 transition cursor-pointer"
+                    >
+                      <Printer className="w-4 h-4 text-indigo-400 shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="font-semibold">Imprimir Ficha</span>
+                        <span className="text-[10px] text-slate-400">Resumen de la propuesta</span>
+                      </div>
+                    </button>
+                  )}
+
+                  {onReset && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onReset();
+                      }}
+                      className="w-full text-left px-3.5 py-2.5 text-xs text-slate-200 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2.5 transition cursor-pointer"
+                    >
+                      <RefreshCw className="w-4 h-4 text-slate-400 shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="font-semibold">Restablecer Valores</span>
+                        <span className="text-[10px] text-slate-400">Reiniciar parámetros base</span>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>
 
-      {/* ========================================== */}
-      {/* HERO SECTION                               */}
-      {/* ========================================== */}
+      {/* ==================================================================== */}
+      {/* HERO SECTION: ENFOQUE 100% COMERCIAL (SIN PUERTAS DE ENTRADA DOBLES)  */}
+      {/* ==================================================================== */}
       <section className="relative pt-8 pb-16 lg:pt-14 lg:pb-24 overflow-hidden rounded-3xl bg-slate-900/60 border border-slate-800/80 mb-10 px-4 sm:px-8 text-center space-y-7">
         <div className="inline-block bg-indigo-500/10 border border-indigo-500/30 rounded-full px-4 py-1.5 text-xs font-semibold text-indigo-300">
           🚀 Fideicomiso al Costo Real (Art. 1666 CCCN)
@@ -160,11 +265,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4">
           <button
             type="button"
+            id="hero-cta-simular"
             onClick={() => onStartSimulation()}
-            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white text-sm sm:text-base font-bold px-7 py-3.5 rounded-xl shadow-lg shadow-emerald-600/30 transition transform hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2"
+            className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-sm sm:text-base font-bold px-7 py-3.5 rounded-xl shadow-lg shadow-emerald-600/30 transition transform hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2"
           >
             <Sparkles className="w-4 h-4 text-emerald-200" />
-            <span>Diseñar mi Plan a Medida</span>
+            <span>Simular mi plan a Medida</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 
@@ -188,23 +294,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <span>Agendar Videollamada</span>
           </a>
         </div>
-
-        {onOpenPerfiles && (
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={onOpenPerfiles}
-              className="text-xs text-slate-400 hover:text-indigo-300 underline underline-offset-4 cursor-pointer"
-            >
-              ¿Ya sos socio adjudicado o técnico? Ingresar por selector de perfiles →
-            </button>
-          </div>
-        )}
       </section>
 
-      {/* ========================================== */}
-      {/* CUADRO DE OBRAS ACTIVAS EN MARCHA         */}
-      {/* ========================================== */}
+      {/* ==================================================================== */}
+      {/* CUADRO DE OBRAS ACTIVAS EN MARCHA                                    */}
+      {/* ==================================================================== */}
       <section id="obras-activas" className="mb-12 scroll-mt-24">
         <ProyectosActivosCTA
           proyectos={proyectosDisponibles}
@@ -220,137 +314,130 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             setPreinscripcionTarget({
               nombre: p.nombre,
               id: p.id,
-              cuota,
-              anticipo: Math.round(p.params.costoDepto * 0.1)
+              cuota: cuota,
+              anticipo: p.params.costoDepto * 0.2
             });
-            setModalPreinscripcionOpen(true);
-          }}
-          onContactarProyecto={(nombre) => {
-            setPreinscripcionTarget({ nombre });
             setModalPreinscripcionOpen(true);
           }}
         />
       </section>
 
-      {/* ========================================== */}
-      {/* COMPARATIVA (FONDO VS UVA)                */}
-      {/* ========================================== */}
-      <section id="comparativa" className="py-14 border-t border-slate-800 scroll-mt-24">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-3">
-              El Problema del Crédito UVA vs La Evolución del Fondo 1
+      {/* ==================================================================== */}
+      {/* TABLA COMPARATIVA: FONDO MUTUO vs CRÉDITO HIPOTECARIO UVA           */}
+      {/* ==================================================================== */}
+      <section id="comparativa" className="mb-16 scroll-mt-24">
+        <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-10">
+          <div className="text-center max-w-2xl mx-auto mb-8 space-y-2">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
+              ¿Por qué el Fideicomiso al Costo vence al Crédito UVA?
             </h2>
-            <p className="text-slate-400 text-sm max-w-2xl mx-auto">
-              Comparamos el modelo tradicional bancario con nuestro vehículo de inversión directa al costo.
+            <p className="text-xs sm:text-sm text-slate-400">
+              Comparativa real entre un crédito bancario indexado y nuestro sistema de ahorro previo mutuo entre pares.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Tarjeta UVA */}
-            <div className="bg-rose-950/20 border border-rose-500/20 rounded-2xl p-7 opacity-85">
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-3xl">🏦</span>
-                <h3 className="text-xl font-bold text-rose-300">Crédito UVA (Bancos)</h3>
-              </div>
-              <ul className="space-y-4 text-xs sm:text-sm text-slate-300">
-                <li className="flex items-start gap-3">
-                  <span className="text-rose-500 font-bold">❌</span>
-                  <span><strong>Riesgo de Inflación:</strong> Tu deuda en pesos crece todos los días. Pagás interés sobre la inflación.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-rose-500 font-bold">❌</span>
-                  <span><strong>Plazos Asfixiantes:</strong> Quedás endeudado por 20 o 30 años con hipoteca en primer grado.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-rose-500 font-bold">❌</span>
-                  <span><strong>Atrapado:</strong> Vender una propiedad hipotecada es un trámite burocrático, costoso y riesgoso.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-rose-500 font-bold">❌</span>
-                  <span><strong>Requisitos:</strong> Ingresos formales altísimos, historial bancario y ahorro previo desmedido.</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Tarjeta Fondo 1 */}
-            <div className="bg-emerald-950/20 border-2 border-emerald-500/50 rounded-2xl p-7 relative shadow-[0_0_30px_rgba(16,185,129,0.15)]">
-              <div className="absolute -top-3.5 right-6 bg-emerald-500 text-slate-950 text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
-                La Solución
-              </div>
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-3xl">🏗️</span>
-                <h3 className="text-xl font-bold text-emerald-400">Fondo Inmobiliario 1</h3>
-              </div>
-              <ul className="space-y-4 text-xs sm:text-sm text-slate-300">
-                <li className="flex items-start gap-3">
-                  <span className="text-emerald-400 font-bold">✅</span>
-                  <span><strong>Costo Real Blindado:</strong> Acopiamos materiales para congelar precios. Cero tasas bancarias usurarias.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-emerald-400 font-bold">✅</span>
-                  <span><strong>Plazos Cortos:</strong> Te capitalizás y sos dueño en un ciclo de 36 a 48 meses.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-emerald-400 font-bold">✅</span>
-                  <span><strong>Mercado Líquido:</strong> Podés ceder tu contrato en cualquier momento, recuperar tus dólares y capitalizar el avance de obra.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-emerald-400 font-bold">✅</span>
-                  <span><strong>Inclusión Directa:</strong> Entrás con USD 10.000 sin importar tu score bancario.</span>
-                </li>
-              </ul>
-            </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-400 text-[11px] uppercase tracking-wider">
+                  <th className="py-3 px-4">Concepto</th>
+                  <th className="py-3 px-4 text-emerald-400 font-bold bg-emerald-950/20 rounded-t-xl">
+                    Fondo Inmobiliario (Al Costo)
+                  </th>
+                  <th className="py-3 px-4 text-rose-400 font-bold">Crédito Hipotecario UVA</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                <tr>
+                  <td className="py-3.5 px-4 font-semibold text-white">Tasa de Interés</td>
+                  <td className="py-3.5 px-4 text-emerald-300 bg-emerald-950/20 font-semibold">
+                    0% Tasa de Interés (Sin Usura)
+                  </td>
+                  <td className="py-3.5 px-4 text-rose-300">UVA + 5.5% a 8.5% anual en dólares</td>
+                </tr>
+                <tr>
+                  <td className="py-3.5 px-4 font-semibold text-white">Ajuste de Capital</td>
+                  <td className="py-3.5 px-4 text-emerald-300 bg-emerald-950/20">
+                    Costo real de obra (CAC)
+                  </td>
+                  <td className="py-3.5 px-4 text-rose-300">Inflación IPC + Dólar bancario</td>
+                </tr>
+                <tr>
+                  <td className="py-3.5 px-4 font-semibold text-white">Adjudicación & Posesión</td>
+                  <td className="py-3.5 px-4 text-emerald-300 bg-emerald-950/20">
+                    Por orden de cuota y sorteo/licitación
+                  </td>
+                  <td className="py-3.5 px-4 text-slate-400">Inmediata pero hipotecada a 20-30 años</td>
+                </tr>
+                <tr>
+                  <td className="py-3.5 px-4 font-semibold text-white">Salida Anticipada</td>
+                  <td className="py-3.5 px-4 text-emerald-300 bg-emerald-950/20 font-semibold">
+                    Cesión de boleto CCCN sin penalización
+                  </td>
+                  <td className="py-3.5 px-4 text-rose-300">Cancelación forzosa con altas comisiones</td>
+                </tr>
+                <tr>
+                  <td className="py-3.5 px-4 font-semibold text-white">Requisitos de Ingreso</td>
+                  <td className="py-3.5 px-4 text-emerald-300 bg-emerald-950/20">
+                    DNI y justificación de fondos
+                  </td>
+                  <td className="py-3.5 px-4 text-rose-300">Demostrar ingresos exorbitantes en blanco</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
 
-      {/* ========================================== */}
-      {/* CÓMO FUNCIONA                             */}
-      {/* ========================================== */}
-      <section id="como-funciona" className="py-14 border-t border-slate-800 scroll-mt-24">
-        <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-10">
-            Un proceso transparente en 3 simples pasos
+      {/* ==================================================================== */}
+      {/* CÓMO FUNCIONA                                                        */}
+      {/* ==================================================================== */}
+      <section id="como-funciona" className="mb-16 scroll-mt-24">
+        <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
+            ¿Cómo Funciona el Círculo de Ahorro Mutuo?
           </h2>
+          <p className="text-xs sm:text-sm text-slate-400">
+            Un esquema colaborativo transparente donde cada cuota se convierte inmediatamente en metros cuadrados.
+          </p>
+        </div>
 
-          <div className="grid sm:grid-cols-3 gap-6">
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative text-left">
-              <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center text-lg font-bold mb-4 border border-indigo-500/30">
-                1
-              </div>
-              <h4 className="text-base font-bold text-white mb-2">Ticket de Ingreso</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Firmás tu adhesión al fideicomiso integrando un anticipo inicial accesible desde USD 10.000.
-              </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold">
+              1
             </div>
-            
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative text-left">
-              <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center text-lg font-bold mb-4 border border-indigo-500/30">
-                2
-              </div>
-              <h4 className="text-base font-bold text-white mb-2">Cuotas al Costo</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Abonás tu plan mes a mes. El dinero se usa exclusivamente para comprar materiales y avanzar la obra (Índice CAC).
-              </p>
-            </div>
+            <h3 className="text-lg font-bold text-white">Suscríbete a un Círculo</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Elige el proyecto activo, define tu anticipo y abona tu cuota pura mensual al costo de construcción.
+            </p>
+          </div>
 
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative text-left">
-              <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center text-lg font-bold mb-4 border border-indigo-500/30">
-                3
-              </div>
-              <h4 className="text-base font-bold text-white mb-2">Llaves o Ganancia</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Al llegar a la cuota estipulada recibís tu unidad. ¿Cambiaste de idea? Cedés tu posición y te llevás la rentabilidad.
-              </p>
+          <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold">
+              2
             </div>
+            <h3 className="text-lg font-bold text-white">Avance y Adjudicación</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              La obra avanza con el aporte colectivo. Las unidades se adjudican por orden preestablecido o licitación anticipada.
+            </p>
+          </div>
+
+          <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold">
+              3
+            </div>
+            <h3 className="text-lg font-bold text-white">Posesión o Cesión</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Toma posesión para habitar o alquilar tu departamento terminado, o vende tu posición en el mercado con plusvalía.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* ========================================== */}
-      {/* SEGURIDAD LEGAL Y CTA                     */}
-      {/* ========================================== */}
+      {/* ==================================================================== */}
+      {/* SEGURIDAD LEGAL Y CTA                                                */}
+      {/* ==================================================================== */}
       <section id="seguridad" className="py-16 border-t border-slate-800 scroll-mt-24">
         <div className="max-w-4xl mx-auto text-center space-y-6">
           <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mx-auto">
@@ -385,10 +472,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 
                 <button
                   type="button"
+                  id="bottom-cta-simular"
                   onClick={() => onStartSimulation()}
-                  className="w-full bg-transparent border-2 border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-white font-bold py-3 px-6 rounded-xl transition text-xs sm:text-sm text-center cursor-pointer"
+                  className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold py-3.5 px-6 rounded-xl transition text-xs sm:text-sm text-center cursor-pointer shadow-lg shadow-emerald-600/20"
                 >
-                  Ir al Simulador
+                  Simular mi plan
                 </button>
               </div>
             </div>

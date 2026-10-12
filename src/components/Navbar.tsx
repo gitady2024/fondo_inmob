@@ -1,6 +1,21 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { UserProfile } from '../types/auth';
-import { Building2, Sparkles, RefreshCw, Printer, Database, User, Shield, HardHat, ScrollText, MessageSquare, LogIn, LogOut } from 'lucide-react';
+import {
+  Building2,
+  Sparkles,
+  RefreshCw,
+  Printer,
+  Database,
+  User,
+  Shield,
+  HardHat,
+  ScrollText,
+  MessageSquare,
+  LogOut,
+  MoreVertical,
+  Calculator,
+  ArrowLeft
+} from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/supabase';
 
 interface NavbarProps {
@@ -13,6 +28,8 @@ interface NavbarProps {
   onOpenContrato: () => void;
   onOpenMensajes: () => void;
   onSignOut?: () => void;
+  onSimularPlan?: () => void;
+  onNavigateLanding?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -24,150 +41,268 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenLogin,
   onOpenContrato,
   onOpenMensajes,
-  onSignOut
+  onSignOut,
+  onSimularPlan,
+  onNavigateLanding
 }) => {
   const isCloud = isSupabaseConfigured();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar el menú desplegable al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   return (
-    <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30 py-4 px-4 sm:px-6 rounded-2xl mb-6 shadow-sm no-print">
+    <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 py-3.5 px-4 sm:px-6 rounded-2xl mb-6 shadow-lg shadow-black/20 no-print">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        
+        {/* Identidad de Marca */}
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white">
+          <div 
+            onClick={onNavigateLanding}
+            className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white cursor-pointer hover:scale-105 transition-transform"
+            title="Ir a la portada"
+          >
             <Building2 className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+              <h1 
+                onClick={onNavigateLanding}
+                className="text-xl sm:text-2xl font-extrabold text-white tracking-tight cursor-pointer hover:text-indigo-200 transition-colors"
+              >
                 FONDO INMOBIL
               </h1>
               <span className="text-[11px] font-semibold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-indigo-400" /> Ahorro Previo Mutuo
+                <Sparkles className="w-3 h-3 text-indigo-400" /> Ahorro Mutuo
               </span>
             </div>
-            <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
-              Simulador financiero integral, Cuenta Corriente individual, licitaciones y cesión CCCN
+            <p className="text-slate-400 text-xs mt-0.5 hidden sm:block">
+              Fideicomiso al Costo Real • Adjudicación por Cuota y Licitación
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 self-end md:self-auto">
-          {/* Badge y botón de perfil de usuario o botón de login si no está autenticado */}
-          {user ? (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={onOpenLogin}
-                title="Cambiar perfil / rol de usuario"
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 border transition-all shadow-sm ${
-                  user.role === 'admin'
-                    ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/30'
-                    : user.role === 'tecnico'
-                    ? 'bg-amber-600/20 border-amber-500/50 text-amber-300 hover:bg-amber-600/30'
-                    : 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/30'
-                }`}
-              >
-                {user.role === 'admin' ? (
-                  <>
-                    <Shield className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Admin Fiduciario</span>
-                  </>
-                ) : user.role === 'tecnico' ? (
-                  <>
-                    <HardHat className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Equipo Técnico & Obra</span>
-                  </>
-                ) : user.isGuest || user.id === 'invitado' ? (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Inversor Invitado (Libre)</span>
-                  </>
-                ) : (
-                  <>
-                    <User className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Socio D{user.socioId || 1}</span>
-                  </>
-                )}
-              </button>
-
-              {onSignOut && (
-                <button
-                  type="button"
-                  onClick={onSignOut}
-                  title="Cerrar sesión y volver al selector de perfiles"
-                  className="px-2.5 py-1.5 text-slate-300 hover:text-rose-300 hover:bg-rose-500/10 border border-slate-700 hover:border-rose-500/40 rounded-xl transition-all text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-sm"
-                >
-                  <LogOut className="w-3.5 h-3.5 text-rose-400" />
-                  <span className="hidden sm:inline">Cambiar Perfil</span>
-                </button>
-              )}
-            </div>
-          ) : (
+        {/* Zona de Acciones: Único CTA Principal + Menú Desplegable (⋮) */}
+        <div className="flex items-center gap-2.5 self-end md:self-auto">
+          
+          {/* Volver a la portada comercial si estamos en el entorno app */}
+          {onNavigateLanding && (
             <button
-              onClick={onOpenLogin}
-              className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 transition-all cursor-pointer"
+              type="button"
+              onClick={onNavigateLanding}
+              className="text-xs text-slate-400 hover:text-white px-2.5 py-2 rounded-xl hover:bg-slate-800 transition flex items-center gap-1.5 cursor-pointer"
+              title="Volver a la portada comercial pública"
             >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Acceder al Sistema</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Web Comercial</span>
             </button>
           )}
 
-          {user && user.role === 'admin' && (
-            <button
-              onClick={onOpenPersistencia}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all ${
-                isCloud
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600'
-              }`}
-            >
-              <Database className="w-3.5 h-3.5" />
-              <span>{isCloud ? 'Supabase Nube' : 'Guardar / Proyectos'}</span>
-            </button>
-          )}
-
-          {user && user.role === 'admin' && (
-            <button
-              onClick={onReset}
-              title="Restablecer valores originales"
-              className="p-2 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 rounded-lg transition-colors text-xs flex items-center gap-1"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span className="hidden sm:inline">Restablecer</span>
-            </button>
-          )}
-
+          {/* Badge de Perfil Actual si el usuario está autenticado */}
           {user && (
             <button
-              onClick={onOpenMensajes}
-              title="Centro de Comunicaciones Fiduciarias"
-              className="relative bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all shadow-sm"
+              onClick={onOpenLogin}
+              title="Perfil activo (Clic para cambiar)"
+              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
+                user.role === 'admin'
+                  ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/30'
+                  : user.role === 'tecnico'
+                  ? 'bg-amber-600/20 border-amber-500/50 text-amber-300 hover:bg-amber-600/30'
+                  : 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/30'
+              }`}
             >
-              <MessageSquare className="w-4 h-4 text-indigo-400" />
-              <span className="hidden sm:inline">Mensajes</span>
-              {unreadCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-extrabold shadow-sm animate-pulse">
-                  {unreadCount}
-                </span>
+              {user.role === 'admin' ? (
+                <>
+                  <Shield className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className="hidden sm:inline">Admin</span>
+                </>
+              ) : user.role === 'tecnico' ? (
+                <>
+                  <HardHat className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden sm:inline">Técnico</span>
+                </>
+              ) : (
+                <>
+                  <User className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Unidad {user.socioId || 1}</span>
+                </>
               )}
             </button>
           )}
 
+          {/* ========================================================= */}
+          {/* ÚNICO CALL TO ACTION PRINCIPAL: "Simular mi plan"           */}
+          {/* ========================================================= */}
           <button
-            onClick={onOpenContrato}
-            title="Ver y descargar Contrato Tripartito Oficial"
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all shadow-sm"
+            type="button"
+            id="nav-cta-simular"
+            onClick={onSimularPlan}
+            className="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-xs sm:text-sm px-4 sm:px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-600/25 transition-all transform hover:scale-[1.02] flex items-center gap-2 cursor-pointer"
           >
-            <ScrollText className="w-4 h-4 text-amber-400" />
-            <span>Contrato Tripartito</span>
+            <Calculator className="w-4 h-4 text-emerald-100" />
+            <span>Simular mi plan</span>
           </button>
 
-          <button
-            onClick={onPrint}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-md shadow-indigo-600/20 transition-all hover:scale-[1.02]"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Imprimir Ficha</span>
-          </button>
+          {/* ========================================================= */}
+          {/* MENÚ DESPLEGABLE DE ACCIONES SECUNDARIAS (⋮)               */}
+          {/* ========================================================= */}
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              id="nav-dropdown-trigger"
+              onClick={() => setIsMenuOpen((prev) => !prev)}
+              aria-label="Más opciones"
+              title="Más opciones (Contrato, Imprimir, Restablecer)"
+              className={`p-2.5 rounded-xl border text-slate-300 hover:text-white transition-all cursor-pointer flex items-center justify-center ${
+                isMenuOpen
+                  ? 'bg-slate-800 border-indigo-500/50 text-white shadow-md'
+                  : 'bg-slate-800/80 hover:bg-slate-700/80 border-slate-700'
+              }`}
+            >
+              <MoreVertical className="w-4 h-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping" />
+              )}
+            </button>
+
+            {/* Panel flotante del Menú ⋮ */}
+            {isMenuOpen && (
+              <div 
+                id="nav-dropdown-menu"
+                className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl shadow-black/80 py-2 z-50 animate-fade-in backdrop-blur-xl"
+              >
+                <div className="px-3 py-1.5 border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Herramientas & Documentación
+                </div>
+
+                {/* Opción 1: Contrato Tripartito Oficial */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onOpenContrato();
+                  }}
+                  className="w-full text-left px-3.5 py-2.5 text-xs text-slate-200 hover:text-white hover:bg-indigo-600/20 flex items-center gap-2.5 transition cursor-pointer"
+                >
+                  <ScrollText className="w-4 h-4 text-amber-400 shrink-0" />
+                  <div className="flex flex-col">
+                    <span className="font-semibold">Contrato Tripartito</span>
+                    <span className="text-[10px] text-slate-400">Descargar Word / PDF oficial</span>
+                  </div>
+                </button>
+
+                {/* Opción 2: Imprimir Ficha */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onPrint();
+                  }}
+                  className="w-full text-left px-3.5 py-2.5 text-xs text-slate-200 hover:text-white hover:bg-indigo-600/20 flex items-center gap-2.5 transition cursor-pointer"
+                >
+                  <Printer className="w-4 h-4 text-indigo-400 shrink-0" />
+                  <div className="flex flex-col">
+                    <span className="font-semibold">Imprimir Ficha</span>
+                    <span className="text-[10px] text-slate-400">Reporte ejecutivo de la unidad</span>
+                  </div>
+                </button>
+
+                {/* Opción 3: Restablecer Valores */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onReset();
+                  }}
+                  className="w-full text-left px-3.5 py-2.5 text-xs text-slate-200 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2.5 transition cursor-pointer"
+                >
+                  <RefreshCw className="w-4 h-4 text-slate-400 shrink-0" />
+                  <div className="flex flex-col">
+                    <span className="font-semibold">Restablecer Valores</span>
+                    <span className="text-[10px] text-slate-400">Volver a los parámetros iniciales</span>
+                  </div>
+                </button>
+
+                {/* Opción 4: Centro de Mensajes (si hay usuario) */}
+                {user && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenMensajes();
+                    }}
+                    className="w-full text-left px-3.5 py-2.5 text-xs text-slate-200 hover:text-white hover:bg-indigo-600/20 flex items-center justify-between transition cursor-pointer border-t border-slate-800"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <MessageSquare className="w-4 h-4 text-sky-400 shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="font-semibold">Centro de Mensajes</span>
+                        <span className="text-[10px] text-slate-400">Canal directo fiduciario</span>
+                      </div>
+                    </div>
+                    {unreadCount > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-extrabold">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </button>
+                )}
+
+                {/* Opción 5: Supabase Nube (para administradores) */}
+                {user && user.role === 'admin' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenPersistencia();
+                    }}
+                    className="w-full text-left px-3.5 py-2.5 text-xs text-slate-200 hover:text-white hover:bg-indigo-600/20 flex items-center gap-2.5 transition cursor-pointer"
+                  >
+                    <Database className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="font-semibold">Base de Datos / Supabase</span>
+                      <span className="text-[10px] text-slate-400">
+                        {isCloud ? 'Nube Conectada' : 'Guardar y gestionar planes'}
+                      </span>
+                    </div>
+                  </button>
+                )}
+
+                {/* Opción 6: Salir / Cambiar Perfil */}
+                {user && onSignOut && (
+                  <div className="pt-1 mt-1 border-t border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onSignOut();
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2.5 transition cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4 text-rose-400 shrink-0" />
+                      <span>Cerrar Sesión / Salir</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
         </div>
+
       </div>
     </header>
   );
