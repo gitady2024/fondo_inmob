@@ -16,6 +16,7 @@ import { PLANTILLAS_PREDEFINIDAS } from '../services/fondoService';
 import { ProyectosActivosCTA } from './ProyectosActivosCTA';
 import { ObrasEnMarcha } from './ObrasEnMarcha';
 import { PreinscripcionModal } from './PreinscripcionModal';
+import { trackSimuladorInicio, trackClicAgendarEntrevista } from '../services/analyticsService';
 
 interface LandingPageProps {
   onStartSimulation: (proyecto?: FondoGuardado) => void;
@@ -107,6 +108,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         rel="noopener noreferrer"
         aria-label="Agendar entrevista de ingreso"
         title="Agendar Entrevista para Ingresar"
+        onClick={() => trackClicAgendarEntrevista('fab')}
         className={`fixed bottom-6 right-5 z-50 w-14 h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full shadow-[0_4px_24px_rgba(79,70,229,0.55)] flex items-center justify-center transition-all duration-300 ${
           showFab
             ? 'opacity-100 translate-y-0 pointer-events-auto'
@@ -173,7 +175,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <button
               type="button"
               id="landing-cta-simular"
-              onClick={() => onStartSimulation()}
+              onClick={() => {
+                trackSimuladorInicio({ label: 'navbar' });
+                onStartSimulation();
+              }}
               className="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs sm:text-sm font-extrabold px-4 sm:px-5 py-2.5 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transition transform hover:scale-[1.02] cursor-pointer flex items-center gap-1.5"
             >
               <Calculator className="w-4 h-4 text-emerald-100" />
@@ -286,7 +291,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <button
             type="button"
             id="hero-cta-simular"
-            onClick={() => onStartSimulation()}
+            onClick={() => {
+              trackSimuladorInicio({ label: 'hero' });
+              onStartSimulation();
+            }}
             className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-sm sm:text-base font-bold px-7 py-3.5 rounded-xl shadow-lg shadow-emerald-600/30 transition transform hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2"
           >
             <Sparkles className="w-4 h-4 text-emerald-200" />
@@ -308,6 +316,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             href="https://calendar.app.google/aacxfmLJk73KnyB39"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => trackClicAgendarEntrevista('calendar')}
             className="w-full sm:w-auto bg-slate-800 border border-slate-700 hover:bg-slate-700 text-white text-sm sm:text-base font-bold px-6 py-3.5 rounded-xl shadow transition flex items-center justify-center gap-2"
           >
             <Calendar className="w-4 h-4 text-indigo-400" />
@@ -505,6 +514,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   href="https://calendar.app.google/aacxfmLJk73KnyB39"
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackClicAgendarEntrevista('calendar')}
                   className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 px-6 rounded-xl transition shadow-lg text-xs sm:text-sm text-center flex items-center justify-center gap-2"
                 >
                   <Calendar className="w-4 h-4" />
@@ -514,7 +524,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <button
                   type="button"
                   id="bottom-cta-simular"
-                  onClick={() => onStartSimulation()}
+                  onClick={() => {
+                    trackSimuladorInicio({ label: 'footer-cta' });
+                    onStartSimulation();
+                  }}
                   className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold py-3.5 px-6 rounded-xl transition text-xs sm:text-sm text-center cursor-pointer shadow-lg shadow-emerald-600/20"
                 >
                   Simular mi plan

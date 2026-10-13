@@ -57,6 +57,7 @@ import { DATOS_TECNICOS_DEFAULT } from './types/tecnico';
 import { HardHat } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { LandingPage } from './components/LandingPage';
+import { trackSimuladorInicio, trackSimulacionCompartida } from './services/analyticsService';
 
 export const App: React.FC = () => {
   const {
@@ -541,6 +542,12 @@ export const App: React.FC = () => {
     if (navigator?.clipboard?.writeText) {
       await navigator.clipboard.writeText(url).catch(() => {});
     }
+    // Track: simulación compartida con parámetros de valor
+    trackSimulacionCompartida(
+      currentFondo.params.costoDepto,
+      socioActual?.cuotaInmInicial ?? 0,
+      currentFondo.nombre
+    );
     setToastMessage(`✅ Link corto generado (${url}). Copiado al portapapeles.`);
   };
 
@@ -616,6 +623,7 @@ export const App: React.FC = () => {
                 setDevUser(null);
               }}
               onSimularPlan={() => {
+                trackSimuladorInicio({ label: 'navbar-app' });
                 setDevUserOverride(GUEST_SOCIO_USER);
                 setDevUser(GUEST_SOCIO_USER);
                 setToastMessage('⚡ Simulador Activo');

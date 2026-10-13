@@ -14,6 +14,7 @@ import {
   GOOGLE_CALENDAR_MEETING_URL,
   generarEnlaceWhatsApp
 } from '../types/preinscripcion';
+import { trackClicAgendarEntrevista } from '../services/analyticsService';
 
 interface ConversionHubCTAProps {
   proyectoNombre: string;
@@ -117,6 +118,7 @@ export const ConversionHubCTA: React.FC<ConversionHubCTAProps> = ({
               href={enlaceWhatsApp}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackClicAgendarEntrevista('whatsapp', cuotaEstimada, cuotaEstimada, proyectoNombre)}
               className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 transition-all cursor-pointer"
             >
               <span>Abrir Chat de WhatsApp</span>
@@ -156,6 +158,7 @@ export const ConversionHubCTA: React.FC<ConversionHubCTAProps> = ({
               href={GOOGLE_CALENDAR_MEETING_URL}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackClicAgendarEntrevista('calendar', cuotaEstimada, cuotaEstimada, proyectoNombre)}
               className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 transition-all cursor-pointer"
             >
               <span>Agendar en Google Calendar</span>

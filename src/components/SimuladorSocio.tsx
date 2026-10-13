@@ -12,6 +12,13 @@ import { ProyectosActivosCTA } from './ProyectosActivosCTA';
 import { ConversionHubCTA } from './ConversionHubCTA';
 import { PreinscripcionModal } from './PreinscripcionModal';
 import { InfoTooltip } from './common/InfoTooltip';
+import {
+  trackSimuladorPaso1,
+  trackSimuladorPaso2,
+  trackSimuladorCompletado,
+  trackClicOpcionesAvanzadas,
+  trackClicQuiereEstePlan
+} from '../services/analyticsService';
 import { calcularGastos, calcularFlujoIndividual, fmtMoneda, formatFecha } from '../utils/calculations';
 import {
   DollarSign,
@@ -173,6 +180,19 @@ export const SimuladorSocio: React.FC<SimuladorSocioProps> = ({
     );
   }, [user.socioId, costoDepto, cantidadCuotas, gastosSimulados, cuotaPosesionObjetivo]);
 
+  // Track: cuando el usuario llega al Paso 3 (Resultados) es la máxima señal de interés
+  useEffect(() => {
+    if (pasoActual === 3) {
+      trackSimuladorCompletado(
+        costoDepto,
+        flujoSimulado.cuotaInmInicial,
+        anticipoMes0,
+        proyectoAdoptado?.nombre || fondoNombre
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pasoActual]);
+
   // Percepción de Carga: Skeleton loaders activos por una fracción de segundo al cambiar parámetros
   const [isRecalculating, setIsRecalculating] = useState<boolean>(false);
   const debounceRecalcRef = useRef<any>(null);
@@ -216,6 +236,12 @@ export const SimuladorSocio: React.FC<SimuladorSocioProps> = ({
       cuota: cuotaEst !== undefined ? cuotaEst : flujoSimulado.cuotaInmInicial,
       anticipo: anticipoEst !== undefined ? anticipoEst : anticipoMes0
     });
+    // Track: el usuario expresa intención máxima de conversión
+    trackClicQuiereEstePlan(
+      costoDepto,
+      cuotaEst ?? flujoSimulado.cuotaInmInicial,
+      proyectoAdoptado?.nombre || fondoNombre
+    );
     setModalPreinscripcionOpen(true);
   };
 
@@ -646,7 +672,14 @@ export const SimuladorSocio: React.FC<SimuladorSocioProps> = ({
               <button
                 type="button"
                 id="wizard-step1-next"
-                onClick={() => setPasoActual(2)}
+                onClick={() => {
+                  trackSimuladorPaso1(
+                    costoDepto,
+                    anticipoMes0,
+                    proyectoAdoptado?.nombre || fondoNombre
+                  );
+                  setPasoActual(2);
+                }}
                 className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white rounded-xl font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>Continuar a Mi Plan</span>
@@ -834,7 +867,15 @@ export const SimuladorSocio: React.FC<SimuladorSocioProps> = ({
               <button
                 type="button"
                 id="wizard-step2-next"
-                onClick={() => setPasoActual(3)}
+                onClick={() => {
+                  trackSimuladorPaso2(
+                    costoDepto,
+                    flujoSimulado.cuotaInmInicial,
+                    cantidadCuotas,
+                    proyectoAdoptado?.nombre || fondoNombre
+                  );
+                  setPasoActual(3);
+                }}
                 className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white rounded-xl font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>Ver Mi Resultado Económico</span>
@@ -1084,7 +1125,14 @@ export const SimuladorSocio: React.FC<SimuladorSocioProps> = ({
         <button
           type="button"
           id="toggle-ajustes-avanzados"
-          onClick={() => setMostrarAjustesAvanzados((prev) => !prev)}
+          onClick={() => {
+            const nuevoEstado = !mostrarAjustesAvanzados;
+            setMostrarAjustesAvanzados(nuevoEstado);
+            if (nuevoEstado) {
+              // Solo trackear cuando ABRE (no cuando cierra)
+              trackClicOpcionesAvanzadas(costoDepto, proyectoAdoptado?.nombre || fondoNombre);
+            }
+          }}
           className="w-full p-5 sm:p-6 text-left flex items-center justify-between hover:bg-slate-800/40 transition cursor-pointer"
         >
           <div className="flex items-center gap-3">

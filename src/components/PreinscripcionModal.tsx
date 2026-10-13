@@ -23,6 +23,7 @@ import {
   generarEnlaceWhatsAppFichaPreinscripcion
 } from '../types/preinscripcion';
 import { guardarPreinscripcion } from '../services/preinscripcionService';
+import { trackLeadGenerado, trackClicAgendarEntrevista } from '../services/analyticsService';
 
 interface PreinscripcionModalProps {
   isOpen: boolean;
@@ -125,12 +126,20 @@ export const PreinscripcionModal: React.FC<PreinscripcionModalProps> = ({
         setEmailDespachado(resultado.emailEnviado);
         setEnviadoExitoso(true);
 
-        // Abrir automáticamente WhatsApp con la ficha precargada dirigida al +54 264 4132644
+        // Track: lead generado con montos reales
+        trackLeadGenerado(
+          anticipoEstimado || 0,
+          montoNum,
+          proyectoNombre,
+          resultado.leadId
+        );
+
+        // Abrir automáticamente WhatsApp con la ficha precargada
         if (typeof window !== 'undefined' && resultado.whatsappUrl) {
           try {
             window.open(resultado.whatsappUrl, '_blank');
           } catch {
-            // Popup bloqueado; el botón principal en pantalla permanece listo para hacer clic
+            // Popup bloqueado
           }
         }
       }
