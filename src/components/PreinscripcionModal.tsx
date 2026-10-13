@@ -23,7 +23,7 @@ import {
   generarEnlaceWhatsAppFichaPreinscripcion
 } from '../types/preinscripcion';
 import { guardarPreinscripcion } from '../services/preinscripcionService';
-import { trackLeadGenerado, trackClicAgendarEntrevista } from '../services/analyticsService';
+import { trackLeadGenerado } from '../services/analyticsService';
 
 interface PreinscripcionModalProps {
   isOpen: boolean;
