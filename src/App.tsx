@@ -47,6 +47,7 @@ import { CapitalFlowChart } from './components/CapitalFlowChart';
 import { PossessionTimeline } from './components/PossessionTimeline';
 import { ScenarioToolbar } from './components/common/ScenarioToolbar';
 import { Toast } from './components/common/Toast';
+import { SkeletonChart, SkeletonTimeline, SkeletonSummaryCard, SkeletonTableRow } from './components/common/SkeletonLoader';
 import { useUrlState, type UrlScenarioParams } from './hooks/useUrlState';
 import { exportarReporteEjecutivoPDF } from './utils/exportToPDF';
 import { exportarCuadroMarchaCSV } from './utils/exportToCSV';
@@ -535,12 +536,12 @@ export const App: React.FC = () => {
     handleApplyInitialUrlParams
   );
 
-  const handleShareScenario = () => {
-    const url = getShareableUrl();
+  const handleShareScenario = async () => {
+    const url = await getShareableUrl();
     if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(url).catch(() => {});
+      await navigator.clipboard.writeText(url).catch(() => {});
     }
-    setToastMessage('✅ Link copiado al portapapeles. Listo para compartir por WhatsApp o email.');
+    setToastMessage(`✅ Link corto generado (${url}). Copiado al portapapeles.`);
   };
 
   const handleExportPDF = async () => {
@@ -789,28 +790,52 @@ export const App: React.FC = () => {
                   }}
                 />
 
-                {/* 3. Gráfico de Flujo de Capital (Visualización Inmediata) */}
-                {socioActual && (
+                {/* 3. Gráfico de Flujo de Capital */}
+                {isCalculating ? (
+                  <SkeletonChart />
+                ) : socioActual ? (
                   <CapitalFlowChart
                     flujoSocio={socioActual}
                     fechaInicio={currentFondo.params.fechaInicio}
-                    isCalculating={isCalculating}
+                    isCalculating={false}
                     costoDepto={currentFondo.params.costoDepto}
+                  />
+                ) : null}
+
+                {/* 4. Línea de Tiempo de Posesiones y Adjudicación */}
+                {isCalculating ? (
+                  <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+                    <SkeletonTimeline />
+                  </div>
+                ) : (
+                  <PossessionTimeline
+                    flujosSocios={flujosSocios}
+                    fechaInicio={currentFondo.params.fechaInicio}
+                    socioSeleccionado={socioSeleccionado}
+                    onSelectSocio={(id) => setSocioSeleccionado(id)}
                   />
                 )}
 
-                {/* 4. Línea de Tiempo de Posesiones y Adjudicación */}
-                <PossessionTimeline
-                  flujosSocios={flujosSocios}
-                  fechaInicio={currentFondo.params.fechaInicio}
-                  socioSeleccionado={socioSeleccionado}
-                  onSelectSocio={(id) => setSocioSeleccionado(id)}
-                />
-
-                {/* 5. Tablas Detalladas (Con transición suave durante recálculo) */}
-                <div className={`space-y-6 transition-all duration-300 ${isCalculating ? 'opacity-60 blur-[0.5px]' : 'opacity-100'}`}>
+                {/* 5. Tablas Detalladas */}
+                <div className="space-y-6">
                   {/* Estado de Cuenta Individual (Vista Admin) */}
-                  {socioActual && (
+                  {isCalculating ? (
+                    <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl overflow-hidden shadow-xl">
+                      <div className="p-5 border-b border-slate-700/80">
+                        <div className="animate-pulse space-y-2">
+                          <div className="h-4 w-48 bg-slate-700/60 rounded-lg" />
+                          <div className="h-3 w-72 bg-slate-700/40 rounded-lg" />
+                        </div>
+                      </div>
+                      <table className="w-full">
+                        <tbody>
+                          {Array.from({ length: 8 }).map((_, i) => (
+                            <SkeletonTableRow key={i} cols={6} />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : socioActual ? (
                     <CuentaIndividual
                       cantidadSocios={currentFondo.params.cantidadDeptos}
                       socioSeleccionado={socioSeleccionado}
@@ -823,23 +848,27 @@ export const App: React.FC = () => {
                       onSelectSocio={(id) => setSocioSeleccionado(id)}
                       onAdjudicacionChange={handleAdjudicacionChange}
                     />
-                  )}
+                  ) : null}
 
                   {/* Resumen Consolidado */}
-                  <ResumenConsolidado
-                    flujosSocios={flujosSocios}
-                    fechaInicio={currentFondo.params.fechaInicio}
-                    params={currentFondo.params}
-                    gastos={currentFondo.gastos}
-                    adjudicacionFijada={currentFondo.adjudicacionFijada}
-                    cesionActiva={currentFondo.cesion.activo}
-                    socioCedente={currentFondo.cesion.socioCedente}
-                    cuotaSalidaCesion={currentFondo.cesion.cuotaSalida}
-                    adelantoActivo={currentFondo.adelanto.activo}
-                    socioAdelanta={currentFondo.adelanto.socioAdelanta}
-                    cuotaAdelanto={currentFondo.adelanto.cuota}
-                    onSelectSocio={(id) => setSocioSeleccionado(id)}
-                  />
+                  {isCalculating ? (
+                    <SkeletonSummaryCard />
+                  ) : (
+                    <ResumenConsolidado
+                      flujosSocios={flujosSocios}
+                      fechaInicio={currentFondo.params.fechaInicio}
+                      params={currentFondo.params}
+                      gastos={currentFondo.gastos}
+                      adjudicacionFijada={currentFondo.adjudicacionFijada}
+                      cesionActiva={currentFondo.cesion.activo}
+                      socioCedente={currentFondo.cesion.socioCedente}
+                      cuotaSalidaCesion={currentFondo.cesion.cuotaSalida}
+                      adelantoActivo={currentFondo.adelanto.activo}
+                      socioAdelanta={currentFondo.adelanto.socioAdelanta}
+                      cuotaAdelanto={currentFondo.adelanto.cuota}
+                      onSelectSocio={(id) => setSocioSeleccionado(id)}
+                    />
+                  )}
                 </div>
               </>
             }

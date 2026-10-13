@@ -39,8 +39,10 @@ export const ScenarioToolbar: React.FC<ScenarioToolbarProps> = ({
       {/* Botón Compartir Escenario */}
       <button
         type="button"
+        id="btn-share-scenario"
         onClick={handleShareClick}
         disabled={isSharing}
+        aria-label="Compartir enlace con parámetros del escenario actual"
         className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
           justShared
             ? 'bg-emerald-600 text-white shadow-emerald-900/40'
@@ -55,8 +57,10 @@ export const ScenarioToolbar: React.FC<ScenarioToolbarProps> = ({
       {/* Botón Descargar PDF */}
       <button
         type="button"
+        id="btn-export-pdf"
         onClick={handlePDFClick}
         disabled={isExportingPDF}
+        aria-label="Descargar reporte ejecutivo en PDF"
         className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
         title="Descargar Reporte Ejecutivo en formato PDF no modificable"
       >
@@ -71,7 +75,9 @@ export const ScenarioToolbar: React.FC<ScenarioToolbarProps> = ({
       {/* Botón Exportar CSV */}
       <button
         type="button"
+        id="btn-export-csv"
         onClick={onExportCSV}
+        aria-label="Exportar datos a planilla Excel / CSV"
         className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
         title="Exportar datos numéricos a planilla Excel / CSV"
       >
@@ -84,7 +90,9 @@ export const ScenarioToolbar: React.FC<ScenarioToolbarProps> = ({
       {onPrint && (
         <button
           type="button"
+          id="btn-print-scenario"
           onClick={onPrint}
+          aria-label="Imprimir vista del simulador"
           className="px-2.5 py-2 rounded-xl text-xs font-bold bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-all flex items-center gap-1 cursor-pointer"
           title="Imprimir vista del simulador"
         >

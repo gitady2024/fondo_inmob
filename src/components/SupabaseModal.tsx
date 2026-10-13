@@ -147,8 +147,11 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
             </div>
           </div>
           <button
+            type="button"
+            id="btn-close-supabase-modal"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            aria-label="Cerrar modal de persistencia y sincronización"
+            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>

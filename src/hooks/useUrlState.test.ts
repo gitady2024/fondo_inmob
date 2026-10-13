@@ -35,4 +35,31 @@ describe('useUrlState: Parseo y Validación de Parámetros de URL', () => {
     expect(parseUrlParams('')).toEqual({});
     expect(parseUrlParams('?')).toEqual({});
   });
+
+  it('Parsea hash corto ?sim=a8f93 correctamente para evitar parámetros crudos', () => {
+    const params = parseUrlParams('?sim=a8f93');
+    expect(params.simHash).toBe('a8f93');
+  });
+
+  it('Limpieza de URL: no expone UUID de fondo como parámetro crudo (solo via ?sim=hash)', () => {
+    // Cuando llega un fondo UUID crudo, se parsea pero no se re-expone en la URL
+    // El hook lo limpia con history.replaceState; aquí validamos que el parser lo recibe
+    const params = parseUrlParams('?fondo=43f8b1a2-9c3d-4e5f-b6a7-c8d9e0f1a2b3&modalidad=reducir_cuota&socio=2');
+    // Los datos se leen correctamente para aplicar el estado
+    expect(params.fondoId).toBe('43f8b1a2-9c3d-4e5f-b6a7-c8d9e0f1a2b3');
+    expect(params.modalidadAnticipo).toBe('reducir_cuota');
+    expect(params.socioId).toBe(2);
+    // La clave: simHash está undefined (no es un link compartido limpio)
+    expect(params.simHash).toBeUndefined();
+  });
+
+  it('Detecta correctamente un ?sim= puro (único parámetro) para preservar la URL limpia', () => {
+    const params = parseUrlParams('?sim=k9x2p');
+    expect(params.simHash).toBe('k9x2p');
+    // No hay parámetros crudos adicionales
+    expect(params.fondoId).toBeUndefined();
+    expect(params.costoDepto).toBeUndefined();
+    expect(params.modalidadAnticipo).toBeUndefined();
+  });
 });
+

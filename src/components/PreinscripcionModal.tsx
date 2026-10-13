@@ -50,6 +50,16 @@ export const PreinscripcionModal: React.FC<PreinscripcionModalProps> = ({
   );
   const [moneda, setMoneda] = useState<'USD' | 'ARS'>('USD');
 
+  // Sincronizar cuota estimada precargada al abrir el modal o recibir nuevos valores calculados
+  React.useEffect(() => {
+    if (isOpen) {
+      if (cuotaEstimada && cuotaEstimada > 0) {
+        setImporteMensual(String(Math.round(cuotaEstimada)));
+      }
+      setErrorValidacion(null);
+    }
+  }, [isOpen, cuotaEstimada]);
+
   // Estado de envío y errores
   const [errorValidacion, setErrorValidacion] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -171,7 +181,9 @@ export const PreinscripcionModal: React.FC<PreinscripcionModalProps> = ({
 
           <button
             type="button"
+            id="btn-close-preinscripcion-modal"
             onClick={handleResetYSalir}
+            aria-label="Cerrar modal de preinscripción"
             className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800/80 transition-colors cursor-pointer"
             title="Cerrar ventana"
           >

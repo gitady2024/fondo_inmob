@@ -14,6 +14,7 @@ import {
 import type { FondoGuardado } from '../services/fondoService';
 import { PLANTILLAS_PREDEFINIDAS } from '../services/fondoService';
 import { ProyectosActivosCTA } from './ProyectosActivosCTA';
+import { ObrasEnMarcha } from './ObrasEnMarcha';
 import { PreinscripcionModal } from './PreinscripcionModal';
 
 interface LandingPageProps {
@@ -297,9 +298,30 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* ==================================================================== */}
-      {/* CUADRO DE OBRAS ACTIVAS EN MARCHA                                    */}
+      {/* SECCIÓN: OBRAS EN MARCHA (PRUEBA SOCIAL, AVANCE Y ESCASEZ)           */}
       {/* ==================================================================== */}
-      <section id="obras-activas" className="mb-12 scroll-mt-24">
+      <section id="obras-activas" className="mb-16 scroll-mt-24 space-y-8">
+        <ObrasEnMarcha
+          proyectos={proyectosDisponibles}
+          onSimularProyecto={(p) => {
+            if (onAdoptarProyecto) {
+              onAdoptarProyecto(p);
+            } else {
+              onStartSimulation(p);
+            }
+          }}
+          onPreinscribirProyecto={(p, cuota) => {
+            setPreinscripcionTarget({
+              nombre: p.nombre,
+              id: p.id,
+              cuota: cuota,
+              anticipo: p.params.costoDepto * 0.2
+            });
+            setModalPreinscripcionOpen(true);
+          }}
+        />
+
+        {/* Listado complementario de oportunidades */}
         <ProyectosActivosCTA
           proyectos={proyectosDisponibles}
           proyectoActivoId={proyectoActivoId}

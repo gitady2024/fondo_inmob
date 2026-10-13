@@ -1,10 +1,33 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 
 :root {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   color-scheme: dark;
+}
+
+html, body {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* Piso estricto de 12px para textos secundarios o metadatos */
+.text-\[10px\],
+.text-\[11px\],
+.text-\[9px\],
+.text-\[8px\] {
+  font-size: 12px !important;
+  line-height: 1.15rem !important;
+}
+
+/* Alineación tabular estricta para que las cifras no salten al recalcular */
+.tabular-nums,
+.font-mono,
+[data-tabular="true"] {
+  font-variant-numeric: tabular-nums;
+  -moz-font-feature-settings: "tnum";
+  -webkit-font-feature-settings: "tnum";
+  font-feature-settings: "tnum";
 }
 
 .font-mono {
@@ -34,3 +57,46 @@
 ::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
 ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* ────────────────────────────────────────────────────────────────────
+   ANIMACIONES: Skeleton Loaders y Fade-In
+   ──────────────────────────────────────────────────────────────────── */
+
+/* Shimmer / pulse animation para skeleton loaders */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #1e293b 25%,
+    #334155 50%,
+    #1e293b 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+/* Fade-in de entrada suave para secciones de contenido */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+/* Fade-in ultra-rápido para reemplazos skeleton → contenido real */
+.animate-content-in {
+  animation: fade-in 0.2s ease-out forwards;
+}
+

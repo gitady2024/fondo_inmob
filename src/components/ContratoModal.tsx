@@ -296,8 +296,11 @@ export const ContratoModal: React.FC<ContratoModalProps> = ({
             </div>
 
             <button
+              type="button"
+              id="btn-close-contrato-modal"
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              aria-label="Cerrar modal de contrato"
+              className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>

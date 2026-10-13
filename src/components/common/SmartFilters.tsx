@@ -63,7 +63,7 @@ export const SmartFilters: React.FC<SmartFiltersProps> = ({
 
       {/* Paginador (Visible solo si está en modo 'todo' y hay más de 1 página) */}
       <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto text-xs">
-        <span className="text-[11px] text-slate-400 font-mono">
+        <span className="text-xs text-slate-400 font-mono tabular-nums">
           Mostrando <strong className="text-white">{showingCount}</strong> cuotas
         </span>
 
@@ -71,22 +71,26 @@ export const SmartFilters: React.FC<SmartFiltersProps> = ({
           <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg p-1">
             <button
               type="button"
+              id="btn-filter-prev-page"
               disabled={currentPage <= 1}
               onClick={() => onPageChange(currentPage - 1)}
+              aria-label="Ir a página anterior"
               className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
               title="Página anterior"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
 
-            <span className="text-[11px] text-slate-300 font-mono px-1">
+            <span className="text-xs text-slate-300 font-mono tabular-nums px-1">
               Pág. {currentPage} de {totalPages}
             </span>
 
             <button
               type="button"
+              id="btn-filter-next-page"
               disabled={currentPage >= totalPages}
               onClick={() => onPageChange(currentPage + 1)}
+              aria-label="Ir a página siguiente"
               className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
               title="Página siguiente"
             >
