@@ -20,6 +20,8 @@ import {
   trackClicQuiereEstePlan
 } from '../services/analyticsService';
 import { calcularGastos, calcularFlujoIndividual, fmtMoneda, formatFecha } from '../utils/calculations';
+import { SkeletonSummaryCard } from './common/SkeletonLoader';
+
 import {
   DollarSign,
   Key,
@@ -923,7 +925,16 @@ export const SimuladorSocio: React.FC<SimuladorSocioProps> = ({
             </div>
 
             {/* 4 KPIS RESULTANTES DE ALTO IMPACTO */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {isRecalculating ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <SkeletonSummaryCard />
+                <SkeletonSummaryCard />
+                <SkeletonSummaryCard />
+                <SkeletonSummaryCard />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
               
               {/* KPI 1: Cuota inicial mensual */}
               <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-5 space-y-2">
@@ -1017,6 +1028,7 @@ export const SimuladorSocio: React.FC<SimuladorSocioProps> = ({
               </div>
 
             </div>
+            )}
 
             {/* BOTÓN PARA NAVEGAR ENTRE PASOS */}
             <div className="flex items-center justify-between pt-2">
