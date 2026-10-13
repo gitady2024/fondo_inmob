@@ -1,8 +1,8 @@
 export type ModalidadAnticipo = 'reducir_cuota' | 'reducir_plazo';
-export type FormaPagoGastos = 'final' | 'prorrateado';
+export type FormaPagoGastos = 'final' | 'prorrateado' | 'primer_cuota';
 export type MecanismoSalida = 'tercero' | 'preferencia' | 'diferido';
 export type EstrategiaImpactoAdelanto = 'reducir_cuota' | 'acelerar';
-export type EstadoPlanFondo = 'simulacion' | 'activo';
+export type EstadoPlanFondo = 'simulacion' | 'activo' | 'cerrado' | 'pausado';
 
 export interface SimulacionSocioConfig {
   costoDepto: number;

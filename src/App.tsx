@@ -58,6 +58,7 @@ import { HardHat } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { LandingPage } from './components/LandingPage';
 import { trackSimuladorInicio, trackSimulacionCompartida } from './services/analyticsService';
+import { ObrasAdminModal } from './components/ObrasAdminModal';
 
 export const App: React.FC = () => {
   const {
@@ -146,6 +147,7 @@ export const App: React.FC = () => {
   const [isNewModalOpen, setIsNewModalOpen] = useState<boolean>(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
+  const [isObrasAdminOpen, setIsObrasAdminOpen] = useState<boolean>(false);
 
   // Inicializar fondos al montar
   useEffect(() => {
@@ -161,6 +163,12 @@ export const App: React.FC = () => {
     };
     initFondos();
   }, []);
+
+  // Recarga la lista de fondos (usada por ObrasAdminModal tras crear/editar/borrar)
+  const recargarFondos = async () => {
+    const list = await getAllFondos();
+    setFondosList(list);
+  };
 
   // Si el usuario cambia a rol 'socio', asegurar que socioSeleccionado sea su socioId
   useEffect(() => {
@@ -601,6 +609,11 @@ export const App: React.FC = () => {
             onOpenContrato={() => setIsContratoOpen(true)}
             onPrint={() => window.print()}
             onReset={handleResetCurrent}
+            onOpenObrasAdmin={
+              currentUser?.role === 'admin' || currentUser?.role === 'tecnico'
+                ? () => setIsObrasAdminOpen(true)
+                : undefined
+            }
           />
         ) : (
           /* ------------------------------------------------------------------ */
@@ -1089,6 +1102,15 @@ export const App: React.FC = () => {
           onClose={() => setToastMessage(null)}
         />
       </div>
+
+      {/* ── MODAL ADMIN: GESTIÓN DE OBRAS ACTIVAS (solo admin/técnico) ── */}
+      <ObrasAdminModal
+        isOpen={isObrasAdminOpen}
+        onClose={() => setIsObrasAdminOpen(false)}
+        proyectos={fondosList}
+        onProyectosChange={recargarFondos}
+      />
+
     </div>
   );
 };

@@ -9,7 +9,8 @@ import {
   ScrollText,
   Printer,
   RefreshCw,
-  Calculator
+  Calculator,
+  HardHat
 } from 'lucide-react';
 import type { FondoGuardado } from '../services/fondoService';
 import { PLANTILLAS_PREDEFINIDAS } from '../services/fondoService';
@@ -26,6 +27,8 @@ interface LandingPageProps {
   proyectos?: FondoGuardado[];
   proyectoActivoId?: string;
   onAdoptarProyecto?: (proyecto: FondoGuardado) => void;
+  /** Solo visible si el usuario activo es admin o técnico */
+  onOpenObrasAdmin?: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
@@ -35,7 +38,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onReset,
   proyectos,
   proyectoActivoId,
-  onAdoptarProyecto
+  onAdoptarProyecto,
+  onOpenObrasAdmin
 }) => {
   const [modalPreinscripcionOpen, setModalPreinscripcionOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -260,6 +264,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         <span className="text-[10px] text-slate-400">Reiniciar parámetros base</span>
                       </div>
                     </button>
+                  )}
+
+                  {/* Sección Admin — solo visible si el usuario tiene permisos */}
+                  {onOpenObrasAdmin && (
+                    <>
+                      <div className="mx-3 my-1.5 border-t border-slate-800" />
+                      <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                        Administración
+                      </div>
+                      <button
+                        type="button"
+                        id="btn-gestionar-obras"
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          onOpenObrasAdmin();
+                        }}
+                        className="w-full text-left px-3.5 py-2.5 text-xs text-slate-200 hover:text-white hover:bg-amber-500/10 flex items-center gap-2.5 transition cursor-pointer"
+                      >
+                        <HardHat className="w-4 h-4 text-amber-400 shrink-0" />
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-amber-200">Gestionar Obras</span>
+                          <span className="text-[10px] text-slate-400">Crear, editar y eliminar proyectos</span>
+                        </div>
+                      </button>
+                    </>
                   )}
                 </div>
               )}
