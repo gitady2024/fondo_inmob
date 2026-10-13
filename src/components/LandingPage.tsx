@@ -38,7 +38,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 }) => {
   const [modalPreinscripcionOpen, setModalPreinscripcionOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showFab, setShowFab] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Mostrar el FAB solo cuando el usuario haya hecho scroll más del 50% de la altura de la página
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolled = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (docHeight > 0) {
+        setShowFab(scrolled / docHeight >= 0.5);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const [preinscripcionTarget, setPreinscripcionTarget] = useState<{
     nombre: string;
@@ -85,16 +99,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   return (
     <div className="w-full text-slate-100 relative">
-      {/* Botón Flotante CTA */}
+      {/* FAB Flotante: solo ícono circular, visible tras scroll del 50% */}
       <a
         id="btn-flotante-calendar"
         href="https://calendar.app.google/aacxfmLJk73KnyB39"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-3.5 rounded-full shadow-[0_0_20px_rgba(79,70,229,0.5)] font-bold text-xs sm:text-sm flex items-center gap-2 transition transform hover:scale-105"
+        aria-label="Agendar entrevista de ingreso"
+        title="Agendar Entrevista para Ingresar"
+        className={`fixed bottom-6 right-5 z-50 w-14 h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full shadow-[0_4px_24px_rgba(79,70,229,0.55)] flex items-center justify-center transition-all duration-300 ${
+          showFab
+            ? 'opacity-100 translate-y-0 pointer-events-auto'
+            : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
       >
-        <Calendar className="w-4 h-4" />
-        <span>Agendar Entrevista para Ingresar</span>
+        <Calendar className="w-6 h-6" />
       </a>
 
       {/* ==================================================================== */}
@@ -259,7 +278,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </span>
         </h1>
         
-        <p className="text-sm sm:text-lg text-slate-300 max-w-2xl mx-auto font-light leading-relaxed">
+        <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto font-light leading-relaxed">
           Ingresá al mercado inmobiliario al costo con un anticipo desde <strong className="text-white font-semibold">USD 10.000</strong>. Sin la trampa de la inflación UVA, sin intereses usureros y con la libertad de vender tu contrato cuando quieras.
         </p>
 
