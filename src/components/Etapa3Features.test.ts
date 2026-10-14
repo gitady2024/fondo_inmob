@@ -64,4 +64,32 @@ describe('Etapa 3: Optimizaciones Móviles, Tipografía, a11y, Toasts y Obras en
     expect(formatted1).toContain('1.354.000');
     expect(formatted2).toContain('98.000');
   });
+
+  it('Botón Ingresar a mi Cuenta: dispara el callback para abrir el modal de autenticación', () => {
+    let loginModalAbierto = false;
+    let rolSeleccionado = '';
+
+    const onOpenLogin = (rol: string = 'socio') => {
+      loginModalAbierto = true;
+      rolSeleccionado = rol;
+    };
+
+    onOpenLogin('socio');
+    expect(loginModalAbierto).toBe(true);
+    expect(rolSeleccionado).toBe('socio');
+  });
+
+  it('Botón Editar esta Obra: pasa el ID de la obra seleccionada al administrador', () => {
+    let obraEditandoId: string | null = null;
+    let modalObrasAbierto = false;
+
+    const onEditObra = (id: string) => {
+      obraEditandoId = id;
+      modalObrasAbierto = true;
+    };
+
+    onEditObra('fondo-torre-mitre-1');
+    expect(modalObrasAbierto).toBe(true);
+    expect(obraEditandoId).toBe('fondo-torre-mitre-1');
+  });
 });

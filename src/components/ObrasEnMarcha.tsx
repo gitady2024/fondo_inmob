@@ -12,7 +12,8 @@ import {
   CheckCircle2,
   Lock,
   Camera,
-  Calendar
+  Calendar,
+  Pencil
 } from 'lucide-react';
 
 interface ObrasEnMarchaProps {
@@ -20,6 +21,7 @@ interface ObrasEnMarchaProps {
   onSimularProyecto: (proyecto: FondoGuardado) => void;
   onPreinscribirProyecto: (proyecto: FondoGuardado, cuotaEstimada: number) => void;
   className?: string;
+  onEditObra?: (obraId: string) => void;
 }
 
 interface FotoAvance {
@@ -60,7 +62,8 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
   proyectos,
   onSimularProyecto,
   onPreinscribirProyecto,
-  className = ''
+  className = '',
+  onEditObra
 }) => {
   // Proyectos activos
   const proyectosActivos = proyectos.filter((p) => p.estadoPlan !== 'simulacion');
@@ -129,28 +132,43 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
           </p>
         </div>
 
-        {/* Selector de Obras si hay múltiples proyectos */}
-        {proyectosActivos.length > 1 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
-            {proyectosActivos.map((p, idx) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => {
-                  setProyectoSeleccionadoIndex(idx);
-                  setFotoActivaIndex(0);
-                }}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border whitespace-nowrap cursor-pointer ${
-                  proyectoSeleccionadoIndex === idx
-                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20'
-                    : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
-                }`}
-              >
-                {p.nombre}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {onEditObra && (
+            <button
+              type="button"
+              id="btn-header-editar-obra"
+              onClick={() => onEditObra(proyectoActual.id)}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/30 hover:border-amber-400 transition-all flex items-center gap-1.5 cursor-pointer shadow-md hover:scale-[1.02]"
+              title="Editar parámetros y modificar esta obra"
+            >
+              <Pencil className="w-3.5 h-3.5 text-amber-400" />
+              <span>Editar esta obra</span>
+            </button>
+          )}
+
+          {/* Selector de Obras si hay múltiples proyectos */}
+          {proyectosActivos.length > 1 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
+              {proyectosActivos.map((p, idx) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    setProyectoSeleccionadoIndex(idx);
+                    setFotoActivaIndex(0);
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border whitespace-nowrap cursor-pointer ${
+                    proyectoSeleccionadoIndex === idx
+                      ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20'
+                      : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
+                  }`}
+                >
+                  {p.nombre}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Contenedor Principal: Carrusel + Panel de Escasez y Métricas */}
@@ -256,9 +274,23 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
                   <Building2 className="w-3.5 h-3.5" />
                   <span>Obra Activa</span>
                 </span>
-                <span className="text-xs font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-800/60 font-bold">
-                  Entrega {proyectoActual.params.cantidadCuotas} Meses
-                </span>
+                <div className="flex items-center gap-2">
+                  {onEditObra && (
+                    <button
+                      type="button"
+                      id="btn-panel-editar-obra"
+                      onClick={() => onEditObra(proyectoActual.id)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/40 hover:border-amber-400 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-[1.02]"
+                      title="Editar parámetros y datos de esta obra"
+                    >
+                      <Pencil className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Editar esta obra</span>
+                    </button>
+                  )}
+                  <span className="text-xs font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-800/60 font-bold">
+                    Entrega {proyectoActual.params.cantidadCuotas} Meses
+                  </span>
+                </div>
               </div>
               <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
                 {proyectoActual.nombre}
@@ -368,6 +400,18 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
 
           {/* Acciones de Conversión Integradas */}
           <div className="space-y-2.5 pt-4 border-t border-slate-800">
+            {onEditObra && (
+              <button
+                type="button"
+                id="btn-obras-editar-bottom"
+                onClick={() => onEditObra(proyectoActual.id)}
+                className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 font-bold text-xs py-2.5 px-4 rounded-xl border border-amber-500/30 hover:border-amber-500/50 transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              >
+                <Pencil className="w-4 h-4 text-amber-400" />
+                <span>Editar esta obra (Parámetros & Avance)</span>
+              </button>
+            )}
+
             <button
               type="button"
               id="btn-obras-simular"

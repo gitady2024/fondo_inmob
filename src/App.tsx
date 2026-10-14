@@ -148,6 +148,7 @@ export const App: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
   const [isObrasAdminOpen, setIsObrasAdminOpen] = useState<boolean>(false);
+  const [editObraId, setEditObraId] = useState<string | undefined>(undefined);
 
   // Inicializar fondos al montar
   useEffect(() => {
@@ -594,6 +595,16 @@ export const App: React.FC = () => {
           <LandingPage
             proyectos={fondosList}
             proyectoActivoId={currentFondoId}
+            user={currentUser}
+            onOpenLogin={() => {
+              setLoginInitialRole('socio');
+              setIsLoginOpen(true);
+            }}
+            onEditObra={(obraId) => {
+              const targetId = obraId || currentFondoId;
+              setEditObraId(targetId);
+              setIsObrasAdminOpen(true);
+            }}
             onAdoptarProyecto={(p) => {
               handleSelectFondo(p.id);
               navigateTo('app', { guestSim: true });
@@ -611,7 +622,10 @@ export const App: React.FC = () => {
             onReset={handleResetCurrent}
             onOpenObrasAdmin={
               currentUser?.role === 'admin' || currentUser?.role === 'tecnico'
-                ? () => setIsObrasAdminOpen(true)
+                ? () => {
+                    setEditObraId(undefined);
+                    setIsObrasAdminOpen(true);
+                  }
                 : undefined
             }
           />
@@ -642,6 +656,14 @@ export const App: React.FC = () => {
                 setToastMessage('⚡ Simulador Activo');
               }}
               onNavigateLanding={() => navigateTo('landing')}
+              onOpenObrasAdmin={
+                currentUser?.role === 'admin' || currentUser?.role === 'tecnico'
+                  ? () => {
+                      setEditObraId(currentFondoId);
+                      setIsObrasAdminOpen(true);
+                    }
+                  : undefined
+              }
             />
 
             {/* Banner cuando se navega en modo simulador invitado */}
@@ -1106,9 +1128,13 @@ export const App: React.FC = () => {
       {/* ── MODAL ADMIN: GESTIÓN DE OBRAS ACTIVAS (solo admin/técnico) ── */}
       <ObrasAdminModal
         isOpen={isObrasAdminOpen}
-        onClose={() => setIsObrasAdminOpen(false)}
+        onClose={() => {
+          setIsObrasAdminOpen(false);
+          setEditObraId(undefined);
+        }}
         proyectos={fondosList}
         onProyectosChange={recargarFondos}
+        initialEditId={editObraId}
       />
 
     </div>

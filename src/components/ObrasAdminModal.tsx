@@ -27,6 +27,7 @@ interface ObrasAdminModalProps {
   onClose: () => void;
   proyectos: FondoGuardado[];
   onProyectosChange: () => void; // callback para recargar la lista desde App
+  initialEditId?: string; // Si se especifica, abre directamente la edición de esta obra
 }
 
 type FormMode = 'list' | 'edit' | 'new' | 'confirm-delete';
@@ -68,7 +69,8 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
   isOpen,
   onClose,
   proyectos,
-  onProyectosChange
+  onProyectosChange,
+  initialEditId
 }) => {
   const [mode, setMode] = useState<FormMode>('list');
   const [editando, setEditando] = useState<Partial<FondoGuardado>>(formVacio());
@@ -82,8 +84,17 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
     if (!isOpen) {
       setMode('list');
       setFeedback(null);
+      setEditandoId(undefined);
+    } else if (initialEditId) {
+      const p = proyectos.find((proj) => proj.id === initialEditId);
+      if (p) {
+        setEditando({ ...p });
+        setEditandoId(p.id);
+        setMode('edit');
+        setSeccionAbierta('basico');
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, initialEditId, proyectos]);
 
   if (!isOpen) return null;
 

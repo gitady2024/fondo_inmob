@@ -10,10 +10,14 @@ import {
   Printer,
   RefreshCw,
   Calculator,
-  HardHat
+  HardHat,
+  User,
+  Pencil,
+  Shield
 } from 'lucide-react';
 import type { FondoGuardado } from '../services/fondoService';
 import { PLANTILLAS_PREDEFINIDAS } from '../services/fondoService';
+import type { UserProfile } from '../types/auth';
 import { ProyectosActivosCTA } from './ProyectosActivosCTA';
 import { ObrasEnMarcha } from './ObrasEnMarcha';
 import { PreinscripcionModal } from './PreinscripcionModal';
@@ -29,6 +33,12 @@ interface LandingPageProps {
   onAdoptarProyecto?: (proyecto: FondoGuardado) => void;
   /** Solo visible si el usuario activo es admin o técnico */
   onOpenObrasAdmin?: () => void;
+  /** Usuario actualmente autenticado (o null) */
+  user?: UserProfile | null;
+  /** Callback para abrir el modal de login / ingresar a mi cuenta */
+  onOpenLogin?: () => void;
+  /** Callback para editar directamente la obra activa */
+  onEditObra?: (obraId?: string) => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
@@ -39,7 +49,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   proyectos,
   proyectoActivoId,
   onAdoptarProyecto,
-  onOpenObrasAdmin
+  onOpenObrasAdmin,
+  user,
+  onOpenLogin,
+  onEditObra
 }) => {
   const [modalPreinscripcionOpen, setModalPreinscripcionOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -173,9 +186,71 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </button>
           </div>
 
-          {/* Zona de Acción: Único CTA Principal + Menú Desplegable (⋮) */}
-          <div className="flex items-center gap-2.5">
-            {/* ÚNICO CALL TO ACTION PRINCIPAL */}
+          {/* Zona de Acción: Editar Obra + Iniciar Sesión + Simular + Menú (⋮) */}
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            {/* BOTÓN EDITAR ESTA OBRA (Acceso directo a edición) */}
+            {onEditObra && (
+              <button
+                type="button"
+                id="landing-btn-editar-obra-header"
+                onClick={() => onEditObra(proyectoActivoId)}
+                className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 hover:border-amber-400 transition cursor-pointer shadow-sm hover:scale-[1.02]"
+                title="Editar y modificar los parámetros de la obra activa"
+              >
+                <Pencil className="w-3.5 h-3.5 text-amber-400" />
+                <span>Editar esta obra</span>
+              </button>
+            )}
+
+            {/* BOTÓN INICIAR SESIÓN / INGRESAR A MI CUENTA */}
+            {onOpenLogin && (
+              user ? (
+                <button
+                  type="button"
+                  id="landing-btn-mi-cuenta"
+                  onClick={onOpenLogin}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                    user.role === 'admin'
+                      ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/30'
+                      : user.role === 'tecnico'
+                      ? 'bg-amber-600/20 border-amber-500/50 text-amber-300 hover:bg-amber-600/30'
+                      : 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/30'
+                  }`}
+                  title={`Conectado como ${user.nombre} (${user.role}). Clic para ver perfil.`}
+                >
+                  {user.role === 'admin' ? (
+                    <>
+                      <Shield className="w-3.5 h-3.5 text-indigo-400" />
+                      <span className="hidden sm:inline">Admin</span>
+                    </>
+                  ) : user.role === 'tecnico' ? (
+                    <>
+                      <HardHat className="w-3.5 h-3.5 text-amber-400" />
+                      <span className="hidden sm:inline">Técnico</span>
+                    </>
+                  ) : (
+                    <>
+                      <User className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Mi Cuenta</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  id="landing-btn-iniciar-sesion"
+                  onClick={onOpenLogin}
+                  className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl border border-slate-700/80 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-sm hover:border-slate-600"
+                  title="Iniciar sesión en tu cuenta"
+                >
+                  <User className="w-4 h-4 text-indigo-400 shrink-0" />
+                  <span className="hidden sm:inline">Ingresar a mi cuenta</span>
+                  <span className="sm:hidden">Ingresar</span>
+                </button>
+              )
+            )}
+
+            {/* ÚNICO CALL TO ACTION PRINCIPAL: SIMULAR */}
             <button
               type="button"
               id="landing-cta-simular"
@@ -183,7 +258,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 trackSimuladorInicio({ label: 'navbar' });
                 onStartSimulation();
               }}
-              className="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs sm:text-sm font-extrabold px-4 sm:px-5 py-2.5 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transition transform hover:scale-[1.02] cursor-pointer flex items-center gap-1.5"
+              className="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs sm:text-sm font-extrabold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transition transform hover:scale-[1.02] cursor-pointer flex items-center gap-1.5"
             >
               <Calculator className="w-4 h-4 text-emerald-100" />
               <span>Simular mi plan</span>
@@ -266,6 +341,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     </button>
                   )}
 
+                  {/* Opción de Editar Obra en el Menú */}
+                  {onEditObra && (
+                    <button
+                      type="button"
+                      id="btn-menu-editar-obra"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onEditObra(proyectoActivoId);
+                      }}
+                      className="w-full text-left px-3.5 py-2.5 text-xs text-slate-200 hover:text-white hover:bg-amber-500/10 flex items-center gap-2.5 transition cursor-pointer"
+                    >
+                      <Pencil className="w-4 h-4 text-amber-400 shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-amber-200">Editar esta obra</span>
+                        <span className="text-[10px] text-slate-400">Modificar parámetros constructivos</span>
+                      </div>
+                    </button>
+                  )}
+
                   {/* Sección Admin — solo visible si el usuario tiene permisos */}
                   {onOpenObrasAdmin && (
                     <>
@@ -286,6 +380,32 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         <div className="flex flex-col">
                           <span className="font-semibold text-amber-200">Gestionar Obras</span>
                           <span className="text-[10px] text-slate-400">Crear, editar y eliminar proyectos</span>
+                        </div>
+                      </button>
+                    </>
+                  )}
+
+                  {/* Acceso a cuenta / Iniciar sesión en el menú */}
+                  {onOpenLogin && (
+                    <>
+                      <div className="mx-3 my-1.5 border-t border-slate-800" />
+                      <button
+                        type="button"
+                        id="btn-menu-cuenta"
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          onOpenLogin();
+                        }}
+                        className="w-full text-left px-3.5 py-2.5 text-xs text-slate-200 hover:text-white hover:bg-indigo-600/20 flex items-center gap-2.5 transition cursor-pointer"
+                      >
+                        <User className="w-4 h-4 text-indigo-400 shrink-0" />
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-indigo-200">
+                            {user ? 'Mi Cuenta / Perfil' : 'Ingresar a mi cuenta'}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {user ? `${user.nombre} (${user.role})` : 'Acceso para socios y administradores'}
+                          </span>
                         </div>
                       </button>
                     </>
@@ -376,6 +496,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             });
             setModalPreinscripcionOpen(true);
           }}
+          onEditObra={onEditObra}
         />
 
         {/* Listado complementario de oportunidades */}

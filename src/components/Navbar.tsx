@@ -30,6 +30,7 @@ interface NavbarProps {
   onSignOut?: () => void;
   onSimularPlan?: () => void;
   onNavigateLanding?: () => void;
+  onOpenObrasAdmin?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -43,7 +44,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenMensajes,
   onSignOut,
   onSimularPlan,
-  onNavigateLanding
+  onNavigateLanding,
+  onOpenObrasAdmin
 }) => {
   const isCloud = isSupabaseConfigured();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -277,6 +279,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <span className="text-[10px] text-slate-400">
                         {isCloud ? 'Nube Conectada' : 'Guardar y gestionar planes'}
                       </span>
+                    </div>
+                  </button>
+                )}
+
+                {/* Opción 6: Gestionar / Editar Obras Activas (Admin / Técnico) */}
+                {user && (user.role === 'admin' || user.role === 'tecnico') && onOpenObrasAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenObrasAdmin();
+                    }}
+                    className="w-full text-left px-3.5 py-2.5 text-xs text-slate-200 hover:text-white hover:bg-amber-500/10 flex items-center gap-2.5 transition cursor-pointer"
+                  >
+                    <HardHat className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-amber-200">Gestionar / Editar Obras</span>
+                      <span className="text-[10px] text-slate-400">Modificar parámetros y proyectos activos</span>
                     </div>
                   </button>
                 )}
