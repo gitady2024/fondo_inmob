@@ -483,6 +483,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             setModalPreinscripcionOpen(true);
           }}
           onEditObra={onEditObra}
+          isAdmin={user?.role === 'admin'}
         />
 
         {/* Listado complementario de oportunidades */}

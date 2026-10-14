@@ -601,9 +601,15 @@ export const App: React.FC = () => {
               setIsLoginOpen(true);
             }}
             onEditObra={(obraId) => {
-              const targetId = obraId || currentFondoId;
-              setEditObraId(targetId);
-              setIsObrasAdminOpen(true);
+              if (currentUser?.role === 'admin') {
+                const targetId = obraId || currentFondoId;
+                setEditObraId(targetId);
+                setIsObrasAdminOpen(true);
+              } else {
+                setLoginInitialRole('admin');
+                setIsLoginOpen(true);
+                setToastMessage('🔒 Solo el Administrador puede editar la obra. Iniciá sesión con tu cuenta de Administrador.');
+              }
             }}
             onAdoptarProyecto={(p) => {
               handleSelectFondo(p.id);
@@ -621,7 +627,7 @@ export const App: React.FC = () => {
             onPrint={() => window.print()}
             onReset={handleResetCurrent}
             onOpenObrasAdmin={
-              currentUser?.role === 'admin' || currentUser?.role === 'tecnico'
+              currentUser?.role === 'admin'
                 ? () => {
                     setEditObraId(undefined);
                     setIsObrasAdminOpen(true);
@@ -1125,9 +1131,10 @@ export const App: React.FC = () => {
         />
       </div>
 
-      {/* ── MODAL ADMIN: GESTIÓN DE OBRAS ACTIVAS (solo admin/técnico) ── */}
+      {/* ── MODAL ADMIN: GESTIÓN DE OBRAS ACTIVAS (solo admin) ── */}
       <ObrasAdminModal
         isOpen={isObrasAdminOpen}
+        isAdmin={currentUser?.role === 'admin'}
         onClose={() => {
           setIsObrasAdminOpen(false);
           setEditObraId(undefined);

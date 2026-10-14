@@ -22,6 +22,7 @@ interface ObrasEnMarchaProps {
   onPreinscribirProyecto: (proyecto: FondoGuardado, cuotaEstimada: number) => void;
   className?: string;
   onEditObra?: (obraId: string) => void;
+  isAdmin?: boolean;
 }
 
 interface FotoAvance {
@@ -63,7 +64,8 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
   onSimularProyecto,
   onPreinscribirProyecto,
   className = '',
-  onEditObra
+  onEditObra,
+  isAdmin = false
 }) => {
   // Proyectos activos
   const proyectosActivos = proyectos.filter((p) => p.estadoPlan !== 'simulacion');
@@ -271,10 +273,15 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
                     id="btn-panel-editar-obra"
                     onClick={() => onEditObra(proyectoActual.id)}
                     className="px-3 py-1.5 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/40 hover:border-amber-400 transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/10 hover:scale-[1.03]"
-                    title="Editar parámetros y datos de esta obra activa"
+                    title={isAdmin ? "Editar parámetros y datos de esta obra activa" : "Requiere cuenta de Administrador para editar esta obra"}
                   >
                     <Pencil className="w-3.5 h-3.5 text-amber-400" />
                     <span>Editar esta obra</span>
+                    {!isAdmin && (
+                      <span className="text-[10px] font-mono text-amber-300/80 bg-amber-500/20 px-1 py-0.2 rounded border border-amber-500/30">
+                        Admin
+                      </span>
+                    )}
                   </button>
                 )}
               </div>

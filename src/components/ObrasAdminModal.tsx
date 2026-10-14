@@ -28,9 +28,60 @@ interface ObrasAdminModalProps {
   proyectos: FondoGuardado[];
   onProyectosChange: () => void; // callback para recargar la lista desde App
   initialEditId?: string; // Si se especifica, abre directamente la edición de esta obra
+  isAdmin?: boolean; // Permisos de Administrador
 }
 
 type FormMode = 'list' | 'edit' | 'new' | 'confirm-delete';
+
+// ─── Componentes estables de formulario (fuera para no perder foco al tipear) ───
+const Campo: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div className="space-y-1.5">
+    <label className="text-xs font-semibold text-slate-300 block">{label}</label>
+    {children}
+  </div>
+);
+
+const FormInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
+  <input
+    {...props}
+    className={`w-full bg-slate-900 border border-slate-700 focus:border-indigo-500 rounded-xl px-3 py-2 text-sm text-white outline-none transition-colors placeholder-slate-600 disabled:opacity-50 disabled:cursor-not-allowed ${props.className || ''}`}
+  />
+);
+
+const FormSelect: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (props) => (
+  <select
+    {...props}
+    className={`w-full bg-slate-900 border border-slate-700 focus:border-indigo-500 rounded-xl px-3 py-2 text-sm text-white outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${props.className || ''}`}
+  />
+);
+
+interface SeccionProps {
+  id: 'basico' | 'financiero' | 'gastos';
+  titulo: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}
+
+const FormSeccion: React.FC<SeccionProps> = ({ titulo, isOpen, onToggle, children }) => (
+  <div className="bg-slate-950/60 border border-slate-800 rounded-2xl overflow-hidden">
+    <button
+      type="button"
+      onClick={onToggle}
+      className="w-full flex items-center justify-between p-4 text-sm font-bold text-white hover:bg-slate-800/40 transition cursor-pointer"
+    >
+      <span>{titulo}</span>
+      {isOpen ? (
+        <ChevronUp className="w-4 h-4 text-indigo-400" />
+      ) : (
+        <ChevronDown className="w-4 h-4 text-slate-400" />
+      )}
+    </button>
+    {isOpen && (
+      <div className="p-4 pt-0 space-y-4 border-t border-slate-800/60">{children}</div>
+    )}
+  </div>
+);
 
 // ─── Estado inicial del formulario ────────────────────────────────────────────
 const formVacio = (): Partial<FondoGuardado> => ({
@@ -70,7 +121,8 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
   onClose,
   proyectos,
   onProyectosChange,
-  initialEditId
+  initialEditId,
+  isAdmin = true
 }) => {
   const [mode, setMode] = useState<FormMode>('list');
   const [editando, setEditando] = useState<Partial<FondoGuardado>>(formVacio());
@@ -122,11 +174,19 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
   };
 
   const confirmarEliminar = (id: string) => {
+    if (!isAdmin) {
+      setFeedback({ ok: false, msg: 'Acceso denegado: Solo el Administrador puede eliminar obras.' });
+      return;
+    }
     setDeletingId(id);
     setMode('confirm-delete');
   };
 
   const handleEliminar = async () => {
+    if (!isAdmin) {
+      setFeedback({ ok: false, msg: 'Acceso denegado: Solo el Administrador puede eliminar obras.' });
+      return;
+    }
     if (!deletingId) return;
     setGuardando(true);
     await deleteFondo(deletingId);
@@ -137,6 +197,10 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
   };
 
   const handleDuplicar = async (id: string) => {
+    if (!isAdmin) {
+      setFeedback({ ok: false, msg: 'Acceso denegado: Solo el Administrador puede duplicar obras.' });
+      return;
+    }
     setGuardando(true);
     await duplicateFondo(id);
     onProyectosChange();
@@ -145,11 +209,17 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
   };
 
   const handleGuardar = async () => {
+    if (!isAdmin) {
+      setFeedback({ ok: false, msg: 'Acceso denegado: Solo el Administrador tiene permisos para modificar y guardar obras.' });
+      return;
+    }
     if (!editando.nombre?.trim()) {
       setFeedback({ ok: false, msg: 'El nombre del proyecto es obligatorio.' });
       return;
     }
-    if (!editando.params?.costoDepto || editando.params.costoDepto <= 0) {
+
+    const costoDeptoNum = Number(editando.params?.costoDepto);
+    if (!costoDeptoNum || costoDeptoNum <= 0) {
       setFeedback({ ok: false, msg: 'El costo del departamento debe ser mayor a 0.' });
       return;
     }
@@ -158,8 +228,24 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
     setFeedback(null);
 
     try {
-      const p = editando.params!;
-      const g = editando.gastos!;
+      const p: FondoGuardado['params'] = {
+        ...editando.params!,
+        costoDepto: costoDeptoNum,
+        cantidadDeptos: Number(editando.params!.cantidadDeptos) || 10,
+        cantidadCuotas: Number(editando.params!.cantidadCuotas) || 48,
+        valorCuotaBase: Number(editando.params!.valorCuotaBase) || Math.round(costoDeptoNum / (Number(editando.params!.cantidadCuotas) || 48)),
+        fechaInicio: editando.params!.fechaInicio || '2027-01',
+        modalidadAnticipo: editando.params!.modalidadAnticipo || 'reducir_cuota'
+      };
+
+      const g: FondoGuardado['gastos'] = {
+        ...editando.gastos!,
+        formaPagoGastos: editando.gastos!.formaPagoGastos || 'final',
+        comisionGestion: Number(editando.gastos!.comisionGestion) || 0,
+        comisionEscribania: Number(editando.gastos!.comisionEscribania) || 0,
+        otrosGastos: Number(editando.gastos!.otrosGastos) || 0
+      };
+
       // Regenerar array de anticipos del tamaño correcto
       const anticipos = Array.from({ length: p.cantidadDeptos }, (_, i) => editando.anticipos?.[i] || 0);
 
@@ -192,6 +278,12 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
   // ── Render: Lista ────────────────────────────────────────────────────────────
   const renderLista = () => (
     <div className="space-y-3">
+      {!isAdmin && (
+        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>Modo Consulta: Solo el Administrador puede crear, editar o eliminar obras.</span>
+        </div>
+      )}
       {proyectos.length === 0 && (
         <div className="text-center py-12 text-slate-500 text-sm">
           No hay obras registradas. ¡Creá la primera!
@@ -218,30 +310,34 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => handleDuplicar(p.id)}
-                title="Duplicar obra"
-                className="p-2 rounded-xl text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 border border-transparent hover:border-indigo-500/30 transition-all cursor-pointer"
-              >
-                <Copy className="w-4 h-4" />
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => handleDuplicar(p.id)}
+                  title="Duplicar obra"
+                  className="p-2 rounded-xl text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 border border-transparent hover:border-indigo-500/30 transition-all cursor-pointer"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => abrirEditar(p)}
                 className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-indigo-600/80 hover:bg-indigo-500 border border-indigo-500/50 transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <Pencil className="w-3.5 h-3.5" />
-                Editar
+                {isAdmin ? 'Editar' : 'Ver Parámetros'}
               </button>
-              <button
-                type="button"
-                onClick={() => confirmarEliminar(p.id)}
-                title="Eliminar obra"
-                className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 transition-all cursor-pointer"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => confirmarEliminar(p.id)}
+                  title="Eliminar obra"
+                  className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 transition-all cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         );
@@ -254,52 +350,22 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
     const p = editando.params!;
     const g = editando.gastos!;
 
-    const Seccion = ({ id, titulo, children }: { id: typeof seccionAbierta; titulo: string; children: React.ReactNode }) => (
-      <div className="bg-slate-950/60 border border-slate-800 rounded-2xl overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setSeccionAbierta(seccionAbierta === id ? 'basico' : id)}
-          className="w-full flex items-center justify-between p-4 text-sm font-bold text-white hover:bg-slate-800/40 transition cursor-pointer"
-        >
-          <span>{titulo}</span>
-          {seccionAbierta === id
-            ? <ChevronUp className="w-4 h-4 text-indigo-400" />
-            : <ChevronDown className="w-4 h-4 text-slate-400" />}
-        </button>
-        {seccionAbierta === id && (
-          <div className="p-4 pt-0 space-y-4 border-t border-slate-800/60">{children}</div>
-        )}
-      </div>
-    );
-
-    const Campo = ({ label, children }: { label: string; children: React.ReactNode }) => (
-      <div className="space-y-1.5">
-        <label className="text-xs font-semibold text-slate-300 block">{label}</label>
-        {children}
-      </div>
-    );
-
-    const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-      <input
-        {...props}
-        className="w-full bg-slate-900 border border-slate-700 focus:border-indigo-500 rounded-xl px-3 py-2 text-sm text-white outline-none transition-colors placeholder-slate-600"
-      />
-    );
-
-    const Select = (props: React.SelectHTMLAttributes<HTMLSelectElement>) => (
-      <select
-        {...props}
-        className="w-full bg-slate-900 border border-slate-700 focus:border-indigo-500 rounded-xl px-3 py-2 text-sm text-white outline-none transition-colors cursor-pointer"
-      />
-    );
-
     return (
       <div className="space-y-4">
+        {/* Banner de permisos si no es admin */}
+        {!isAdmin && (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>Modo Solo Lectura: Solo el usuario Administrador puede modificar los valores de esta obra.</span>
+          </div>
+        )}
+
         {/* Nombre y estado */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="sm:col-span-2">
             <Campo label="Nombre del Proyecto *">
-              <Input
+              <FormInput
+                disabled={!isAdmin}
                 value={editando.nombre || ''}
                 onChange={(e) => setEditando((prev) => ({ ...prev, nombre: e.target.value }))}
                 placeholder="Ej: Torre Bellini • 12 Deptos • 48 Meses"
@@ -308,7 +374,8 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
             </Campo>
           </div>
           <Campo label="Estado del Plan">
-            <Select
+            <FormSelect
+              disabled={!isAdmin}
               value={editando.estadoPlan || 'activo'}
               onChange={(e) => setEditando((prev) => ({ ...prev, estadoPlan: e.target.value as EstadoPlanFondo }))}
             >
@@ -316,127 +383,188 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
               <option value="simulacion">Simulación</option>
               <option value="pausado">Pausado</option>
               <option value="cerrado">Cerrado</option>
-            </Select>
+            </FormSelect>
           </Campo>
         </div>
 
         <Campo label="Descripción breve (visible en la landing)">
           <textarea
+            disabled={!isAdmin}
             value={editando.descripcion || ''}
             onChange={(e) => setEditando((prev) => ({ ...prev, descripcion: e.target.value }))}
             placeholder="Breve descripción del fideicomiso, barrio, tipología..."
             rows={2}
             maxLength={200}
-            className="w-full bg-slate-900 border border-slate-700 focus:border-indigo-500 rounded-xl px-3 py-2 text-sm text-white outline-none resize-none placeholder-slate-600"
+            className="w-full bg-slate-900 border border-slate-700 focus:border-indigo-500 rounded-xl px-3 py-2 text-sm text-white outline-none resize-none placeholder-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </Campo>
 
         {/* Sección: Parámetros básicos */}
-        <Seccion id="basico" titulo="📐 Parámetros de la Obra">
+        <FormSeccion
+          id="basico"
+          titulo="📐 Parámetros de la Obra"
+          isOpen={seccionAbierta === 'basico'}
+          onToggle={() => setSeccionAbierta((prev) => (prev === 'basico' ? 'gastos' : 'basico'))}
+        >
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Campo label="Costo por Unidad (USD)">
-              <Input
-                type="number" min={5000} max={500000} step={1000}
-                value={p.costoDepto}
-                onChange={(e) => setParam('costoDepto', Number(e.target.value))}
+              <FormInput
+                type="number"
+                min={5000}
+                max={500000}
+                step={1000}
+                disabled={!isAdmin}
+                value={p.costoDepto !== undefined && p.costoDepto !== null ? p.costoDepto : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setParam('costoDepto', val === '' ? '' : Number(val));
+                }}
               />
             </Campo>
             <Campo label="Cantidad de Unidades">
-              <Input
-                type="number" min={2} max={100}
-                value={p.cantidadDeptos}
-                onChange={(e) => setParam('cantidadDeptos', Number(e.target.value))}
+              <FormInput
+                type="number"
+                min={2}
+                max={100}
+                disabled={!isAdmin}
+                value={p.cantidadDeptos !== undefined && p.cantidadDeptos !== null ? p.cantidadDeptos : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setParam('cantidadDeptos', val === '' ? '' : Number(val));
+                }}
               />
             </Campo>
             <Campo label="Cuotas Totales">
-              <Input
-                type="number" min={12} max={120}
-                value={p.cantidadCuotas}
-                onChange={(e) => setParam('cantidadCuotas', Number(e.target.value))}
+              <FormInput
+                type="number"
+                min={12}
+                max={120}
+                disabled={!isAdmin}
+                value={p.cantidadCuotas !== undefined && p.cantidadCuotas !== null ? p.cantidadCuotas : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setParam('cantidadCuotas', val === '' ? '' : Number(val));
+                }}
               />
             </Campo>
             <Campo label="Cuota Base Pura (USD)">
-              <Input
-                type="number" min={100} max={20000} step={10}
-                value={p.valorCuotaBase}
-                onChange={(e) => setParam('valorCuotaBase', Number(e.target.value))}
+              <FormInput
+                type="number"
+                min={100}
+                max={20000}
+                step={10}
+                disabled={!isAdmin}
+                value={p.valorCuotaBase !== undefined && p.valorCuotaBase !== null ? p.valorCuotaBase : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setParam('valorCuotaBase', val === '' ? '' : Number(val));
+                }}
               />
               <span className="text-[10px] text-slate-500">
-                Calculada: {p.costoDepto > 0 && p.cantidadCuotas > 0
-                  ? `≈ USD ${Math.round(p.costoDepto / p.cantidadCuotas).toLocaleString('es-AR')}/mes`
+                Calculada: {Number(p.costoDepto) > 0 && Number(p.cantidadCuotas) > 0
+                  ? `≈ USD ${Math.round(Number(p.costoDepto) / Number(p.cantidadCuotas)).toLocaleString('es-AR')}/mes`
                   : '-'}
               </span>
             </Campo>
             <Campo label="Fecha de Inicio (YYYY-MM)">
-              <Input
+              <FormInput
                 type="month"
+                disabled={!isAdmin}
                 value={p.fechaInicio}
                 onChange={(e) => setParam('fechaInicio', e.target.value)}
               />
             </Campo>
             <Campo label="Modalidad de Anticipo">
-              <Select
+              <FormSelect
+                disabled={!isAdmin}
                 value={p.modalidadAnticipo}
                 onChange={(e) => setParam('modalidadAnticipo', e.target.value as ModalidadAnticipo)}
               >
                 <option value="reducir_cuota">Reducir Cuota</option>
                 <option value="reducir_plazo">Reducir Plazo</option>
-              </Select>
+              </FormSelect>
             </Campo>
           </div>
-        </Seccion>
+        </FormSeccion>
 
         {/* Sección: Gastos fiduciarios */}
-        <Seccion id="gastos" titulo="💼 Gastos Fiduciarios">
+        <FormSeccion
+          id="gastos"
+          titulo="💼 Gastos Fiduciarios"
+          isOpen={seccionAbierta === 'gastos'}
+          onToggle={() => setSeccionAbierta((prev) => (prev === 'gastos' ? 'basico' : 'gastos'))}
+        >
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Campo label="Forma de Pago Gastos">
-              <Select
+              <FormSelect
+                disabled={!isAdmin}
                 value={g.formaPagoGastos}
                 onChange={(e) => setGasto('formaPagoGastos', e.target.value as FormaPagoGastos)}
               >
                 <option value="final">Al Final</option>
                 <option value="prorrateado">Prorrateado</option>
                 <option value="primer_cuota">1era Cuota</option>
-              </Select>
+              </FormSelect>
             </Campo>
             <Campo label="Comisión Gestión (%)">
-              <Input
-                type="number" min={0} max={20} step={0.5}
-                value={g.comisionGestion}
-                onChange={(e) => setGasto('comisionGestion', Number(e.target.value))}
+              <FormInput
+                type="number"
+                min={0}
+                max={20}
+                step={0.5}
+                disabled={!isAdmin}
+                value={g.comisionGestion !== undefined && g.comisionGestion !== null ? g.comisionGestion : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setGasto('comisionGestion', val === '' ? '' : Number(val));
+                }}
               />
             </Campo>
             <Campo label="Escribanía (%)">
-              <Input
-                type="number" min={0} max={10} step={0.5}
-                value={g.comisionEscribania}
-                onChange={(e) => setGasto('comisionEscribania', Number(e.target.value))}
+              <FormInput
+                type="number"
+                min={0}
+                max={10}
+                step={0.5}
+                disabled={!isAdmin}
+                value={g.comisionEscribania !== undefined && g.comisionEscribania !== null ? g.comisionEscribania : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setGasto('comisionEscribania', val === '' ? '' : Number(val));
+                }}
               />
             </Campo>
             <Campo label="Otros Gastos (USD)">
-              <Input
-                type="number" min={0} max={10000} step={100}
-                value={g.otrosGastos}
-                onChange={(e) => setGasto('otrosGastos', Number(e.target.value))}
+              <FormInput
+                type="number"
+                min={0}
+                max={10000}
+                step={100}
+                disabled={!isAdmin}
+                value={g.otrosGastos !== undefined && g.otrosGastos !== null ? g.otrosGastos : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setGasto('otrosGastos', val === '' ? '' : Number(val));
+                }}
               />
             </Campo>
           </div>
-        </Seccion>
+        </FormSeccion>
 
         {/* Preview de cuota calculada */}
         <div className="bg-slate-900/60 border border-indigo-500/20 rounded-2xl p-4 flex items-center justify-between">
           <div>
             <p className="text-xs text-slate-400 font-medium">Cuota pura estimada (costo/cuotas)</p>
             <p className="text-xl font-black text-emerald-400 font-mono">
-              {p.costoDepto > 0 && p.cantidadCuotas > 0
-                ? `USD ${Math.round(p.costoDepto / p.cantidadCuotas).toLocaleString('es-AR')}/mes`
+              {Number(p.costoDepto) > 0 && Number(p.cantidadCuotas) > 0
+                ? `USD ${Math.round(Number(p.costoDepto) / Number(p.cantidadCuotas)).toLocaleString('es-AR')}/mes`
                 : '—'}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-slate-400">Total por {p.cantidadDeptos} unidades</p>
+            <p className="text-xs text-slate-400">Total por {p.cantidadDeptos || 0} unidades</p>
             <p className="text-base font-bold text-white font-mono">
-              {fmtMoneda(p.costoDepto * p.cantidadDeptos)}
+              {fmtMoneda((Number(p.costoDepto) || 0) * (Number(p.cantidadDeptos) || 0))}
             </p>
           </div>
         </div>
@@ -553,14 +681,16 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
                 >
                   Cerrar
                 </button>
-                <button
-                  type="button"
-                  onClick={abrirNuevo}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  Crear Nueva Obra
-                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={abrirNuevo}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Crear Nueva Obra
+                  </button>
+                )}
               </>
             ) : (
               <>
@@ -575,8 +705,8 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
                 <button
                   type="button"
                   onClick={handleGuardar}
-                  disabled={guardando}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition disabled:opacity-60 cursor-pointer"
+                  disabled={guardando || !isAdmin}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
                   {guardando ? 'Guardando...' : mode === 'new' ? 'Crear Obra' : 'Guardar Cambios'}
