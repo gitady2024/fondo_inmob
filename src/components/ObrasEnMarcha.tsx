@@ -132,43 +132,28 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {onEditObra && (
-            <button
-              type="button"
-              id="btn-header-editar-obra"
-              onClick={() => onEditObra(proyectoActual.id)}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/30 hover:border-amber-400 transition-all flex items-center gap-1.5 cursor-pointer shadow-md hover:scale-[1.02]"
-              title="Editar parámetros y modificar esta obra"
-            >
-              <Pencil className="w-3.5 h-3.5 text-amber-400" />
-              <span>Editar esta obra</span>
-            </button>
-          )}
-
-          {/* Selector de Obras si hay múltiples proyectos */}
-          {proyectosActivos.length > 1 && (
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
-              {proyectosActivos.map((p, idx) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => {
-                    setProyectoSeleccionadoIndex(idx);
-                    setFotoActivaIndex(0);
-                  }}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border whitespace-nowrap cursor-pointer ${
-                    proyectoSeleccionadoIndex === idx
-                      ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20'
-                      : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
-                  }`}
-                >
-                  {p.nombre}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Selector de Obras si hay múltiples proyectos */}
+        {proyectosActivos.length > 1 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
+            {proyectosActivos.map((p, idx) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  setProyectoSeleccionadoIndex(idx);
+                  setFotoActivaIndex(0);
+                }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border whitespace-nowrap cursor-pointer ${
+                  proyectoSeleccionadoIndex === idx
+                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20'
+                    : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
+                }`}
+              >
+                {p.nombre}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Contenedor Principal: Carrusel + Panel de Escasez y Métricas */}
@@ -269,30 +254,31 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
             
             {/* Título de Proyecto y Ubicación */}
             <div className="border-b border-slate-800 pb-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-mono uppercase tracking-wider text-amber-400 font-bold flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5" />
-                  <span>Obra Activa</span>
-                </span>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
-                  {onEditObra && (
-                    <button
-                      type="button"
-                      id="btn-panel-editar-obra"
-                      onClick={() => onEditObra(proyectoActual.id)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/40 hover:border-amber-400 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-[1.02]"
-                      title="Editar parámetros y datos de esta obra"
-                    >
-                      <Pencil className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Editar esta obra</span>
-                    </button>
-                  )}
-                  <span className="text-xs font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-800/60 font-bold">
+                  <span className="text-xs font-mono uppercase tracking-wider text-amber-400 font-bold flex items-center gap-1.5 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/30">
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>Obra Activa</span>
+                  </span>
+                  <span className="text-xs font-mono text-emerald-400 bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-800/60 font-bold">
                     Entrega {proyectoActual.params.cantidadCuotas} Meses
                   </span>
                 </div>
+
+                {onEditObra && (
+                  <button
+                    type="button"
+                    id="btn-panel-editar-obra"
+                    onClick={() => onEditObra(proyectoActual.id)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/40 hover:border-amber-400 transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/10 hover:scale-[1.03]"
+                    title="Editar parámetros y datos de esta obra activa"
+                  >
+                    <Pencil className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Editar esta obra</span>
+                  </button>
+                )}
               </div>
-              <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
+              <h3 className="text-xl sm:text-2xl font-black text-white mt-2">
                 {proyectoActual.nombre}
               </h3>
               <p className="text-xs text-slate-400 mt-1">

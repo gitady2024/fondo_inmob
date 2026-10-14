@@ -186,22 +186,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </button>
           </div>
 
-          {/* Zona de Acción: Editar Obra + Iniciar Sesión + Simular + Menú (⋮) */}
+          {/* Zona de Acción: Iniciar Sesión + Simular + Menú (⋮) */}
           <div className="flex items-center gap-2 sm:gap-2.5">
-            {/* BOTÓN EDITAR ESTA OBRA (Acceso directo a edición) */}
-            {onEditObra && (
-              <button
-                type="button"
-                id="landing-btn-editar-obra-header"
-                onClick={() => onEditObra(proyectoActivoId)}
-                className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 hover:border-amber-400 transition cursor-pointer shadow-sm hover:scale-[1.02]"
-                title="Editar y modificar los parámetros de la obra activa"
-              >
-                <Pencil className="w-3.5 h-3.5 text-amber-400" />
-                <span>Editar esta obra</span>
-              </button>
-            )}
-
             {/* BOTÓN INICIAR SESIÓN / INGRESAR A MI CUENTA */}
             {onOpenLogin && (
               user ? (
