@@ -26,7 +26,7 @@ import { Navbar } from './components/Navbar';
 import { FundSwitcher } from './components/FundSwitcher';
 import { NewFundModal } from './components/NewFundModal';
 import { LoginModal } from './components/LoginModal';
-import { SocioPortal } from './components/SocioPortal';
+import { PortalSocio } from './components/PortalSocio';
 import { AdminDashboard } from './components/AdminDashboard';
 import { PortalAccesoPerfiles } from './components/PortalAccesoPerfiles';
 import { ParametrosFondo } from './components/ParametrosFondo';
@@ -54,7 +54,7 @@ import { exportarCuadroMarchaCSV } from './utils/exportToCSV';
 import { getUnreadCount } from './services/mensajeService';
 import type { DatosTecnicosProyecto } from './types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from './types/tecnico';
-import { HardHat } from 'lucide-react';
+import { HardHat, LogOut } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { LandingPage } from './components/LandingPage';
 import { trackSimuladorInicio, trackSimulacionCompartida } from './services/analyticsService';
@@ -73,6 +73,14 @@ export const App: React.FC = () => {
   const currentUser: UserProfile | null = authProfile || devUser;
   const [loginInitialRole, setLoginInitialRole] = useState<UserRole>('admin');
   const [isLoginOpen, setIsLoginOpen] = useState<boolean>(false);
+
+  // Manejador centralizado para salir de la cuenta en cualquier perfil
+  const handleSignOutAll = useCallback(async () => {
+    await handleSupabaseSignOut();
+    setDevUserOverride(null);
+    setDevUser(null);
+    setToastMessage('👋 Sesión cerrada correctamente.');
+  }, [handleSupabaseSignOut, setDevUser]);
 
   // Detección de ruta inicial: Separación de entornos (/ vs /app o /acceso)
   const getInitialRoute = (): 'landing' | 'app' => {
@@ -650,11 +658,7 @@ export const App: React.FC = () => {
               onOpenLogin={() => setIsLoginOpen(true)}
               onOpenContrato={() => setIsContratoOpen(true)}
               onOpenMensajes={() => setIsMensajesOpen(true)}
-              onSignOut={async () => {
-                await handleSupabaseSignOut();
-                setDevUserOverride(null);
-                setDevUser(null);
-              }}
+              onSignOut={handleSignOutAll}
               onSimularPlan={() => {
                 trackSimuladorInicio({ label: 'navbar-app' });
                 setDevUserOverride(GUEST_SOCIO_USER);
@@ -744,6 +748,7 @@ export const App: React.FC = () => {
             onSelectFondo={handleSelectFondo}
             onOpenNewModal={() => setIsNewModalOpen(true)}
             onShowToast={(msg) => setToastMessage(msg)}
+            onSignOut={handleSignOutAll}
             unreadCount={unreadCount}
             childrenSimulador={
               <>
@@ -947,103 +952,78 @@ export const App: React.FC = () => {
             }
           />
         ) : currentUser.role === 'socio' ? (
-          /* CASO 3: USUARIO LOGUEADO Y ES SOCIO -> PORTAL DEL SOCIO (SIMULADOR O PLAN ACTIVO) */
+          /* CASO 3: USUARIO LOGUEADO Y ES SOCIO -> PORTAL DEL SOCIO */
           <div className="space-y-6 animate-fade-in">
-            <SocioPortal
+            <PortalSocio
               user={currentUser}
               currentFondo={currentFondo}
               flujoSocio={socioActual}
               fechaInicio={currentFondo.params.fechaInicio}
               params={currentFondo.params}
               gastos={currentFondo.gastos}
-              fondosList={fondosList}
-              onSelectFondo={handleSelectFondo}
               onOpenContrato={() => setIsContratoOpen(true)}
-              onOpenMensajes={() => setIsMensajesOpen(true)}
+              onSignOut={handleSignOutAll}
             />
           </div>
         ) : (
-          /* Rol Técnico: Aislamiento total de finanzas/simulación, exclusivo para planes activos */
+          /* Rol Técnico: Herramientas Técnicas Completas (Trámites, Cronograma, Planos, Memoria y Mensajes) */
           <div className="space-y-6 animate-fade-in">
-            {currentFondo.estadoPlan === 'simulacion' ? (
-              <div className="bg-slate-900/90 border border-amber-500/30 rounded-3xl p-8 sm:p-10 shadow-2xl text-center space-y-5">
-                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
-                  <HardHat className="w-7 h-7" />
+            {/* Cabecera y Selector de Obra / Proyecto */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md backdrop-blur-md">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                  <HardHat className="w-5 h-5" />
                 </div>
-                <div className="max-w-xl mx-auto space-y-2">
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30 inline-block">
-                    Plan en Estructuración / Simulación Fiduciaria
+                <div>
+                  <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">
+                    {currentFondo.estadoPlan === 'simulacion'
+                      ? 'Obra en Estructuración Técnica y Proyecto Ejecutivo'
+                      : 'Proyecto Fiduciario Perfeccionado y Activo'}
                   </span>
-                  <h3 className="text-xl sm:text-2xl font-extrabold text-white">
-                    {currentFondo.nombre} aún no está perfeccionado
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                    Como Gestor Técnico, no tienes acceso a simulaciones financieras. La carga y certificación de datos técnicos (obras, trámites municipales, planos y resoluciones) se habilitará una vez que el círculo de socios esté cerrado y el contrato se encuentre perfeccionado y activo.
-                  </p>
+                  <strong className="text-sm sm:text-base text-white">{currentFondo.nombre}</strong>
                 </div>
+              </div>
 
-                {fondosList.some((f) => f.estadoPlan !== 'simulacion' && f.id !== currentFondo.id) && (
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const fondoActivo = fondosList.find((f) => f.estadoPlan !== 'simulacion');
-                        if (fondoActivo) handleSelectFondo(fondoActivo.id);
-                      }}
-                      className="px-5 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all cursor-pointer inline-flex items-center gap-2"
+              <div className="flex flex-wrap items-center gap-2">
+                {fondosList.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400 font-semibold hidden sm:inline">Cambiar Obra:</span>
+                    <select
+                      value={currentFondo.id}
+                      onChange={(e) => handleSelectFondo(e.target.value)}
+                      className="bg-slate-950 border border-slate-700 hover:border-amber-500/50 text-xs text-white rounded-xl px-3 py-2 outline-none font-bold cursor-pointer"
                     >
-                      <HardHat className="w-4 h-4" />
-                      <span>Ir a Proyecto Activo y Perfeccionado</span>
-                    </button>
+                      {fondosList.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          🏗️ {f.nombre} {f.estadoPlan === 'simulacion' ? '(Estructuración)' : '(Activo)'}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 )}
+
+                <button
+                  type="button"
+                  onClick={handleSignOutAll}
+                  className="bg-rose-500/10 hover:bg-rose-500/25 text-rose-300 hover:text-white border border-rose-500/40 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                  title="Cerrar sesión de Equipo Técnico"
+                >
+                  <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Salir de la cuenta</span>
+                </button>
               </div>
-            ) : (
-              <>
-                {/* Selector exclusivo de Proyectos Activos (Sin simuladores ni creación financiera) */}
-                <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md backdrop-blur-md">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                      <HardHat className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">
-                        Proyecto Fiduciario Perfeccionado y Activo
-                      </span>
-                      <strong className="text-sm sm:text-base text-white">{currentFondo.nombre}</strong>
-                    </div>
-                  </div>
+            </div>
 
-                  {fondosList.filter((f) => f.estadoPlan !== 'simulacion').length > 1 && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400 font-semibold hidden sm:inline">Cambiar Obra:</span>
-                      <select
-                        value={currentFondo.id}
-                        onChange={(e) => handleSelectFondo(e.target.value)}
-                        className="bg-slate-950 border border-slate-700 hover:border-amber-500/50 text-xs text-white rounded-xl px-3 py-2 outline-none font-bold cursor-pointer"
-                      >
-                        {fondosList
-                          .filter((f) => f.estadoPlan !== 'simulacion')
-                          .map((f) => (
-                            <option key={f.id} value={f.id}>
-                              🏗️ {f.nombre}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                <ModuloTecnico
-                  datosTecnicos={currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT}
-                  fondoNombre={currentFondo.nombre}
-                  fondoId={currentFondo.id}
-                  currentUser={currentUser}
-                  isReadOnly={false}
-                  onUpdateDatosTecnicos={handleDatosTecnicosChange}
-                />
-              </>
-            )}
+            {/* Módulo Técnico Integral con todas las herramientas */}
+            <ModuloTecnico
+              datosTecnicos={currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT}
+              fondoNombre={currentFondo.nombre}
+              fondoId={currentFondo.id}
+              currentUser={currentUser}
+              isReadOnly={false}
+              onUpdateDatosTecnicos={handleDatosTecnicosChange}
+              onSignOut={handleSignOutAll}
+            />
           </div>
         )}
       </>
@@ -1135,6 +1115,19 @@ export const App: React.FC = () => {
       <ObrasAdminModal
         isOpen={isObrasAdminOpen}
         isAdmin={currentUser?.role === 'admin'}
+        activeFondoId={currentFondoId}
+        onSelectActiveFondo={(id) => {
+          handleSelectFondo(id);
+          const target = fondosList.find((f) => f.id === id);
+          setToastMessage(`⭐ "${target?.nombre || 'Obra'}" ha sido establecida como la Obra Activa principal.`);
+        }}
+        onSimularFondo={(proyecto) => {
+          handleSelectFondo(proyecto.id);
+          setIsObrasAdminOpen(false);
+          setEditObraId(undefined);
+          navigateTo('app');
+          setToastMessage(`🔬 Modo Simulación: ${proyecto.nombre} cargado en el simulador.`);
+        }}
         onClose={() => {
           setIsObrasAdminOpen(false);
           setEditObraId(undefined);

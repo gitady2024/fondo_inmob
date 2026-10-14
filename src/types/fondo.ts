@@ -106,3 +106,11 @@ export interface LiquidacionCesion {
   gastosAdjudicacionAdquirente: number;
   costoTotalAdquirente: number;
 }
+
+export interface FotoAvance {
+  id?: string;
+  url: string;
+  etapa: string;
+  descripcion: string;
+  fecha: string;
+}

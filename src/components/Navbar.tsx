@@ -115,34 +115,51 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Badge de Perfil Actual si el usuario está autenticado */}
           {user && (
-            <button
-              onClick={onOpenLogin}
-              title="Perfil activo (Clic para cambiar)"
-              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
-                user.role === 'admin'
-                  ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/30'
-                  : user.role === 'tecnico'
-                  ? 'bg-amber-600/20 border-amber-500/50 text-amber-300 hover:bg-amber-600/30'
-                  : 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/30'
-              }`}
-            >
-              {user.role === 'admin' ? (
-                <>
-                  <Shield className="w-3.5 h-3.5 text-indigo-400" />
-                  <span className="hidden sm:inline">Admin</span>
-                </>
-              ) : user.role === 'tecnico' ? (
-                <>
-                  <HardHat className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden sm:inline">Técnico</span>
-                </>
-              ) : (
-                <>
-                  <User className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Unidad {user.socioId || 1}</span>
-                </>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onOpenLogin}
+                title="Perfil activo (Clic para cambiar perfil)"
+                className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                  user.role === 'admin'
+                    ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/30'
+                    : user.role === 'tecnico'
+                    ? 'bg-amber-600/20 border-amber-500/50 text-amber-300 hover:bg-amber-600/30'
+                    : 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/30'
+                }`}
+              >
+                {user.role === 'admin' ? (
+                  <>
+                    <Shield className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Admin</span>
+                  </>
+                ) : user.role === 'tecnico' ? (
+                  <>
+                    <HardHat className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Equipo Técnico</span>
+                  </>
+                ) : (
+                  <>
+                    <User className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Socio D{user.socioId || 1}</span>
+                  </>
+                )}
+              </button>
+
+              {/* Botón Explícito: Salir de la cuenta */}
+              {onSignOut && (
+                <button
+                  type="button"
+                  onClick={onSignOut}
+                  id="btn-navbar-logout"
+                  className="bg-rose-500/10 hover:bg-rose-500/25 text-rose-300 hover:text-white border border-rose-500/40 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  title="Cerrar sesión y salir de la cuenta actual"
+                >
+                  <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Salir de la cuenta</span>
+                </button>
               )}
-            </button>
+            </div>
           )}
 
           {/* ========================================================= */}

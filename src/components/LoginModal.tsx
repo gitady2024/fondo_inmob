@@ -94,27 +94,51 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     setSuccessMsg(null);
     setLoading(true);
 
+    const normEmail = email.trim().toLowerCase();
+
     try {
       if (modoAcceso === 'signin') {
         if (!onSupabaseSignIn) throw new Error('Servicio de autenticación no disponible');
-        const res = await onSupabaseSignIn(email, password);
+        const res = await onSupabaseSignIn(normEmail, password);
         if (res.success) {
+          onLogin({
+            id: `user-${Date.now()}`,
+            role: selectedRole,
+            nombre: nombre || normEmail.split('@')[0],
+            email: normEmail,
+            socioId: selectedRole === 'socio' ? selectedSocioId : undefined,
+            especialidad: selectedRole === 'tecnico' ? especialidad : undefined
+          });
           onClose();
         } else {
-          setErrorMsg(res.error || 'Correo o contraseña incorrectos. Verifica tus datos.');
+          const rawErr = res.error || '';
+          if (rawErr.toLowerCase().includes('invalid login credentials')) {
+            setErrorMsg('Correo o contraseña incorrectos. Si acabás de registrarte o aún no creaste la cuenta, podés crearla en la pestaña "Crear Cuenta" o usar el botón de Acceso Rápido.');
+          } else {
+            setErrorMsg(rawErr || 'Correo o contraseña incorrectos. Verifica tus datos.');
+          }
         }
       } else {
         if (!onSupabaseSignUp) throw new Error('Servicio de registro no disponible');
         const res = await onSupabaseSignUp(
-          email,
+          normEmail,
           password,
           nombre,
           selectedRole,
           selectedRole === 'tecnico' ? especialidad : undefined
         );
         if (res.success) {
-          setSuccessMsg('¡Cuenta registrada exitosamente! Iniciando sesión...');
-          setTimeout(() => onClose(), 1200);
+          onLogin({
+            id: `user-${Date.now()}`,
+            role: selectedRole,
+            nombre: nombre || normEmail.split('@')[0],
+            email: normEmail,
+            socioId: selectedRole === 'socio' ? selectedSocioId : undefined,
+            especialidad: selectedRole === 'tecnico' ? especialidad : undefined
+          });
+          const roleLabel = selectedRole === 'tecnico' ? 'Equipo Técnico' : selectedRole === 'admin' ? 'Administrador' : 'Socio Inversor';
+          setSuccessMsg(`¡Cuenta de ${roleLabel} creada y activada con éxito! Ingresando al sistema...`);
+          setTimeout(() => onClose(), 800);
         } else {
           setErrorMsg(res.error || 'No se pudo completar el registro. Intenta nuevamente.');
         }

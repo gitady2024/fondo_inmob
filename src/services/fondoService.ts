@@ -5,11 +5,41 @@ import type {
   CesionConfigState,
   AdelantoConfigState,
   AjusteCuota,
-  EstadoPlanFondo
+  EstadoPlanFondo,
+  FotoAvance
 } from '../types/fondo';
 
 import type { DatosTecnicosProyecto } from '../types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from '../types/tecnico';
+
+export { type FotoAvance };
+
+export const FOTOS_OBRA_PREDETERMINADAS: FotoAvance[] = [
+  {
+    url: 'https://images.unsplash.com/photo-1541888946425-d0fbb1861593?auto=format&fit=crop&w=1200&q=80',
+    etapa: 'Estructura de Hormigón Armado',
+    descripcion: 'Encofrado de columnas y losa con hormigón elaborado H-30 bajo normas IRAM.',
+    fecha: 'Última inspección: Octubre 2026'
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1200&q=80',
+    etapa: 'Planos y Fundaciones',
+    descripcion: 'Bases y plateas antisísmicas ejecutadas con hormigón de alta resistencia e impermeabilización.',
+    fecha: 'Certificado: Agosto 2026'
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1590381105924-c72589b9ef3f?auto=format&fit=crop&w=1200&q=80',
+    etapa: 'Mampostería y Cerramientos',
+    descripcion: 'Doble muro exterior con cámara de aire y barrera térmica para máxima eficiencia energética.',
+    fecha: 'En ejecución continua'
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+    etapa: 'Render y Proyecto Terminado',
+    descripcion: 'Tipologías de 2 y 3 ambientes con balcón terraza, carpintería DVH y cochera opcional.',
+    fecha: 'Posesión proyectada según cronograma'
+  }
+];
 
 export interface FondoGuardado {
   id: string;
@@ -26,6 +56,7 @@ export interface FondoGuardado {
   ajustes?: AjusteCuota[];
   datosTecnicos?: DatosTecnicosProyecto;
   contratoPersonalizado?: string;
+  fotos?: FotoAvance[];
 }
 
 
@@ -318,7 +349,8 @@ export const saveFondo = async (
   datosTecnicos?: DatosTecnicosProyecto,
   contratoPersonalizado?: string,
   ajustes?: AjusteCuota[],
-  estadoPlan?: EstadoPlanFondo
+  estadoPlan?: EstadoPlanFondo,
+  fotos?: FotoAvance[]
 ): Promise<{ id: string; guardadoEn: 'supabase' | 'local' }> => {
   const client = getSupabaseClient();
   const id = existenteId || (typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Date.now()));
@@ -366,6 +398,7 @@ export const saveFondo = async (
   let existingContrato: string | undefined = undefined;
   let existingAjustes: AjusteCuota[] | undefined = undefined;
   let existingEstadoPlan: EstadoPlanFondo | undefined = undefined;
+  let existingFotos: FotoAvance[] | undefined = undefined;
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
     if (raw) {
@@ -375,6 +408,7 @@ export const saveFondo = async (
       if (match?.contratoPersonalizado) existingContrato = match.contratoPersonalizado;
       if (match?.ajustes) existingAjustes = match.ajustes;
       if (match?.estadoPlan) existingEstadoPlan = match.estadoPlan;
+      if (match?.fotos) existingFotos = match.fotos;
     }
   } catch {}
 
@@ -392,7 +426,8 @@ export const saveFondo = async (
     adelanto,
     ajustes: ajustes !== undefined ? ajustes : (existingAjustes || []),
     datosTecnicos: datosTecnicos || existingTecnicos || DATOS_TECNICOS_DEFAULT,
-    contratoPersonalizado: contratoPersonalizado !== undefined ? contratoPersonalizado : existingContrato
+    contratoPersonalizado: contratoPersonalizado !== undefined ? contratoPersonalizado : existingContrato,
+    fotos: fotos !== undefined ? fotos : (existingFotos || FOTOS_OBRA_PREDETERMINADAS)
   };
 
   try {

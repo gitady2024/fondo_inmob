@@ -25,39 +25,8 @@ interface ObrasEnMarchaProps {
   isAdmin?: boolean;
 }
 
-interface FotoAvance {
-  url: string;
-  etapa: string;
-  descripcion: string;
-  fecha: string;
-}
-
-const FOTOS_AVANCE_OBRA: FotoAvance[] = [
-  {
-    url: 'https://images.unsplash.com/photo-1541888946425-d0fbb1861593?auto=format&fit=crop&w=1200&q=80',
-    etapa: 'Estructura de Hormigón Armado',
-    descripcion: 'Encofrado de columnas y losa de 4° nivel con hormigón elaborado H-30 bajo normas IRAM.',
-    fecha: 'Última inspección: Octubre 2026'
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=80',
-    etapa: 'Fundaciones y Subsuelo',
-    descripcion: 'Bases y plateas antisísmicas ejecutadas con hormigón de alta resistencia e impermeabilización.',
-    fecha: 'Certificado: Agosto 2026'
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1590381105924-c72589b9ef3f?auto=format&fit=crop&w=1200&q=80',
-    etapa: 'Mampostería y Cerramientos',
-    descripcion: 'Doble muro exterior con cámara de aire y barrera térmica para máxima eficiencia energética.',
-    fecha: 'En ejecución continua'
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
-    etapa: 'Render y Proyecto Terminado',
-    descripcion: 'Tipologías de 2 y 3 ambientes con balcón terraza, carpintería DVH y cochera opcional.',
-    fecha: 'Posesión proyectada según cronograma'
-  }
-];
+import { type FotoAvance, FOTOS_OBRA_PREDETERMINADAS } from '../services/fondoService';
+const FALLBACK_IMG = 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1200&q=80';
 
 export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
   proyectos,
@@ -103,15 +72,19 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
     proyectoActual.params.costoDepto / (proyectoActual.params.cantidadCuotas || 48)
   );
 
+  const fotosDeLaObra: FotoAvance[] = (proyectoActual.fotos && proyectoActual.fotos.length > 0)
+    ? proyectoActual.fotos.slice(0, 4)
+    : FOTOS_OBRA_PREDETERMINADAS;
+
   const siguienteFoto = () => {
-    setFotoActivaIndex((prev) => (prev + 1) % FOTOS_AVANCE_OBRA.length);
+    setFotoActivaIndex((prev) => (prev + 1) % fotosDeLaObra.length);
   };
 
   const anteriorFoto = () => {
-    setFotoActivaIndex((prev) => (prev - 1 + FOTOS_AVANCE_OBRA.length) % FOTOS_AVANCE_OBRA.length);
+    setFotoActivaIndex((prev) => (prev - 1 + fotosDeLaObra.length) % fotosDeLaObra.length);
   };
 
-  const fotoActual = FOTOS_AVANCE_OBRA[fotoActivaIndex];
+  const fotoActual = fotosDeLaObra[fotoActivaIndex % fotosDeLaObra.length] || fotosDeLaObra[0];
 
   return (
     <section
@@ -171,6 +144,9 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
             <img
               src={fotoActual.url}
               alt={fotoActual.etapa}
+              onError={(e) => {
+                e.currentTarget.src = FALLBACK_IMG;
+              }}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               loading="lazy"
             />
@@ -223,25 +199,32 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
           {/* Miniaturas Clickables y Paginación */}
           <div className="p-4 bg-slate-950/60 border-t border-slate-800/80 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 overflow-x-auto">
-              {FOTOS_AVANCE_OBRA.map((f, i) => (
+              {fotosDeLaObra.map((f, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => setFotoActivaIndex(i)}
                   aria-label={`Ver imagen ${i + 1}: ${f.etapa}`}
                   className={`h-12 w-16 sm:w-20 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
-                    fotoActivaIndex === i
+                    (fotoActivaIndex % fotosDeLaObra.length) === i
                       ? 'border-indigo-500 scale-105 shadow-md shadow-indigo-500/20'
                       : 'border-slate-800 opacity-60 hover:opacity-100'
                   }`}
                 >
-                  <img src={f.url} alt={f.etapa} className="w-full h-full object-cover" />
+                  <img
+                    src={f.url}
+                    alt={f.etapa}
+                    onError={(e) => {
+                      e.currentTarget.src = FALLBACK_IMG;
+                    }}
+                    className="w-full h-full object-cover"
+                  />
                 </button>
               ))}
             </div>
 
             <div className="text-xs font-mono text-slate-400 shrink-0 tabular-nums">
-              {fotoActivaIndex + 1} / {FOTOS_AVANCE_OBRA.length}
+              {(fotoActivaIndex % fotosDeLaObra.length) + 1} / {fotosDeLaObra.length}
             </div>
           </div>
 

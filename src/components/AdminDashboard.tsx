@@ -25,7 +25,8 @@ import {
   Plus,
   Calculator,
   HardHat,
-  MessageSquare
+  MessageSquare,
+  LogOut
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -37,6 +38,7 @@ interface AdminDashboardProps {
   onSaveCurrentFondo?: () => void;
   onFondoCreated?: (nuevoFondo: FondoGuardado) => void;
   onShowToast: (msg: string) => void;
+  onSignOut?: () => void;
   childrenSimulador?: React.ReactNode;
   childrenTecnico?: React.ReactNode;
   childrenMensajeria?: React.ReactNode;
@@ -51,6 +53,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenNewModal,
   onFondoCreated: _onFondoCreated,
   onShowToast,
+  onSignOut,
   childrenSimulador,
   childrenTecnico,
   childrenMensajeria,
@@ -294,6 +297,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <Plus className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Salir de la cuenta */}
+            {onSignOut && (
+              <div className="self-end">
+                <button
+                  type="button"
+                  onClick={onSignOut}
+                  className="px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-white rounded-xl border border-rose-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  title="Cerrar sesión de Administrador"
+                >
+                  <LogOut className="w-4 h-4 text-rose-400" />
+                  <span>Salir de la cuenta</span>
+                </button>
+              </div>
+            )}
           </div>
 
         </div>

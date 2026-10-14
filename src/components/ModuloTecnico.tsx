@@ -33,7 +33,8 @@ import {
   FileBadge,
   X,
   Save,
-  MessageSquare
+  MessageSquare,
+  LogOut
 } from 'lucide-react';
 
 interface ModuloTecnicoProps {
@@ -43,6 +44,7 @@ interface ModuloTecnicoProps {
   currentUser?: UserProfile;
   isReadOnly?: boolean;
   onUpdateDatosTecnicos: (newDatos: DatosTecnicosProyecto) => void;
+  onSignOut?: () => void;
 }
 
 export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
@@ -51,7 +53,8 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
   fondoId = 'default',
   currentUser,
   isReadOnly = false,
-  onUpdateDatosTecnicos
+  onUpdateDatosTecnicos,
+  onSignOut
 }) => {
   const [activeTab, setActiveTab] = useState<'tramites' | 'avance' | 'planos' | 'memoria' | 'mensajes'>('tramites');
 
@@ -407,15 +410,30 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
           </div>
         </div>
 
-        {/* Badge de avance global */}
-        <div className="flex items-center gap-3 bg-slate-950 border border-slate-800 p-3 rounded-2xl shadow-inner">
-          <div className="text-right">
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold block">Avance Físico Global</span>
-            <span className="text-lg sm:text-xl font-mono font-black text-amber-300">{avanceGlobal}% Ejecutado</span>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Badge de avance global */}
+          <div className="flex items-center gap-3 bg-slate-950 border border-slate-800 p-3 rounded-2xl shadow-inner">
+            <div className="text-right">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold block">Avance Físico Global</span>
+              <span className="text-lg sm:text-xl font-mono font-black text-amber-300">{avanceGlobal}% Ejecutado</span>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold font-mono text-sm">
+              {avanceGlobal}%
+            </div>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold font-mono text-sm">
-            {avanceGlobal}%
-          </div>
+
+          {/* Botón Salir de la cuenta */}
+          {onSignOut && (
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="bg-rose-500/10 hover:bg-rose-500/25 text-rose-300 hover:text-white border border-rose-500/40 px-3.5 py-3 rounded-2xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+              title="Cerrar sesión de Equipo Técnico"
+            >
+              <LogOut className="w-4 h-4 text-rose-400" />
+              <span>Salir de la cuenta</span>
+            </button>
+          )}
         </div>
       </div>
 
