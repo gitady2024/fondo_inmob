@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { UserProfile } from '../types/auth';
 import type {
   FlujoSocioCalculado,
@@ -56,6 +56,8 @@ interface PortalSocioProps {
   gastos: GastosConfigState;
   onOpenContrato?: () => void;
   onSignOut?: () => void;
+  /** Tab inicial para abrir directamente (ej. 'adelanto' para simulación de plan) */
+  initialTab?: 'cartola' | 'adelanto' | 'cesion' | 'obra' | 'mensajes';
 }
 
 export const PortalSocio: React.FC<PortalSocioProps> = ({
@@ -66,10 +68,18 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   params,
   gastos,
   onOpenContrato,
-  onSignOut
+  onSignOut,
+  initialTab = 'cartola'
 }) => {
   const socioId = user.socioId || 1;
-  const [activeTab, setActiveTab] = useState<'cartola' | 'adelanto' | 'cesion' | 'obra' | 'mensajes'>('cartola');
+  const [activeTab, setActiveTab] = useState<'cartola' | 'adelanto' | 'cesion' | 'obra' | 'mensajes'>(initialTab);
+
+  // Cuando el padre pide ir al simulador (ej. botón "Simular Plan"), actualizar la pestaña activa
+  useEffect(() => {
+    if (initialTab && initialTab !== 'cartola') {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Estados UI y Modales
   const [showModalPago, setShowModalPago] = useState<boolean>(false);

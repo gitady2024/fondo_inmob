@@ -43,6 +43,8 @@ interface AdminDashboardProps {
   childrenTecnico?: React.ReactNode;
   childrenMensajeria?: React.ReactNode;
   unreadCount?: number;
+  /** Módulo inicial al montar (para ir directo al simulador sin cambiar sesión) */
+  initialModule?: 'cobranzas' | 'simulador' | 'tecnico' | 'mensajeria';
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -57,16 +59,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   childrenSimulador,
   childrenTecnico,
   childrenMensajeria,
-  unreadCount = 0
+  unreadCount = 0,
+  initialModule = 'cobranzas'
 }) => {
-  const [activeModule, setActiveModule] = useState<'cobranzas' | 'simulador' | 'tecnico' | 'mensajeria'>('cobranzas');
+  const [activeModule, setActiveModule] = useState<'cobranzas' | 'simulador' | 'tecnico' | 'mensajeria'>(initialModule);
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'mes_actual' | 'morosos' | 'pagados'>('mes_actual');
   const [busquedaSocio, setBusquedaSocio] = useState<string>('');
   const [isLoadingCuotas, setIsLoadingCuotas] = useState<boolean>(true);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [updatingCuotaId, setUpdatingCuotaId] = useState<string | null>(null);
 
-  // Cuotas y métricas de salud del fondo seleccionado
+  // Cuando el padre pide ir al simulador (ej. botón "Simular Plan"), actualizar el módulo activo
+  useEffect(() => {
+    if (initialModule && initialModule !== 'cobranzas') {
+      setActiveModule(initialModule);
+    }
+  }, [initialModule]);
+
+
   const [cuotasList, setCuotasList] = useState<AdminCuotaRow[]>([]);
   const [healthData, setHealthData] = useState<AdminFondoHealth>({
     capitalRecaudado: 0,

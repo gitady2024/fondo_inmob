@@ -163,17 +163,20 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
 
           {/* ========================================================= */}
-          {/* ÚNICO CALL TO ACTION PRINCIPAL: "Simular mi plan"           */}
+          {/* ÚNICO CALL TO ACTION PRINCIPAL: "SIMULAR PLAN"             */}
+          {/* Solo visible para admin y socio, no para técnico           */}
           {/* ========================================================= */}
-          <button
-            type="button"
-            id="nav-cta-simular"
-            onClick={onSimularPlan}
-            className="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-xs sm:text-sm px-4 sm:px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-600/25 transition-all transform hover:scale-[1.02] flex items-center gap-2 cursor-pointer"
-          >
-            <Calculator className="w-4 h-4 text-emerald-100" />
-            <span>Simular mi plan</span>
-          </button>
+          {user?.role !== 'tecnico' && (
+            <button
+              type="button"
+              id="nav-cta-simular"
+              onClick={onSimularPlan}
+              className="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-xs sm:text-sm px-4 sm:px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-600/25 transition-all transform hover:scale-[1.02] flex items-center gap-2 cursor-pointer"
+            >
+              <Calculator className="w-4 h-4 text-emerald-100" />
+              <span>Simular Plan</span>
+            </button>
+          )}
 
           {/* ========================================================= */}
           {/* MENÚ DESPLEGABLE DE ACCIONES SECUNDARIAS (⋮)               */}

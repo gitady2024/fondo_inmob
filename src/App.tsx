@@ -157,6 +157,8 @@ export const App: React.FC = () => {
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
   const [isObrasAdminOpen, setIsObrasAdminOpen] = useState<boolean>(false);
   const [editObraId, setEditObraId] = useState<string | undefined>(undefined);
+  /** Cuando es true, al renderizar el portal del usuario se abre directo en la vista de simulación */
+  const [goToSimulador, setGoToSimulador] = useState<boolean>(false);
 
   // Inicializar fondos al montar
   useEffect(() => {
@@ -661,10 +663,13 @@ export const App: React.FC = () => {
               onOpenMensajes={() => setIsMensajesOpen(true)}
               onSignOut={handleSignOutAll}
               onSimularPlan={() => {
+                // Solo admin y socio pueden simular; técnico no
+                if (currentUser?.role === 'tecnico') return;
                 trackSimuladorInicio({ label: 'navbar-app' });
-                setDevUserOverride(GUEST_SOCIO_USER);
-                setDevUser(GUEST_SOCIO_USER);
-                setToastMessage('⚡ Simulador Activo');
+                setGoToSimulador(true);
+                setToastMessage('📊 Vista Simulador de Plan activada');
+                // Resetear flag después de un tick para que el portal se monte con el valor
+                setTimeout(() => setGoToSimulador(false), 500);
               }}
               onNavigateLanding={() => navigateTo('landing')}
               onOpenObrasAdmin={
@@ -751,6 +756,7 @@ export const App: React.FC = () => {
             onShowToast={(msg) => setToastMessage(msg)}
             onSignOut={handleSignOutAll}
             unreadCount={unreadCount}
+            initialModule={goToSimulador ? 'simulador' : 'cobranzas'}
             childrenSimulador={
               <>
                 {/* Selector y Gestor de Múltiples Fondos / Planes */}
@@ -964,6 +970,7 @@ export const App: React.FC = () => {
               gastos={currentFondo.gastos}
               onOpenContrato={() => setIsContratoOpen(true)}
               onSignOut={handleSignOutAll}
+              initialTab={goToSimulador ? 'adelanto' : 'cartola'}
             />
           </div>
         ) : (
