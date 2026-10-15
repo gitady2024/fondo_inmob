@@ -13,7 +13,8 @@ import {
   HardHat,
   User,
   Pencil,
-  Shield
+  Shield,
+  LogOut
 } from 'lucide-react';
 import type { FondoGuardado } from '../services/fondoService';
 import { PLANTILLAS_PREDEFINIDAS } from '../services/fondoService';
@@ -39,6 +40,8 @@ interface LandingPageProps {
   onOpenLogin?: () => void;
   /** Callback para editar directamente la obra activa */
   onEditObra?: (obraId?: string) => void;
+  /** Callback para cerrar sesión y salir de la cuenta */
+  onSignOut?: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
@@ -52,7 +55,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onOpenObrasAdmin,
   user,
   onOpenLogin,
-  onEditObra
+  onEditObra,
+  onSignOut
 }) => {
   const [modalPreinscripcionOpen, setModalPreinscripcionOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -191,36 +195,53 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {/* BOTÓN INICIAR SESIÓN / INGRESAR A MI CUENTA */}
             {onOpenLogin && (
               user ? (
-                <button
-                  type="button"
-                  id="landing-btn-mi-cuenta"
-                  onClick={onOpenLogin}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
-                    user.role === 'admin'
-                      ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/30'
-                      : user.role === 'tecnico'
-                      ? 'bg-amber-600/20 border-amber-500/50 text-amber-300 hover:bg-amber-600/30'
-                      : 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/30'
-                  }`}
-                  title={`Conectado como ${user.nombre} (${user.role}). Clic para ver perfil.`}
-                >
-                  {user.role === 'admin' ? (
-                    <>
-                      <Shield className="w-3.5 h-3.5 text-indigo-400" />
-                      <span className="hidden sm:inline">Admin</span>
-                    </>
-                  ) : user.role === 'tecnico' ? (
-                    <>
-                      <HardHat className="w-3.5 h-3.5 text-amber-400" />
-                      <span className="hidden sm:inline">Técnico</span>
-                    </>
-                  ) : (
-                    <>
-                      <User className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Mi Cuenta</span>
-                    </>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <button
+                    type="button"
+                    id="landing-btn-mi-cuenta"
+                    onClick={onOpenLogin}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                      user.role === 'admin'
+                        ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/30'
+                        : user.role === 'tecnico'
+                        ? 'bg-amber-600/20 border-amber-500/50 text-amber-300 hover:bg-amber-600/30'
+                        : 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/30'
+                    }`}
+                    title={`Conectado como ${user.nombre} (${user.role}). Clic para ver perfil.`}
+                  >
+                    {user.role === 'admin' ? (
+                      <>
+                        <Shield className="w-3.5 h-3.5 text-indigo-400" />
+                        <span className="hidden sm:inline">Admin</span>
+                      </>
+                    ) : user.role === 'tecnico' ? (
+                      <>
+                        <HardHat className="w-3.5 h-3.5 text-amber-400" />
+                        <span className="hidden sm:inline">Técnico</span>
+                      </>
+                    ) : (
+                      <>
+                        <User className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Mi Cuenta</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* BOTÓN DIRECTO Y VISIBLE: SALIR DE LA CUENTA */}
+                  {onSignOut && (
+                    <button
+                      type="button"
+                      id="landing-btn-logout"
+                      onClick={onSignOut}
+                      className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      title="Cerrar sesión y salir de la cuenta actual"
+                    >
+                      <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                      <span className="hidden sm:inline">Salir de la cuenta</span>
+                      <span className="sm:hidden">Salir</span>
+                    </button>
                   )}
-                </button>
+                </div>
               ) : (
                 <button
                   type="button"

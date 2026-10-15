@@ -642,6 +642,7 @@ export const App: React.FC = () => {
                   }
                 : undefined
             }
+            onSignOut={currentUser ? handleSignOutAll : undefined}
           />
         ) : (
           /* ------------------------------------------------------------------ */
