@@ -18,6 +18,7 @@ import {
 import { exportarFichaSocioPDF } from '../utils/exportReports';
 import { enviarMensaje } from '../services/mensajeService';
 import { CuentaIndividual } from './CuentaIndividual';
+import { PanelSimuladorPlan } from './PanelSimuladorPlan';
 import { ModuloTecnico } from './ModuloTecnico';
 import { CentroMensajes } from './CentroMensajes';
 import { DATOS_TECNICOS_DEFAULT } from '../types/tecnico';
@@ -101,11 +102,87 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   const [mostrarCronogramaAdelanto, setMostrarCronogramaAdelanto] = useState<boolean>(false);
   const [mostrarMarcoLegalCesion, setMostrarMarcoLegalCesion] = useState<boolean>(false);
 
+  // =========================================================
+  // 5 PARÁMETROS DEL SIMULADOR DE PLAN (ORDEN DE IMPORTANCIA)
+  // =========================================================
+  // 1ero: Importe de la unidad
+  const [simImporteUnidad, setSimImporteUnidad] = useState<number>(params.costoDepto || 72000);
+  // 2do: Anticipo mes 0 integrado
+  const [simAnticipo, setSimAnticipo] = useState<number>(flujoSocio.anticipoMes0 || 6500);
+  // 3ero: Adelanto específico en un mes a elegir
+  const [simTieneAdelanto, setSimTieneAdelanto] = useState<boolean>(true);
+  const [simMontoAdelanto, setSimMontoAdelanto] = useState<number>(10000);
+  const [simCuotaAdelanto, setSimCuotaAdelanto] = useState<number>(10);
+  const [simEstrategiaAdelanto, setSimEstrategiaAdelanto] = useState<EstrategiaImpactoAdelanto>('reducir_cuota');
+  // 4to: Entrega/adjudicación de la unidad
+  const [simCuotaPosesion, setSimCuotaPosesion] = useState<number>(flujoSocio.cuotaPosesion || 15);
+  // 5to: Cesión/venta de la unidad o participación
+  const [simActivarCesion, setSimActivarCesion] = useState<boolean>(false);
+  const [simCuotaCesion, setSimCuotaCesion] = useState<number>(24);
+  const [simPorcentajePrimaCesion, setSimPorcentajePrimaCesion] = useState<number>(4);
+
+  // Sincronizar si cambian los parámetros iniciales
+  useEffect(() => {
+    if (params.costoDepto) setSimImporteUnidad(params.costoDepto);
+    if (flujoSocio.anticipoMes0) setSimAnticipo(flujoSocio.anticipoMes0);
+    if (flujoSocio.cuotaPosesion) setSimCuotaPosesion(flujoSocio.cuotaPosesion);
+  }, [params.costoDepto, flujoSocio.anticipoMes0, flujoSocio.cuotaPosesion]);
+
+  // Recálculo reactivo y dinámico del plan de inversión
+  const flujoActivo = useMemo(() => {
+    const ratioCosto = params.costoDepto > 0 ? simImporteUnidad / params.costoDepto : 1;
+    const recargoGastos = flujoSocio.recargoGastosPorCuota * ratioCosto;
+    const pagoFinalGastos = flujoSocio.pagoFinalGastos * ratioCosto;
+
+    return calcularFlujoIndividual(
+      socioId,
+      simImporteUnidad,
+      simAnticipo,
+      params.cantidadCuotas,
+      params.modalidadAnticipo,
+      recargoGastos,
+      {
+        activo: simTieneAdelanto && simMontoAdelanto > 0,
+        mes: simCuotaAdelanto,
+        monto: simMontoAdelanto,
+        estrategia: simEstrategiaAdelanto
+      },
+      simCuotaPosesion,
+      pagoFinalGastos,
+      currentFondo.ajustes || []
+    );
+  }, [
+    socioId,
+    simImporteUnidad,
+    simAnticipo,
+    params.cantidadCuotas,
+    params.modalidadAnticipo,
+    params.costoDepto,
+    flujoSocio.recargoGastosPorCuota,
+    flujoSocio.pagoFinalGastos,
+    simTieneAdelanto,
+    simMontoAdelanto,
+    simCuotaAdelanto,
+    simEstrategiaAdelanto,
+    simCuotaPosesion,
+    currentFondo.ajustes
+  ]);
+
+  const capitalAportadoHastaCesion = useMemo(() => {
+    let sum = flujoActivo.anticipoMes0;
+    for (const m of flujoActivo.flujo) {
+      if (m.mes <= simCuotaCesion) {
+        sum += m.abonadoMes;
+      }
+    }
+    return sum;
+  }, [flujoActivo, simCuotaCesion]);
+
   // ==========================================
   // CÁLCULO ESTIMADO DE CUOTA ACTUAL / PRÓXIMA
   // ==========================================
-  const mesesTotales = flujoSocio.mesesTotales;
-  const mPos = flujoSocio.cuotaPosesion;
+  const mesesTotales = flujoActivo.mesesTotales;
+  const mPos = flujoActivo.cuotaPosesion;
   const fechaPos = formatFecha(fechaInicio, mPos);
   const fechaFin = formatFecha(fechaInicio, mesesTotales);
   const dt = currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT;
@@ -125,22 +202,22 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
 
   const [pagoCuotaSeleccionada, setPagoCuotaSeleccionada] = useState<number>(proximaCuotaNum);
 
-  const proximaCuotaObj = flujoSocio.flujo[proximaCuotaNum - 1] || flujoSocio.flujo[0];
+  const proximaCuotaObj = flujoActivo.flujo[proximaCuotaNum - 1] || flujoActivo.flujo[0];
   const fechaProximaCuota = formatFecha(fechaInicio, proximaCuotaNum);
 
   // Monto acumulado y porcentaje de progreso
   const cuotasAbonadasEstimadas = Math.max(0, proximaCuotaNum - 1);
   const montoAbonadoEstimado = useMemo(() => {
-    let sum = flujoSocio.anticipoMes0;
-    for (let i = 0; i < cuotasAbonadasEstimadas && i < flujoSocio.flujo.length; i++) {
-      sum += flujoSocio.flujo[i].abonadoMes;
+    let sum = flujoActivo.anticipoMes0;
+    for (let i = 0; i < cuotasAbonadasEstimadas && i < flujoActivo.flujo.length; i++) {
+      sum += flujoActivo.flujo[i].abonadoMes;
     }
     return sum;
-  }, [flujoSocio, cuotasAbonadasEstimadas]);
+  }, [flujoActivo, cuotasAbonadasEstimadas]);
 
   const porcentajeCancelado = Math.min(
     100,
-    Math.round((montoAbonadoEstimado / (flujoSocio.totalAbonado || 1)) * 100)
+    Math.round((montoAbonadoEstimado / (flujoActivo.totalAbonado || 1)) * 100)
   );
 
   // ==========================================
@@ -173,11 +250,6 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   // ==========================================
   // ESTADOS Y CÁLCULOS: SIMULACIÓN DE ADELANTO
   // ==========================================
-  const [simMontoAdelanto, setSimMontoAdelanto] = useState<number>(5000);
-  const [simCuotaAdelanto, setSimCuotaAdelanto] = useState<number>(
-    Math.min(proximaCuotaNum + 2, mesesTotales)
-  );
-  const [simEstrategiaAdelanto, setSimEstrategiaAdelanto] = useState<EstrategiaImpactoAdelanto>('reducir_cuota');
   const [enviandoSolicitudAdelanto, setEnviandoSolicitudAdelanto] = useState<boolean>(false);
 
   const flujoSimuladoAdelanto = useMemo(() => {
@@ -398,18 +470,20 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
 
             {/* Quick Actions en Cabecera */}
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowModalPago(true)}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition cursor-pointer"
-              >
-                <CreditCard className="w-4 h-4" />
-                <span>Pagar / Informar Transferencia</span>
-              </button>
+              {!user.isGuest && (
+                <button
+                  type="button"
+                  onClick={() => setShowModalPago(true)}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition cursor-pointer"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>Pagar / Informar Transferencia</span>
+                </button>
+              )}
 
               <button
                 type="button"
-                onClick={() => exportarFichaSocioPDF(flujoSocio, params, gastos, fechaInicio, proximaCuotaNum)}
+                onClick={() => exportarFichaSocioPDF(flujoActivo, params, gastos, fechaInicio, proximaCuotaNum)}
                 className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
                 title="Descargar Ficha Oficial en PDF"
               >
@@ -496,7 +570,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
               <div className="mt-2 space-y-1.5">
                 <div className="flex justify-between items-baseline text-xs font-mono">
                   <span className="text-white font-bold">{fmtMoneda(montoAbonadoEstimado)}</span>
-                  <span className="text-slate-500">de {fmtMoneda(flujoSocio.totalAbonado)}</span>
+                  <span className="text-slate-500">de {fmtMoneda(flujoActivo.totalAbonado)}</span>
                 </div>
                 {/* Barra de progreso elegante */}
                 <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
@@ -547,7 +621,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
           }`}
         >
           <Building2 className="w-4 h-4" />
-          <span>Mi Estado de Cuenta</span>
+          <span>{user.isGuest ? 'Simulación de Plan' : 'Mi Estado de Cuenta'}</span>
         </button>
 
         <button
@@ -603,20 +677,58 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
         </button>
       </div>
 
-      {/* ── 3. PESTAÑA 1: MI ESTADO DE CUENTA (CARTOLA DETALLADA) ──────────── */}
+      {/* ── 3. PESTAÑA 1: MI ESTADO DE CUENTA (PLAN SIMULADO Y CARTOLA) ──── */}
       {activeTab === 'cartola' && (
-        <CuentaIndividual
-          cantidadSocios={params.cantidadDeptos}
-          socioSeleccionado={socioId}
-          flujoSocio={flujoSocio}
-          fechaInicio={fechaInicio}
-          costoDepto={params.costoDepto}
-          formaPagoGastos={gastos.formaPagoGastos}
-          params={params}
-          gastos={gastos}
-          onSelectSocio={() => {}} // Bloqueado para el socio
-          onAdjudicacionChange={() => {}} // Bloqueado para el socio
-        />
+        <div className="space-y-6">
+          {/* Panel de Simulación con los 5 ítems en estricto orden de importancia */}
+          <PanelSimuladorPlan
+            importeUnidad={simImporteUnidad}
+            onImporteChange={setSimImporteUnidad}
+            anticipo={simAnticipo}
+            onAnticipoChange={setSimAnticipo}
+            tieneAdelanto={simTieneAdelanto}
+            onTieneAdelantoChange={setSimTieneAdelanto}
+            montoAdelanto={simMontoAdelanto}
+            onMontoAdelantoChange={setSimMontoAdelanto}
+            cuotaAdelanto={simCuotaAdelanto}
+            onCuotaAdelantoChange={setSimCuotaAdelanto}
+            estrategiaAdelanto={simEstrategiaAdelanto}
+            onEstrategiaAdelantoChange={setSimEstrategiaAdelanto}
+            cuotaPosesion={simCuotaPosesion}
+            onCuotaPosesionChange={setSimCuotaPosesion}
+            gastosAdjudicacion={flujoActivo.pagoFinalGastos}
+            activarCesion={simActivarCesion}
+            onActivarCesionChange={setSimActivarCesion}
+            cuotaCesion={simCuotaCesion}
+            onCuotaCesionChange={setSimCuotaCesion}
+            porcentajePrimaCesion={simPorcentajePrimaCesion}
+            onPorcentajePrimaCesionChange={setSimPorcentajePrimaCesion}
+            cantidadCuotasTotal={params.cantidadCuotas}
+            fechaInicio={fechaInicio}
+            capitalAportadoHastaCesion={capitalAportadoHastaCesion}
+          />
+
+          {/* Cuadro de Simulación de Plan de Inversión (Refleja en vivo la elección) */}
+          <CuentaIndividual
+            cantidadSocios={params.cantidadDeptos}
+            socioSeleccionado={socioId}
+            flujoSocio={flujoActivo}
+            fechaInicio={fechaInicio}
+            costoDepto={simImporteUnidad}
+            formaPagoGastos={gastos.formaPagoGastos}
+            params={params}
+            gastos={gastos}
+            onSelectSocio={() => {}} // Bloqueado para el socio
+            onAdjudicacionChange={(_, cuota) => setSimCuotaPosesion(cuota)}
+            userIsGuest={user.isGuest}
+            cesionInfo={{
+              activo: simActivarCesion,
+              mes: simCuotaCesion,
+              porcentajePrima: simPorcentajePrimaCesion,
+              costoUnidad: simImporteUnidad
+            }}
+          />
+        </div>
       )}
 
       {/* ── 4. PESTAÑA 2: SIMULADOR DE ADELANTO (MINIMALISTA + COMPARADOR) ──── */}

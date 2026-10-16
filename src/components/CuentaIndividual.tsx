@@ -25,6 +25,13 @@ interface CuentaIndividualProps {
   gastos: GastosConfigState;
   onSelectSocio: (socioId: number) => void;
   onAdjudicacionChange: (socioId: number, cuota: number) => void;
+  userIsGuest?: boolean;
+  cesionInfo?: {
+    activo: boolean;
+    mes: number;
+    porcentajePrima: number;
+    costoUnidad: number;
+  };
 }
 
 export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
@@ -37,7 +44,9 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
   params,
   gastos,
   onSelectSocio,
-  onAdjudicacionChange
+  onAdjudicacionChange,
+  userIsGuest,
+  cesionInfo
 }) => {
   const [mesSimulado, setMesSimulado] = useState<number>(0);
   const [filterMode, setFilterMode] = useState<FilterMode>('hitos');
@@ -77,6 +86,10 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
 
   // Helper para generar el texto descriptivo del concepto liquidado
   const getConceptoLiquidado = (f: any) => {
+    if (cesionInfo?.activo && f.mes === cesionInfo.mes) {
+      const montoPrima = (cesionInfo.costoUnidad * (cesionInfo.porcentajePrima || 0)) / 100;
+      return `Cesión / Venta de Participación (Prima ${cesionInfo.porcentajePrima}%: -${fmtMoneda(montoPrima)} incl. Gestión, Escribanía y Gastos Menores)`;
+    }
     let str = 'Cuota Mensual Inmueble';
     if (f.porcentajeAjuste) {
       str += ` (+${f.porcentajeAjuste}% CAC)`;
@@ -96,12 +109,15 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
   const cuotasFiltradas = useMemo(() => {
     if (filterMode === 'hitos') {
       const hitosSet = new Set([1, mPos, mesesTotales, mesSimulado]);
+      if (cesionInfo?.activo && cesionInfo.mes) {
+        hitosSet.add(cesionInfo.mes);
+      }
       return flujoSocio.flujo.filter(
         (f) => hitosSet.has(f.mes) || (f.porcentajeAjuste && f.porcentajeAjuste > 0) || f.adelanto > 0
       );
     }
     return flujoSocio.flujo;
-  }, [filterMode, flujoSocio.flujo, mPos, mesesTotales, mesSimulado]);
+  }, [filterMode, flujoSocio.flujo, mPos, mesesTotales, mesSimulado, cesionInfo]);
 
   // Paginación para modo 'todo'
   const totalPages = Math.ceil(cuotasFiltradas.length / itemsPerPage);
@@ -171,21 +187,27 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
 
         {/* Acciones de exportación y cambio de socio */}
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-          {/* Selector de Socio */}
-          <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-xl p-1 shadow-inner">
-            <span className="text-xs font-semibold text-slate-400 pl-2">Socio:</span>
-            <select
-              value={socioSeleccionado}
-              onChange={(e) => onSelectSocio(parseInt(e.target.value, 10))}
-              className="bg-slate-800 border-none rounded-lg px-2.5 py-1 text-xs font-bold text-amber-300 outline-none cursor-pointer"
-            >
-              {Array.from({ length: cantidadSocios }, (_, i) => i + 1).map((id) => (
-                <option key={id} value={id}>
-                  Socio D{id} {id === socioSeleccionado ? '(Seleccionado)' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Selector de Socio o Identificador de Simulación */}
+          {userIsGuest ? (
+            <div className="flex items-center gap-2 bg-indigo-950/60 border border-indigo-500/40 rounded-xl px-3 py-1.5 shadow-inner">
+              <span className="text-xs font-bold text-indigo-300">🎯 Simulación en Vivo</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-xl p-1 shadow-inner">
+              <span className="text-xs font-semibold text-slate-400 pl-2">Socio:</span>
+              <select
+                value={socioSeleccionado}
+                onChange={(e) => onSelectSocio(parseInt(e.target.value, 10))}
+                className="bg-slate-800 border-none rounded-lg px-2.5 py-1 text-xs font-bold text-amber-300 outline-none cursor-pointer"
+              >
+                {Array.from({ length: cantidadSocios }, (_, i) => i + 1).map((id) => (
+                  <option key={id} value={id}>
+                    Socio D{id} {id === socioSeleccionado ? '(Seleccionado)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Selector de Adjudicación Mes */}
           <div className="flex items-center gap-1.5 bg-slate-900 border border-amber-500/30 rounded-xl px-2.5 py-1 text-xs">
@@ -264,12 +286,14 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
         </div>
 
         <div className="bg-slate-900/80 border border-slate-700/80 p-4 rounded-xl shadow-sm">
-          <span className="text-[11px] font-medium text-slate-400">Fin del Plan del Socio</span>
+          <span className="text-[11px] font-medium text-slate-400">
+            {cesionInfo?.activo ? 'Salida por Cesión / Venta' : 'Fin del Plan del Socio'}
+          </span>
           <div className="text-lg sm:text-xl font-bold text-indigo-300 mt-1 font-mono">
-            Cuota {mesesTotales}
+            Cuota {cesionInfo?.activo ? cesionInfo.mes : mesesTotales}
           </div>
           <span className="text-[10px] text-indigo-400/90 font-medium">
-            Fecha: {fechaCancelacion.fechaLarga}
+            Fecha: {cesionInfo?.activo ? formatFecha(fechaInicio, cesionInfo.mes).fechaLarga : fechaCancelacion.fechaLarga}
           </span>
         </div>
       </div>
@@ -390,7 +414,14 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
                 <span className="text-slate-500 text-[10px] font-sans">Devengado</span>
               );
 
-              if (f.mes === mesesTotales) {
+              if (cesionInfo?.activo && f.mes === cesionInfo.mes) {
+                hitoHtml = (
+                  <span className="px-2 py-0.5 rounded-lg text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold font-sans flex justify-center items-center gap-1 w-max mx-auto">
+                    🤝 Cesión / Salida
+                  </span>
+                );
+                rClass = 'bg-rose-950/20 border-l-4 border-rose-500';
+              } else if (f.mes === mesesTotales) {
                 hitoHtml = (
                   <span className="px-2 py-0.5 rounded-lg text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold font-sans flex justify-center items-center gap-1 w-max mx-auto">
                     🏁 Cancelado 100%
