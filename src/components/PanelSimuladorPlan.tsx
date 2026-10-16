@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Building2,
   DollarSign,
@@ -13,6 +13,141 @@ import {
 } from 'lucide-react';
 import type { EstrategiaImpactoAdelanto } from '../types/fondo';
 import { fmtMoneda, formatFecha } from '../utils/calculations';
+
+// Componente de entrada numérica optimizado para valores financieros
+// Permite vaciar el campo, poner en cero y volver a cargar sin formateos molestos ni 010000
+interface FintechInputProps {
+  value: number;
+  onChange: (val: number) => void;
+  prefix?: string;
+  suffix?: string;
+  placeholder?: string;
+  className?: string;
+  borderColor?: string;
+  textColor?: string;
+  min?: number;
+  max?: number;
+  isDecimal?: boolean;
+}
+
+export const FintechInput: React.FC<FintechInputProps> = ({
+  value,
+  onChange,
+  prefix,
+  suffix,
+  placeholder = '0',
+  className = '',
+  borderColor = 'focus:border-indigo-500',
+  textColor = 'text-white',
+  min,
+  max,
+  isDecimal = false
+}) => {
+  const [text, setText] = useState<string>(() => (value === 0 ? '0' : String(value)));
+  const [isFocused, setIsFocused] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setText(value === 0 ? '0' : String(value));
+    }
+  }, [value, isFocused]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = e.target.value;
+
+    if (isDecimal) {
+      raw = raw.replace(',', '.');
+      const clean = raw.replace(/[^\d.]/g, '');
+      const parts = clean.split('.');
+      const cleanNumStr = parts[0] + (parts.length > 1 ? '.' + parts.slice(1).join('') : '');
+
+      if (cleanNumStr === '' || cleanNumStr === '.') {
+        setText(cleanNumStr);
+        onChange(0);
+        return;
+      }
+
+      const num = parseFloat(cleanNumStr);
+      setText(cleanNumStr);
+      if (!isNaN(num)) {
+        onChange(num);
+      }
+      return;
+    }
+
+    const cleanDigits = raw.replace(/[^\d]/g, '');
+
+    if (cleanDigits === '') {
+      setText('');
+      onChange(0);
+      return;
+    }
+
+    let num = parseInt(cleanDigits, 10);
+    if (isNaN(num)) num = 0;
+
+    if (max !== undefined && num > max) {
+      num = max;
+    }
+
+    setText(num === 0 ? '0' : String(num));
+    onChange(num);
+  };
+
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    setIsFocused(true);
+    e.target.select();
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    let num = isDecimal
+      ? parseFloat(text.replace(',', '.')) || 0
+      : parseInt(text.replace(/[^\d]/g, ''), 10) || 0;
+
+    if (isNaN(num) || num < 0) num = 0;
+    if (min !== undefined && num < min && num !== 0) num = min;
+    if (max !== undefined && num > max) num = max;
+
+    setText(String(num));
+    onChange(num);
+  };
+
+  const displayValue = isFocused
+    ? text
+    : value === 0
+    ? '0'
+    : isDecimal
+    ? String(value)
+    : value.toLocaleString('es-AR');
+
+  return (
+    <div className="relative w-full flex items-center">
+      {prefix && (
+        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm select-none pointer-events-none z-10">
+          {prefix}
+        </span>
+      )}
+      <input
+        type="text"
+        inputMode={isDecimal ? 'decimal' : 'numeric'}
+        value={displayValue}
+        onChange={handleChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        className={`w-full bg-slate-900 border border-slate-700 ${borderColor} rounded-xl ${
+          prefix ? 'pl-20' : 'pl-3.5'
+        } ${suffix ? 'pr-8' : 'pr-3.5'} py-2.5 font-mono font-bold ${textColor} outline-none transition shadow-inner ${className}`}
+      />
+      {suffix && (
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs select-none pointer-events-none z-10">
+          {suffix}
+        </span>
+      )}
+    </div>
+  );
+};
 
 export interface PanelSimuladorPlanProps {
   // 1ero: Importe de la unidad
@@ -135,18 +270,14 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
           </div>
 
           <div className="space-y-2">
-            <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
-                USD $
-              </span>
-              <input
-                type="number"
-                min="20000"
-                max="500000"
-                step="1000"
+            <div>
+              <FintechInput
+                prefix="USD $"
                 value={importeUnidad}
-                onChange={(e) => onImporteChange(Math.max(10000, parseFloat(e.target.value) || 0))}
-                className="w-full bg-slate-900 border border-slate-700 focus:border-indigo-500 rounded-xl pl-16 pr-4 py-2.5 text-base sm:text-lg font-mono font-bold text-white outline-none transition shadow-inner"
+                onChange={onImporteChange}
+                borderColor="focus:border-indigo-500"
+                textColor="text-white"
+                min={1000}
               />
             </div>
 
@@ -194,18 +325,15 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
           </div>
 
           <div className="space-y-2">
-            <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
-                USD $
-              </span>
-              <input
-                type="number"
-                min="0"
-                max={importeUnidad}
-                step="500"
+            <div>
+              <FintechInput
+                prefix="USD $"
                 value={anticipo}
-                onChange={(e) => onAnticipoChange(Math.max(0, Math.min(importeUnidad, parseFloat(e.target.value) || 0)))}
-                className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl pl-16 pr-4 py-2.5 text-base sm:text-lg font-mono font-bold text-emerald-300 outline-none transition shadow-inner"
+                onChange={onAnticipoChange}
+                borderColor="focus:border-emerald-500"
+                textColor="text-emerald-300"
+                max={importeUnidad}
+                min={0}
               />
             </div>
 
@@ -273,17 +401,14 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
                   <label className="block text-[11px] font-bold text-slate-400 mb-1">
                     Monto del Adelanto (USD)
                   </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">
-                      $
-                    </span>
-                    <input
-                      type="number"
-                      step="500"
-                      min="500"
+                  <div className="pt-0.5">
+                    <FintechInput
+                      prefix="$"
                       value={montoAdelanto}
-                      onChange={(e) => onMontoAdelantoChange(Math.max(500, parseFloat(e.target.value) || 0))}
-                      className="w-full bg-slate-900 border border-slate-700 focus:border-amber-500 rounded-xl pl-7 pr-3 py-2 text-sm font-mono font-bold text-white outline-none"
+                      onChange={onMontoAdelantoChange}
+                      borderColor="focus:border-amber-500"
+                      textColor="text-white"
+                      min={0}
                     />
                   </div>
                 </div>
@@ -481,15 +606,19 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      step="0.5"
-                      min="1"
-                      max="15"
-                      value={porcentajePrimaCesion}
-                      onChange={(e) => onPorcentajePrimaCesionChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="w-24 bg-slate-900 border border-slate-700 focus:border-rose-500 rounded-xl px-3 py-2 text-sm font-mono font-bold text-white outline-none text-center"
-                    />
+                    <div className="w-24">
+                      <FintechInput
+                        suffix="%"
+                        value={porcentajePrimaCesion}
+                        onChange={onPorcentajePrimaCesionChange}
+                        borderColor="focus:border-rose-500"
+                        textColor="text-white"
+                        isDecimal={true}
+                        min={0}
+                        max={25}
+                        className="text-center"
+                      />
+                    </div>
                     <div className="flex flex-wrap gap-1">
                       {[3, 4, 5, 6].map((p) => (
                         <button

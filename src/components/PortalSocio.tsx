@@ -130,14 +130,16 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
 
   // Recálculo reactivo y dinámico del plan de inversión
   const flujoActivo = useMemo(() => {
-    const ratioCosto = params.costoDepto > 0 ? simImporteUnidad / params.costoDepto : 1;
+    const costoSeguro = simImporteUnidad > 0 ? simImporteUnidad : (params.costoDepto || 72000);
+    const anticipoSeguro = Math.min(simAnticipo, costoSeguro);
+    const ratioCosto = params.costoDepto > 0 ? costoSeguro / params.costoDepto : 1;
     const recargoGastos = flujoSocio.recargoGastosPorCuota * ratioCosto;
     const pagoFinalGastos = flujoSocio.pagoFinalGastos * ratioCosto;
 
     return calcularFlujoIndividual(
       socioId,
-      simImporteUnidad,
-      simAnticipo,
+      costoSeguro,
+      anticipoSeguro,
       params.cantidadCuotas,
       params.modalidadAnticipo,
       recargoGastos,

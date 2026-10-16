@@ -54,18 +54,17 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawText = e.target.value;
     
-    // Si borró completamente el texto
+    // Si borró completamente el texto, permitir que quede vacío mientras escribe
     if (!rawText.trim() || rawText === prefix.trim() || rawText === '$') {
-      setDisplayValue(`${prefix}0`);
+      setDisplayValue(prefix);
       onChange(0);
       return;
     }
 
     const numVal = parseCurrencyString(rawText);
     
-    // Validar límites si están definidos
+    // Validar límite superior si está definido (no limitar min mientras escribe)
     let clampedVal = numVal;
-    if (min !== undefined && clampedVal < min && clampedVal !== 0) clampedVal = min;
     if (max !== undefined && clampedVal > max) clampedVal = max;
 
     setDisplayValue(formatCurrencyValue(clampedVal, prefix));
@@ -74,15 +73,18 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
 
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     setIsFocused(true);
-    // Si el valor es 0, facilitar la edición seleccionando todo
-    if (value === 0) {
-      setTimeout(() => e.target.select(), 10);
-    }
+    // Facilitar la edición seleccionando todo el contenido para sobreescribir inmediatamente
+    setTimeout(() => e.target.select(), 10);
   };
 
   const handleBlur = () => {
     setIsFocused(false);
-    setDisplayValue(formatCurrencyValue(value, prefix));
+    let finalVal = parseCurrencyString(displayValue);
+    if (min !== undefined && finalVal < min && finalVal !== 0) {
+      finalVal = min;
+    }
+    setDisplayValue(formatCurrencyValue(finalVal, prefix));
+    onChange(finalVal);
   };
 
   return (
