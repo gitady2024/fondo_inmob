@@ -14,7 +14,8 @@ import {
   LogOut,
   MoreVertical,
   Calculator,
-  ArrowLeft
+  ArrowLeft,
+  LogIn
 } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/supabase';
 
@@ -113,8 +114,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* Badge de Perfil Actual si el usuario está autenticado */}
-          {user && (
+          {/* Perfil autenticado (Badge + Salir) o Botón Ingresar al Perfil si no hay sesión */}
+          {user ? (
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -160,6 +161,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               )}
             </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenLogin}
+              id="btn-navbar-login"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/25 cursor-pointer"
+              title="Ingresar con tu cuenta o perfil"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Ingresar al Perfil</span>
+            </button>
           )}
 
           {/* ========================================================= */}

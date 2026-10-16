@@ -970,7 +970,8 @@ export const App: React.FC = () => {
               params={currentFondo.params}
               gastos={currentFondo.gastos}
               onOpenContrato={() => setIsContratoOpen(true)}
-              onSignOut={handleSignOutAll}
+              onSignOut={currentUser.isGuest ? undefined : handleSignOutAll}
+              onLogin={currentUser.isGuest ? () => setIsLoginOpen(true) : undefined}
               initialTab={goToSimulador ? 'adelanto' : 'cartola'}
             />
           </div>

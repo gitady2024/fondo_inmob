@@ -44,7 +44,9 @@ import {
   TrendingDown,
   Send,
   AlertCircle,
-  LogOut
+  LogOut,
+  LogIn,
+  Calculator
 } from 'lucide-react';
 
 interface PortalSocioProps {
@@ -56,6 +58,7 @@ interface PortalSocioProps {
   gastos: GastosConfigState;
   onOpenContrato?: () => void;
   onSignOut?: () => void;
+  onLogin?: () => void;
   /** Tab inicial para abrir directamente (ej. 'adelanto' para simulación de plan) */
   initialTab?: 'cartola' | 'adelanto' | 'cesion' | 'obra' | 'mensajes';
 }
@@ -69,6 +72,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   gastos,
   onOpenContrato,
   onSignOut,
+  onLogin,
   initialTab = 'cartola'
 }) => {
   const socioId = user.socioId || 1;
@@ -370,19 +374,23 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-indigo-600/30">
-                D{socioId}
+                {user.isGuest ? <Calculator className="w-6 h-6 text-white" /> : `D${socioId}`}
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                    Hola, {user.nombre}
+                    {user.isGuest ? 'Simulador de Plan de Inversión' : `Hola, ${user.nombre}`}
                   </h2>
-                  <span className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                    Suscripción Activa
+                  <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                    user.isGuest
+                      ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300'
+                      : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                  }`}>
+                    {user.isGuest ? 'Simulación Abierta' : 'Suscripción Activa'}
                   </span>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Proyecto: <strong className="text-indigo-300">{currentFondo.nombre}</strong> • Unidad:{' '}
+                  Proyecto: <strong className="text-indigo-300">{currentFondo.nombre}</strong> • {user.isGuest ? 'Unidad de referencia:' : 'Unidad:'}{' '}
                   <strong className="text-white">Departamento {socioId}</strong> (Piso {pisoAsignado}° "{letraUnidad}")
                 </p>
               </div>
@@ -421,16 +429,31 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
                 </button>
               )}
 
-              {onSignOut && (
-                <button
-                  type="button"
-                  onClick={onSignOut}
-                  className="bg-rose-500/10 hover:bg-rose-500/25 text-rose-300 hover:text-white border border-rose-500/40 font-bold text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm"
-                  title="Cerrar sesión y salir de la cuenta de socio"
-                >
-                  <LogOut className="w-4 h-4 text-rose-400" />
-                  <span>Salir de la cuenta</span>
-                </button>
+              {/* Botón: Ingresar al Perfil (modo invitado) o Salir de la cuenta (sesión real) */}
+              {user.isGuest ? (
+                onLogin && (
+                  <button
+                    type="button"
+                    onClick={onLogin}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-md shadow-indigo-600/25"
+                    title="Ingresar con tu cuenta de socio"
+                  >
+                    <LogIn className="w-4 h-4 text-white" />
+                    <span>Ingresar al Perfil</span>
+                  </button>
+                )
+              ) : (
+                onSignOut && (
+                  <button
+                    type="button"
+                    onClick={onSignOut}
+                    className="bg-rose-500/10 hover:bg-rose-500/25 text-rose-300 hover:text-white border border-rose-500/40 font-bold text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                    title="Cerrar sesión y salir de la cuenta de socio"
+                  >
+                    <LogOut className="w-4 h-4 text-rose-400" />
+                    <span>Salir de la cuenta</span>
+                  </button>
+                )
               )}
             </div>
           </div>
