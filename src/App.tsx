@@ -623,14 +623,29 @@ export const App: React.FC = () => {
             }}
             onAdoptarProyecto={(p) => {
               handleSelectFondo(p.id);
-              navigateTo('app', { guestSim: true });
+              if (currentUser) {
+                // Ya hay sesión activa: ir al app sin sobreescribir al usuario
+                setGoToSimulador(true);
+                navigateTo('app');
+                setTimeout(() => setGoToSimulador(false), 500);
+              } else {
+                navigateTo('app', { guestSim: true });
+              }
               setToastMessage(`🏗️ Proyecto ${p.nombre} cargado en el simulador.`);
             }}
             onStartSimulation={(proyecto) => {
               if (proyecto) {
                 handleSelectFondo(proyecto.id);
               }
-              navigateTo('app', { guestSim: true });
+              if (currentUser) {
+                // Ya hay sesión activa (admin o socio): ir al app sin sobreescribir al usuario
+                setGoToSimulador(true);
+                navigateTo('app');
+                setTimeout(() => setGoToSimulador(false), 500);
+              } else {
+                // Sin sesión: entrar como invitado para simular
+                navigateTo('app', { guestSim: true });
+              }
               setToastMessage('📊 Bienvenido al Simulador de Inversión');
             }}
             onOpenContrato={() => setIsContratoOpen(true)}
@@ -653,7 +668,7 @@ export const App: React.FC = () => {
           <>
             {/* Barra de Navegación del Sistema de Gestión */}
             <Navbar
-              user={currentUser}
+              user={currentUser?.isGuest ? null : currentUser}
               unreadCount={unreadCount}
               onReset={handleResetCurrent}
               onPrint={() => window.print()}
@@ -661,7 +676,7 @@ export const App: React.FC = () => {
               onOpenLogin={() => setIsLoginOpen(true)}
               onOpenContrato={() => setIsContratoOpen(true)}
               onOpenMensajes={() => setIsMensajesOpen(true)}
-              onSignOut={handleSignOutAll}
+              onSignOut={currentUser?.isGuest ? undefined : handleSignOutAll}
               onSimularPlan={() => {
                 // Solo admin y socio pueden simular; técnico no
                 if (currentUser?.role === 'tecnico') return;
@@ -682,21 +697,7 @@ export const App: React.FC = () => {
               }
             />
 
-            {/* Banner cuando se navega en modo simulador invitado */}
-            {currentUser && (currentUser.isGuest || currentUser.id === 'invitado') && (
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl no-print mb-4">
-                <span className="text-xs text-slate-300">
-                  Estás en el <strong className="text-emerald-400">Simulador de Inversión</strong> (Modo Abierto).
-                </span>
-                <button
-                  type="button"
-                  onClick={() => navigateTo('landing')}
-                  className="text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer"
-                >
-                  ← Volver a la Portada Comercial
-                </button>
-              </div>
-            )}
+
 
             {!currentUser ? (
               /* SELECTOR DE PERFILES PRIVADO EN /app o /acceso */

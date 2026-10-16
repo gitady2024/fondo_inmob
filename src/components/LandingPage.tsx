@@ -268,7 +268,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               className="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs sm:text-sm font-extrabold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transition transform hover:scale-[1.02] cursor-pointer flex items-center gap-1.5"
             >
               <Calculator className="w-4 h-4 text-emerald-100" />
-              <span>Simular mi plan</span>
+              <span>Simular Plan</span>
             </button>
 
             {/* MENÚ DESPLEGABLE (⋮) PARA ACCIONES SECUNDARIAS */}
@@ -454,7 +454,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-sm sm:text-base font-bold px-7 py-3.5 rounded-xl shadow-lg shadow-emerald-600/30 transition transform hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2"
           >
             <Sparkles className="w-4 h-4 text-emerald-200" />
-            <span>Simular mi plan a Medida</span>
+            <span>Simular Plan a Medida</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 
@@ -688,7 +688,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   }}
                   className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold py-3.5 px-6 rounded-xl transition text-xs sm:text-sm text-center cursor-pointer shadow-lg shadow-emerald-600/20"
                 >
-                  Simular mi plan
+                  Simular Plan
                 </button>
               </div>
             </div>

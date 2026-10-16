@@ -394,7 +394,7 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
               onClick={() => onSimularProyecto(proyectoActual)}
               className="w-full bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs sm:text-sm py-3.5 px-4 rounded-xl shadow-xl shadow-emerald-500/20 transition transform hover:scale-[1.02] flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>Simular mi plan en esta obra</span>
+              <span>Simular Plan en esta Obra</span>
               <ArrowRight className="w-4 h-4 text-slate-950" />
             </button>
 
