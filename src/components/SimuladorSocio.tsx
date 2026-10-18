@@ -1043,7 +1043,7 @@ export const SimuladorSocio: React.FC<SimuladorSocioProps> = ({
             </div>
           </div>
 
-          {/* Cartola Simulada Mes a Mes con Lenguaje Claro */}
+          {/* Simulación y Cronograma Proyectado Mes a Mes con Lenguaje Claro */}
           <div className="bg-slate-900/80 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
             <div className="p-5 border-b border-slate-800 flex items-center justify-between">
               <div>

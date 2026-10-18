@@ -18,6 +18,7 @@ import {
 
 interface ObrasEnMarchaProps {
   proyectos: FondoGuardado[];
+  proyectoActivoId?: string;
   onSimularProyecto: (proyecto: FondoGuardado) => void;
   onPreinscribirProyecto: (proyecto: FondoGuardado, cuotaEstimada: number) => void;
   className?: string;
@@ -30,6 +31,7 @@ const FALLBACK_IMG = 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?
 
 export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
   proyectos,
+  proyectoActivoId,
   onSimularProyecto,
   onPreinscribirProyecto,
   className = '',
@@ -38,8 +40,27 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
 }) => {
   // Proyectos activos
   const proyectosActivos = proyectos.filter((p) => p.estadoPlan !== 'simulacion');
-  const [proyectoSeleccionadoIndex, setProyectoSeleccionadoIndex] = useState<number>(0);
+  
+  // Buscar índice inicial según la obra activa seleccionada
+  const getIndexFromId = (id?: string) => {
+    if (!id) return 0;
+    const idx = proyectosActivos.findIndex((p) => p.id === id);
+    return idx >= 0 ? idx : 0;
+  };
+
+  const [proyectoSeleccionadoIndex, setProyectoSeleccionadoIndex] = useState<number>(() => getIndexFromId(proyectoActivoId));
   const [fotoActivaIndex, setFotoActivaIndex] = useState<number>(0);
+
+  // Sincronizar automáticamente cuando el perfil administrador cambie o modifique la obra activa
+  React.useEffect(() => {
+    if (proyectoActivoId) {
+      const idx = proyectosActivos.findIndex((p) => p.id === proyectoActivoId);
+      if (idx >= 0) {
+        setProyectoSeleccionadoIndex(idx);
+        setFotoActivaIndex(0);
+      }
+    }
+  }, [proyectoActivoId, proyectosActivos]);
 
   const proyectoActual = proyectosActivos[proyectoSeleccionadoIndex] || proyectos[0];
   if (!proyectoActual) return null;

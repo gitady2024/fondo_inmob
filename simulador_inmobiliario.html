@@ -320,7 +320,7 @@
       </div>
 
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-1 no-print">
-        <div class="text-xs text-slate-400 flex items-center gap-1.5"><span>📋</span> <span id="labelModoVistaCartola">Mostrando vista resumida</span></div>
+        <div class="text-xs text-slate-400 flex items-center gap-1.5"><span>📋</span> <span id="labelModoVistaPlan">Mostrando vista resumida</span></div>
         <div class="flex items-center gap-2">
           <button id="btnToggleDespliegueCuotas" type="button" class="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-600 px-3 py-1.5 rounded-lg text-xs font-semibold">
             <span id="iconoToggleCuotas">👁️</span> <span id="textoToggleCuotas">Desplegar todas las cuotas</span>
@@ -341,7 +341,7 @@
               <th class="py-3 px-4 text-center font-semibold">Hito / Estado</th>
             </tr>
           </thead>
-          <tbody id="tablaCartolaSocio" class="divide-y divide-slate-700/60 font-mono text-xs"></tbody>
+          <tbody id="tablaPlanSocio" class="divide-y divide-slate-700/60 font-mono text-xs"></tbody>
         </table>
       </div>
     </section>
@@ -630,7 +630,7 @@
       document.getElementById('liqGastosAdjudicacionAdquirente').textContent = fmtMoneda(mesesPosesion[idxCed] > mSalida ? pagoFinalGastos : 0);
       document.getElementById('liqCostoTotalAdquirente').textContent = fmtMoneda(arrNeto + (flCed.totalAbonado - capAportado));
 
-      // --- Cartola Individual ---
+      // --- Estado de Cuenta y Simulación Individual ---
       const idxFicha = parseInt(inputs.socioCuenta.value) - 1;
       const flSocio = flujosGlobales[idxFicha];
       const mPosFicha = mesesPosesion[idxFicha];
@@ -660,8 +660,8 @@
       else if (mesSim >= mPosFicha) { elEst.textContent = '🔑 Posesión otorgada'; elEst.className = 'text-amber-300 font-bold'; }
       else { elEst.textContent = '⏳ En espera de adjudicación'; elEst.className = 'text-slate-300'; }
 
-      // Construir filas de Cartola
-      const tbodyCartola = document.getElementById('tablaCartolaSocio'); tbodyCartola.innerHTML = '';
+      // Construir filas de Simulación / Estado de Cuenta
+      const tbodyPlan = document.getElementById('tablaPlanSocio'); tbodyPlan.innerHTML = '';
       
       // Fila mes 0
       const tr0 = document.createElement('tr');
@@ -672,7 +672,7 @@
         <td class="py-2.5 px-4 text-right font-bold text-white">${fmtMoneda(anticiposPorSocio[idxFicha])}</td>
         <td class="py-2.5 px-4 text-right text-slate-300">${fmtMoneda(costoDepto - anticiposPorSocio[idxFicha])}</td>
         <td class="py-2.5 px-4 text-center"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">Integrado</span></td>`;
-      tbodyCartola.appendChild(tr0);
+      tbodyPlan.appendChild(tr0);
 
       let lastMes = 0;
       flSocio.flujo.forEach(f => {
@@ -682,7 +682,7 @@
           if (!mostrarTodasLasCuotas && f.mes > lastMes + 1 && lastMes !== 0) {
             const trSep = document.createElement('tr'); trSep.className = 'bg-slate-900/40 text-slate-500 text-center';
             trSep.innerHTML = `<td colspan="7" class="py-1.5 px-4 text-[11px] italic">••• ${f.mes - lastMes - 1} cuotas intermedias ocultas •••</td>`;
-            tbodyCartola.appendChild(trSep);
+            tbodyPlan.appendChild(trSep);
           }
           
           let hitoHtml = '<span class="text-slate-500 text-[10px]">Devengado</span>';
@@ -707,7 +707,7 @@
             <td class="py-2.5 px-4 text-right font-mono text-white font-bold">${fmtMoneda(f.totalAcumulado)}</td>
             <td class="py-2.5 px-4 text-right font-mono text-slate-400">${fmtMoneda(f.saldoRemanente)}</td>
             <td class="py-2 px-4 align-middle">${hitoHtml}</td>`;
-          tbodyCartola.appendChild(tr);
+          tbodyPlan.appendChild(tr);
           lastMes = f.mes;
         }
       });
@@ -727,7 +727,7 @@
       mostrarTodasLasCuotas = !mostrarTodasLasCuotas;
       document.getElementById('iconoToggleCuotas').textContent = mostrarTodasLasCuotas ? '▲' : '👁️';
       document.getElementById('textoToggleCuotas').textContent = mostrarTodasLasCuotas ? 'Colapsar a hitos clave' : 'Desplegar todas las cuotas';
-      document.getElementById('labelModoVistaCartola').textContent = mostrarTodasLasCuotas ? 'Mostrando todas las cuotas completas del plan' : 'Mostrando vista resumida';
+      document.getElementById('labelModoVistaPlan').textContent = mostrarTodasLasCuotas ? 'Mostrando todas las cuotas completas del plan' : 'Mostrando vista resumida';
       recalcular();
     });
 
@@ -762,7 +762,7 @@
     inputs.socioCuenta.value = "1";
     document.getElementById('iconoToggleCuotas').textContent = '▲';
     document.getElementById('textoToggleCuotas').textContent = 'Colapsar a hitos clave';
-    document.getElementById('labelModoVistaCartola').textContent = 'Mostrando todas las cuotas completas del plan';
+    document.getElementById('labelModoVistaPlan').textContent = 'Mostrando todas las cuotas completas del plan';
     recalcular();
   </script>
 </body>

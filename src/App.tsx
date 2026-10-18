@@ -176,9 +176,17 @@ export const App: React.FC = () => {
   }, []);
 
   // Recarga la lista de fondos (usada por ObrasAdminModal tras crear/editar/borrar)
-  const recargarFondos = async () => {
+  const recargarFondos = async (preferredActiveId?: string) => {
     const list = await getAllFondos();
     setFondosList(list);
+    const targetId = preferredActiveId || getStoredCurrentFondoId();
+    if (targetId && list.some((f) => f.id === targetId)) {
+      setCurrentFondoId(targetId);
+      setStoredCurrentFondoId(targetId);
+    } else if (list.length > 0 && !list.some((f) => f.id === currentFondoId)) {
+      setCurrentFondoId(list[0].id);
+      setStoredCurrentFondoId(list[0].id);
+    }
   };
 
   // Si el usuario cambia a rol 'socio', asegurar que socioSeleccionado sea su socioId
@@ -972,7 +980,7 @@ export const App: React.FC = () => {
               onOpenContrato={() => setIsContratoOpen(true)}
               onSignOut={currentUser.isGuest ? undefined : handleSignOutAll}
               onLogin={currentUser.isGuest ? () => setIsLoginOpen(true) : undefined}
-              initialTab={goToSimulador ? 'adelanto' : 'cartola'}
+              initialTab="simulacion"
             />
           </div>
         ) : (

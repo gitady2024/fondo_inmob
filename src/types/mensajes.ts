@@ -25,7 +25,7 @@ export const CATEGORIAS_CONFIG: Record<CategoriaMensaje, CategoriaInfo> = {
   },
   pago_cuota: {
     key: 'pago_cuota',
-    label: 'Pago de Cuota / Cartola',
+    label: 'Pago de Cuota / Estado de Cuenta',
     badgeClass: 'bg-emerald-900/50 text-emerald-300 border-emerald-700/50',
     descripcion: 'Aviso o consulta sobre imputación de cuotas, transferencias o saldos'
   },

@@ -166,7 +166,7 @@ export const exportarFichaSocioPDF = (
 };
 
 // ============================================================================
-// 2. EXPORTACIÓN EXCEL: FICHA CARTOLA INDIVIDUAL
+// 2. EXPORTACIÓN EXCEL: FICHA DE SIMULACIÓN Y ESTADO DE CUENTA INDIVIDUAL
 // ============================================================================
 export const exportarFichaSocioExcel = (
   socio: FlujoSocioCalculado,
@@ -180,7 +180,7 @@ export const exportarFichaSocioExcel = (
 
   const headerInfo = [
     ['FONDO INMOBILIARIO DE AHORRO PREVIO MUTUO'],
-    ['ESTADO DE CUENTA CORRIENTE INDIVIDUAL'],
+    ['ESTADO DE CUENTA CORRIENTE Y SIMULACIÓN INDIVIDUAL'],
     ['Fecha de Emisión:', new Date().toLocaleDateString('es-AR')],
     ['Titular:', `Socio D${socio.socioId} (Depto ${socio.socioId})`],
     ['Valor Departamento ($):', params.costoDepto],
@@ -249,7 +249,7 @@ export const exportarFichaSocioExcel = (
   const ws = XLSX.utils.aoa_to_sheet([...headerInfo, tableHead, ...tableRows]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, `Socio D${socio.socioId}`);
-  XLSX.writeFile(wb, `Cartola_Socio_D${socio.socioId}.xlsx`);
+  XLSX.writeFile(wb, `Simulacion_Socio_D${socio.socioId}.xlsx`);
 };
 
 // ============================================================================

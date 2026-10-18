@@ -65,14 +65,14 @@ const CURRENT_FONDO_ID_KEY = 'fondo_inmobil_current_id';
 
 export const PLANTILLAS_PREDEFINIDAS: Omit<FondoGuardado, 'id' | 'updated_at'>[] = [
   {
-    nombre: 'Torre Central (10 Deptos • 48 Meses)',
+    nombre: 'Torre Central (10 Deptos • 36 Meses)',
     descripcion: 'Plan fiduciario activo con suscripciones completas y avance de cuotas en marcha.',
     estadoPlan: 'activo',
     params: {
-      costoDepto: 65000,
+      costoDepto: 75000,
       cantidadDeptos: 10,
-      cantidadCuotas: 48,
-      valorCuotaBase: 1354,
+      cantidadCuotas: 36,
+      valorCuotaBase: 2083,
       fechaInicio: '2027-01',
       modalidadAnticipo: 'reducir_cuota'
     },
@@ -82,8 +82,8 @@ export const PLANTILLAS_PREDEFINIDAS: Omit<FondoGuardado, 'id' | 'updated_at'>[]
       comisionEscribania: 3,
       otrosGastos: 500
     },
-    anticipos: [6500, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    adjudicacionFijada: { 1: 15 },
+    anticipos: [7500, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    adjudicacionFijada: { 1: 12 },
     cesion: {
       activo: false,
       socioCedente: 3,
@@ -303,10 +303,34 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
     if (raw) {
       const parsed: FondoGuardado[] = JSON.parse(raw);
       if (parsed.length > 0) {
-        return parsed.map((f) => ({
-          ...f,
-          ajustes: f.ajustes || []
-        }));
+        let changed = false;
+        const upgraded = parsed.map((f) => {
+          if (f.nombre.includes('Torre Central') && (f.nombre.includes('48 Meses') || f.params.cantidadCuotas === 48)) {
+            changed = true;
+            return {
+              ...f,
+              nombre: 'Torre Central (10 Deptos • 36 Meses)',
+              params: {
+                ...f.params,
+                costoDepto: 75000,
+                cantidadCuotas: 36,
+                valorCuotaBase: 2083
+              },
+              anticipos: f.anticipos && f.anticipos[0] === 6500 ? [7500, ...f.anticipos.slice(1)] : f.anticipos,
+              ajustes: f.ajustes || []
+            };
+          }
+          return {
+            ...f,
+            ajustes: f.ajustes || []
+          };
+        });
+        if (changed) {
+          try {
+            localStorage.setItem(LOCAL_STORAGE_FONDOS_KEY, JSON.stringify(upgraded));
+          } catch {}
+        }
+        return upgraded;
       }
     }
   } catch {}

@@ -4,16 +4,14 @@ import type {
   FlujoSocioCalculado,
   ParametrosFondoState,
   GastosConfigState,
-  EstrategiaImpactoAdelanto,
-  MecanismoSalida
+  EstrategiaImpactoAdelanto
 } from '../types/fondo';
 import type { FondoGuardado } from '../services/fondoService';
 import { FOTOS_OBRA_PREDETERMINADAS, type FotoAvance } from '../services/fondoService';
 import {
   fmtMoneda,
   formatFecha,
-  calcularFlujoIndividual,
-  calcularLiquidacionCesion
+  calcularFlujoIndividual
 } from '../utils/calculations';
 import { exportarFichaSocioPDF } from '../utils/exportReports';
 import { enviarMensaje } from '../services/mensajeService';
@@ -24,14 +22,10 @@ import { CentroMensajes } from './CentroMensajes';
 import { DATOS_TECNICOS_DEFAULT } from '../types/tecnico';
 import {
   Building2,
-  Zap,
   ScrollText,
   HardHat,
   MessageSquare,
   CheckCircle2,
-  Clock,
-  ShieldCheck,
-  FileCheck2,
   Calendar,
   Home,
   DollarSign,
@@ -40,9 +34,6 @@ import {
   Download,
   CreditCard,
   X,
-  ChevronDown,
-  ChevronUp,
-  TrendingDown,
   Send,
   AlertCircle,
   LogOut,
@@ -60,8 +51,8 @@ interface PortalSocioProps {
   onOpenContrato?: () => void;
   onSignOut?: () => void;
   onLogin?: () => void;
-  /** Tab inicial para abrir directamente (ej. 'adelanto' para simulación de plan) */
-  initialTab?: 'cartola' | 'adelanto' | 'cesion' | 'obra' | 'mensajes';
+  /** Tab inicial para abrir directamente (por defecto 'simulacion') */
+  initialTab?: 'simulacion' | 'obra' | 'mensajes';
 }
 
 export const PortalSocio: React.FC<PortalSocioProps> = ({
@@ -74,14 +65,14 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   onOpenContrato,
   onSignOut,
   onLogin,
-  initialTab = 'cartola'
+  initialTab = 'simulacion'
 }) => {
   const socioId = user.socioId || 1;
-  const [activeTab, setActiveTab] = useState<'cartola' | 'adelanto' | 'cesion' | 'obra' | 'mensajes'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'simulacion' | 'obra' | 'mensajes'>(initialTab);
 
-  // Cuando el padre pide ir al simulador (ej. botón "Simular Plan"), actualizar la pestaña activa
+  // Cuando el padre pide actualizar la pestaña activa
   useEffect(() => {
-    if (initialTab && initialTab !== 'cartola') {
+    if (initialTab) {
       setActiveTab(initialTab);
     }
   }, [initialTab]);
@@ -98,9 +89,6 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   const [pagoNotas, setPagoNotas] = useState<string>('');
   const [enviandoPago, setEnviandoPago] = useState<boolean>(false);
 
-  // Estados Acordeones
-  const [mostrarCronogramaAdelanto, setMostrarCronogramaAdelanto] = useState<boolean>(false);
-  const [mostrarMarcoLegalCesion, setMostrarMarcoLegalCesion] = useState<boolean>(false);
 
   // =========================================================
   // 5 PARÁMETROS DEL SIMULADOR DE PLAN (ORDEN DE IMPORTANCIA)
@@ -186,7 +174,6 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   const mesesTotales = flujoActivo.mesesTotales;
   const mPos = flujoActivo.cuotaPosesion;
   const fechaPos = formatFecha(fechaInicio, mPos);
-  const fechaFin = formatFecha(fechaInicio, mesesTotales);
   const dt = currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT;
 
   const proximaCuotaNum = useMemo(() => {
@@ -250,73 +237,6 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   }, [dt.etapas]);
 
   // ==========================================
-  // ESTADOS Y CÁLCULOS: SIMULACIÓN DE ADELANTO
-  // ==========================================
-  const [enviandoSolicitudAdelanto, setEnviandoSolicitudAdelanto] = useState<boolean>(false);
-
-  const flujoSimuladoAdelanto = useMemo(() => {
-    return calcularFlujoIndividual(
-      socioId,
-      params.costoDepto,
-      flujoSocio.anticipoMes0,
-      params.cantidadCuotas,
-      params.modalidadAnticipo,
-      flujoSocio.recargoGastosPorCuota,
-      {
-        activo: simMontoAdelanto > 0,
-        mes: simCuotaAdelanto,
-        monto: simMontoAdelanto,
-        estrategia: simEstrategiaAdelanto
-      },
-      flujoSocio.cuotaPosesion,
-      flujoSocio.pagoFinalGastos,
-      currentFondo.ajustes || []
-    );
-  }, [
-    socioId,
-    params.costoDepto,
-    params.cantidadCuotas,
-    params.modalidadAnticipo,
-    flujoSocio.anticipoMes0,
-    flujoSocio.recargoGastosPorCuota,
-    flujoSocio.cuotaPosesion,
-    flujoSocio.pagoFinalGastos,
-    currentFondo.ajustes,
-    simMontoAdelanto,
-    simCuotaAdelanto,
-    simEstrategiaAdelanto
-  ]);
-
-  const cuotaHabitualMesAdelanto = flujoSocio.flujo[simCuotaAdelanto - 1]?.capital || flujoSocio.cuotaInmInicial;
-  const cuotaNuevaMesAdelanto =
-    flujoSimuladoAdelanto.flujo[simCuotaAdelanto]?.capital ||
-    flujoSimuladoAdelanto.flujo[simCuotaAdelanto - 1]?.capital ||
-    0;
-  const alivioMensualCapital = Math.max(0, cuotaHabitualMesAdelanto - cuotaNuevaMesAdelanto);
-  const mesesAhorrados = Math.max(0, mesesTotales - flujoSimuladoAdelanto.mesesTotales);
-
-  // ==========================================
-  // ESTADOS Y CÁLCULOS: SIMULACIÓN DE CESIÓN
-  // ==========================================
-  const [simCuotaSalida, setSimCuotaSalida] = useState<number>(
-    Math.min(18, Math.max(1, Math.round(mesesTotales / 2)))
-  );
-  const [simPrimaCesion, setSimPrimaCesion] = useState<number>(10);
-  const [simMecanismoCesion, setSimMecanismoCesion] = useState<MecanismoSalida>('tercero');
-  const [enviandoSolicitudCesion, setEnviandoSolicitudCesion] = useState<boolean>(false);
-
-  const liquidacionCesion = useMemo(() => {
-    return calcularLiquidacionCesion(
-      flujoSocio,
-      simCuotaSalida,
-      simPrimaCesion,
-      flujoSocio.pagoFinalGastos
-    );
-  }, [flujoSocio, simCuotaSalida, simPrimaCesion]);
-
-  const fechaCesion = formatFecha(fechaInicio, simCuotaSalida);
-
-  // ==========================================
   // COORDENADAS BANCARIAS FIDUCIARIAS
   // ==========================================
   const nombreLimpioFondo = currentFondo.nombre.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'INMOBIL';
@@ -362,7 +282,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
           receiverRole: 'admin',
           categoria: 'pago_cuota',
           asunto: `Aviso de Transferencia - Cuota #${pagoCuotaSeleccionada} (Unidad D${socioId})`,
-          contenido: `Estimada Administración Fiduciaria:\n\nNotifico la realización de transferencia bancaria:\n- Unidad: Departamento ${socioId} (Piso ${pisoAsignado} "${letraUnidad}")\n- Cuota Imputada: #${pagoCuotaSeleccionada} (${formatFecha(fechaInicio, pagoCuotaSeleccionada).fechaCorta})\n- Monto Transferido: ${fmtMoneda(montoTotalPagar)}\n- Banco Emisor: ${pagoBanco || 'No especificado'}\n- N° de Comprobante / Transacción: ${pagoComprobante.trim()}\n${pagoNotas ? `- Observaciones: ${pagoNotas.trim()}\n` : ''}\nSolicito verificación de acreditación e imputación en la Cartola Individual Oficial.`
+          contenido: `Estimada Administración Fiduciaria:\n\nNotifico la realización de transferencia bancaria:\n- Unidad: Departamento ${socioId} (Piso ${pisoAsignado} "${letraUnidad}")\n- Cuota Imputada: #${pagoCuotaSeleccionada} (${formatFecha(fechaInicio, pagoCuotaSeleccionada).fechaCorta})\n- Monto Transferido: ${fmtMoneda(montoTotalPagar)}\n- Banco Emisor: ${pagoBanco || 'No especificado'}\n- N° de Comprobante / Transacción: ${pagoComprobante.trim()}\n${pagoNotas ? `- Observaciones: ${pagoNotas.trim()}\n` : ''}\nSolicito verificación de acreditación e imputación en el Estado de Cuenta Individual Oficial.`
         },
         user
       );
@@ -376,54 +296,6 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
       alert(`Error al enviar el aviso: ${err.message || 'Intente nuevamente'}`);
     } finally {
       setEnviandoPago(false);
-    }
-  };
-
-  // Enviar solicitud de adelanto de capital
-  const handleSolicitarAdelanto = async () => {
-    setEnviandoSolicitudAdelanto(true);
-    try {
-      await enviarMensaje(
-        {
-          fondoId: currentFondo.id,
-          receiverRole: 'admin',
-          categoria: 'adelanto_licitacion',
-          asunto: `Solicitud Formal de Adelanto de Capital - Unidad D${socioId}`,
-          contenido: `Estimada Administración Fiduciaria:\n\nSolicito formalmente la aplicación de un Adelanto Voluntario de Capital bajo las siguientes condiciones proyectadas:\n- Monto de inyección: ${fmtMoneda(simMontoAdelanto)}\n- Cuota de imputación: #${simCuotaAdelanto} (${formatFecha(fechaInicio, simCuotaAdelanto).fechaCorta})\n- Estrategia elegida: ${
-            simEstrategiaAdelanto === 'reducir_cuota'
-              ? 'Aliviar cuota mensual (ahorro mensual proyectado: -' + fmtMoneda(alivioMensualCapital) + '/mes)'
-              : 'Acortar plazo (adelanto de ' + mesesAhorrados + ' meses)'
-          }\n\nSolicito los datos de imputación fiduciaria para coordinar la transferencia.\n\nSocio D${socioId} - ${user.nombre}`
-        },
-        user
-      );
-      showToast('✓ Solicitud de adelanto remitida a la Administración. Podés seguir la respuesta en la pestaña Mensajes.');
-    } catch (err: any) {
-      alert(`Error al enviar la solicitud: ${err.message || 'Intente nuevamente'}`);
-    } finally {
-      setEnviandoSolicitudAdelanto(false);
-    }
-  };
-
-  // Enviar consulta formal de cesión
-  const handleSolicitarCesion = async () => {
-    setEnviandoSolicitudCesion(true);
-    try {
-      await enviarMensaje(
-        {
-          fondoId: currentFondo.id,
-          receiverRole: 'admin',
-          categoria: 'cesion_contrato',
-          asunto: `Consulta y Pautas de Cesión Contractual - Unidad D${socioId}`,
-          contenido: `Estimada Administración Fiduciaria:\n\nConsulto el inicio del procedimiento de Cesión de Posición Contractual para la Unidad D${socioId} conforme Arts. 1614 y 1636 del CCCN:\n- Cuota proyectada de salida: #${simCuotaSalida} (${fechaCesion.fechaCorta})\n- Mecanismo previsto: ${simMecanismoCesion === 'tercero' ? 'Cesión a Tercero' : simMecanismoCesion === 'preferencia' ? 'Preferencia de Consorcistas' : 'Renuncia diferida'}\n- Prima acordada: ${simPrimaCesion}%\n- Neto a percibir proyectado: ${fmtMoneda(liquidacionCesion.netoACobrar)}\n\nSolicito el certificado de Libre Deuda previo y las pautas para la postulación del cesionario.\n\nSocio D${socioId} - ${user.nombre}`
-        },
-        user
-      );
-      showToast('✓ Consulta de cesión remitida a la Administración. Nos contactaremos a la brevedad.');
-    } catch (err: any) {
-      alert(`Error al enviar la consulta: ${err.message || 'Intente nuevamente'}`);
-    } finally {
-      setEnviandoSolicitudCesion(false);
     }
   };
 
@@ -487,10 +359,10 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
                 type="button"
                 onClick={() => exportarFichaSocioPDF(flujoActivo, params, gastos, fechaInicio, proximaCuotaNum)}
                 className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
-                title="Descargar Ficha Oficial en PDF"
+                title="Descargar Simulación en PDF"
               >
                 <Download className="w-4 h-4 text-indigo-400" />
-                <span className="hidden sm:inline">Descargar Cartola</span>
+                <span className="hidden sm:inline">Descargar Simulación</span>
               </button>
 
               {onOpenContrato && (
@@ -612,44 +484,18 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
       </div>
 
       {/* ── 2. NAVEGACIÓN POR PESTAÑAS DEL PORTAL ─────────────────────────── */}
-      <div className="flex flex-wrap border-b border-slate-800 bg-slate-900/50 backdrop-blur-md rounded-2xl p-1 gap-1 max-w-4xl no-print">
+      <div className="flex flex-wrap border-b border-slate-800 bg-slate-900/50 backdrop-blur-md rounded-2xl p-1 gap-1 max-w-2xl no-print">
         <button
           type="button"
-          onClick={() => setActiveTab('cartola')}
+          onClick={() => setActiveTab('simulacion')}
           className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            activeTab === 'cartola'
+            activeTab === 'simulacion'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
               : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
           }`}
         >
           <Building2 className="w-4 h-4" />
           <span>{user.isGuest ? 'Simulación de Plan' : 'Mi Estado de Cuenta'}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('adelanto')}
-          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            activeTab === 'adelanto'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-          }`}
-        >
-          <Zap className="w-4 h-4" />
-          <span>Simular Adelanto</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('cesion')}
-          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            activeTab === 'cesion'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-          }`}
-        >
-          <ScrollText className="w-4 h-4" />
-          <span>Simular Cesión</span>
         </button>
 
         <button
@@ -665,22 +511,24 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
           <span>Avance y Mi Unidad</span>
         </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('mensajes')}
-          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            activeTab === 'mensajes'
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-          }`}
-        >
-          <MessageSquare className="w-4 h-4" />
-          <span>Mensajes & Consultas</span>
-        </button>
+        {!user.isGuest && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('mensajes')}
+            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              activeTab === 'mensajes'
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>Mensajes & Consultas</span>
+          </button>
+        )}
       </div>
 
-      {/* ── 3. PESTAÑA 1: MI ESTADO DE CUENTA (PLAN SIMULADO Y CARTOLA) ──── */}
-      {activeTab === 'cartola' && (
+      {/* ── 3. PESTAÑA PRINCIPAL: SIMULACIÓN DE PLAN Y ESTADO DE CUENTA ───── */}
+      {activeTab === 'simulacion' && (
         <div className="space-y-6">
           {/* Panel de Simulación con los 5 ítems en estricto orden de importancia */}
           <PanelSimuladorPlan
@@ -730,571 +578,6 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
               costoUnidad: simImporteUnidad
             }}
           />
-        </div>
-      )}
-
-      {/* ── 4. PESTAÑA 2: SIMULADOR DE ADELANTO (MINIMALISTA + COMPARADOR) ──── */}
-      {activeTab === 'adelanto' && (
-        <div className="space-y-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-7 shadow-xl space-y-6">
-
-            {/* Cabecera del Simulador */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shadow-inner">
-                  <Zap className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-white">Simulador de Adelanto Voluntario</h3>
-                  <p className="text-xs text-slate-400">
-                    Proyectá el impacto financiero directo de una inyección de capital en tus cuotas
-                  </p>
-                </div>
-              </div>
-              <span className="text-xs bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-mono font-medium px-3 py-1 rounded-xl">
-                Unidad D{socioId} • Depto {socioId}
-              </span>
-            </div>
-
-            {/* Selector Visual de Estrategia */}
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-2">
-                1. ¿Qué objetivo financiero buscás con este aporte?
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSimEstrategiaAdelanto('reducir_cuota')}
-                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                    simEstrategiaAdelanto === 'reducir_cuota'
-                      ? 'bg-indigo-950/40 border-indigo-500 ring-2 ring-indigo-500/30 shadow-lg shadow-indigo-600/15'
-                      : 'bg-slate-950/50 border-slate-800 hover:border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-extrabold text-white flex items-center gap-2">
-                      <TrendingDown className="w-4 h-4 text-emerald-400" />
-                      Aliviar Cuota Mensual
-                    </span>
-                    {simEstrategiaAdelanto === 'reducir_cuota' && (
-                      <CheckCircle2 className="w-4 h-4 text-indigo-400" />
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    Pagás menos dinero todos los meses manteniendo el mismo plazo total de posesión.
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSimEstrategiaAdelanto('acelerar')}
-                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                    simEstrategiaAdelanto === 'acelerar'
-                      ? 'bg-indigo-950/40 border-indigo-500 ring-2 ring-indigo-500/30 shadow-lg shadow-indigo-600/15'
-                      : 'bg-slate-950/50 border-slate-800 hover:border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-extrabold text-white flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-amber-400" />
-                      Acortar Plazo de Cancelación
-                    </span>
-                    {simEstrategiaAdelanto === 'acelerar' && (
-                      <CheckCircle2 className="w-4 h-4 text-indigo-400" />
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    Mantenés el valor habitual de cuota y finalizás tu plan financiero meses antes.
-                  </p>
-                </button>
-              </div>
-            </div>
-
-            {/* Inputs de Configuración del Adelanto */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  2. Monto a Inyectar (USD)
-                </label>
-                <input
-                  type="number"
-                  step="500"
-                  min="500"
-                  value={simMontoAdelanto}
-                  onChange={(e) => setSimMontoAdelanto(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="w-full bg-slate-900 border border-slate-700 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-base text-white font-mono font-bold outline-none"
-                />
-                {/* Botones rápidos de importe */}
-                <div className="flex gap-1.5 mt-2">
-                  {[1000, 2500, 5000, 10000].map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setSimMontoAdelanto(m)}
-                      className="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded-lg font-mono transition cursor-pointer"
-                    >
-                      +${m.toLocaleString('es-AR')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="block text-xs font-bold text-slate-300">
-                    3. Cuota de Inyección
-                  </label>
-                  <span className="text-xs text-indigo-400 font-mono font-bold">
-                    {formatFecha(fechaInicio, simCuotaAdelanto).fechaCorta}
-                  </span>
-                </div>
-                <input
-                  type="number"
-                  min="1"
-                  max={mesesTotales}
-                  value={simCuotaAdelanto}
-                  onChange={(e) =>
-                    setSimCuotaAdelanto(
-                      Math.max(1, Math.min(mesesTotales, parseInt(e.target.value) || 1))
-                    )
-                  }
-                  className="w-full bg-slate-900 border border-slate-700 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-base text-white font-mono font-bold outline-none"
-                />
-                <p className="text-[11px] text-slate-500 mt-1.5">
-                  El aporte se computará en la cuota #{simCuotaAdelanto} del cronograma fiduciario.
-                </p>
-              </div>
-            </div>
-
-            {/* COMPARADOR VISUAL ANTES VS DESPUÉS */}
-            <div>
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                Resultado Comparativo: Plan Actual vs. Con Adelanto
-              </h4>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Columna 1: Plan Actual */}
-                <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3">
-                  <div className="text-xs font-bold text-slate-400 flex items-center justify-between">
-                    <span>Plan Actual (Sin inyección)</span>
-                    <span className="text-slate-500">Cronograma base</span>
-                  </div>
-
-                  <div className="space-y-2 pt-1 font-mono text-xs">
-                    <div className="flex justify-between border-b border-slate-800/80 pb-2">
-                      <span className="text-slate-400">Cuota capital estimada:</span>
-                      <strong className="text-white">{fmtMoneda(cuotaHabitualMesAdelanto)}/mes</strong>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-800/80 pb-2">
-                      <span className="text-slate-400">Plazo total del plan:</span>
-                      <strong className="text-white">{mesesTotales} cuotas</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Mes final proyectado:</span>
-                      <strong className="text-slate-300">{fechaFin.fechaCorta}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Columna 2: Con Adelanto (Resaltado en Verde/Índigo) */}
-                <div className="bg-gradient-to-br from-indigo-950/40 via-slate-950 to-slate-950 border-2 border-indigo-500/50 rounded-2xl p-4 space-y-3 shadow-lg shadow-indigo-500/10">
-                  <div className="text-xs font-extrabold text-indigo-300 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 text-indigo-400" />
-                      Con tu Inyección de {fmtMoneda(simMontoAdelanto)}
-                    </span>
-                    <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold">
-                      Impacto Directo
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 pt-1 font-mono text-xs">
-                    {simEstrategiaAdelanto === 'reducir_cuota' ? (
-                      <>
-                        <div className="flex justify-between border-b border-slate-800/80 pb-2">
-                          <span className="text-slate-300">Nueva cuota de capital:</span>
-                          <strong className="text-emerald-400 font-bold text-sm">
-                            {fmtMoneda(cuotaNuevaMesAdelanto)}/mes
-                          </strong>
-                        </div>
-                        <div className="flex justify-between border-b border-slate-800/80 pb-2">
-                          <span className="text-slate-300">Alivio mensual exacto:</span>
-                          <strong className="text-emerald-300 font-bold">
-                            -{fmtMoneda(alivioMensualCapital)} cada mes
-                          </strong>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-300">Plazo de posesión:</span>
-                          <strong className="text-white">Mismo plazo (Cuota {mPos})</strong>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex justify-between border-b border-slate-800/80 pb-2">
-                          <span className="text-slate-300">Meses ahorrados:</span>
-                          <strong className="text-emerald-400 font-bold text-sm">
-                            -{mesesAhorrados} meses antes
-                          </strong>
-                        </div>
-                        <div className="flex justify-between border-b border-slate-800/80 pb-2">
-                          <span className="text-slate-300">Nueva cuota de finalización:</span>
-                          <strong className="text-emerald-300 font-bold">
-                            Cuota #{flujoSimuladoAdelanto.mesesTotales} de {mesesTotales}
-                          </strong>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-300">Nueva fecha estimada:</span>
-                          <strong className="text-white">
-                            {formatFecha(fechaInicio, flujoSimuladoAdelanto.mesesTotales).fechaCorta}
-                          </strong>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Acción de Solicitud Directa a la Administración */}
-            <div className="bg-slate-950/80 border border-indigo-500/30 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>Validación Fiduciaria Directa</span>
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Podés solicitar a la Administración la aprobación formal y los datos para transferir tu aporte.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleSolicitarAdelanto}
-                disabled={enviandoSolicitudAdelanto}
-                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-md shadow-indigo-600/30 flex items-center gap-2 shrink-0 cursor-pointer"
-              >
-                <Send className="w-4 h-4" />
-                <span>{enviandoSolicitudAdelanto ? 'Enviando...' : 'Solicitar Aplicación Formal'}</span>
-              </button>
-            </div>
-
-            {/* Acordeón opcional de Cronograma Detallado */}
-            <div className="border border-slate-800 rounded-2xl overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setMostrarCronogramaAdelanto((prev) => !prev)}
-                className="w-full bg-slate-950/90 hover:bg-slate-900/90 p-4 text-left flex items-center justify-between text-xs font-bold text-slate-300 transition cursor-pointer"
-              >
-                <span className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-indigo-400" />
-                  Ver detalle cuota a cuota post-adelanto ({flujoSimuladoAdelanto.flujo.filter((m) => m.mes >= simCuotaAdelanto).length} cuotas)
-                </span>
-                {mostrarCronogramaAdelanto ? (
-                  <ChevronUp className="w-4 h-4 text-slate-400" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                )}
-              </button>
-
-              {mostrarCronogramaAdelanto && (
-                <div className="p-4 bg-slate-950 border-t border-slate-800 max-h-80 overflow-y-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-slate-900 text-slate-400 text-[10px] uppercase font-bold sticky top-0">
-                      <tr>
-                        <th className="py-2 px-2.5">Cuota</th>
-                        <th className="py-2 px-2.5">Período</th>
-                        <th className="py-2 px-2.5 text-right">Capital Proyectado</th>
-                        <th className="py-2 px-2.5 text-right">Adelanto</th>
-                        <th className="py-2 px-2.5 text-right text-emerald-400">Total Mes</th>
-                        <th className="py-2 px-2.5 text-right">Saldo</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
-                      {flujoSimuladoAdelanto.flujo
-                        .filter((m) => m.mes >= simCuotaAdelanto)
-                        .map((m) => (
-                          <tr
-                            key={m.mes}
-                            className={`hover:bg-slate-800/30 ${
-                              m.mes === simCuotaAdelanto ? 'bg-indigo-950/40 font-bold' : ''
-                            }`}
-                          >
-                            <td className="py-2 px-2.5 text-white">#{m.mes}</td>
-                            <td className="py-2 px-2.5 text-slate-400">
-                              {formatFecha(fechaInicio, m.mes).fechaCorta}
-                            </td>
-                            <td className="py-2 px-2.5 text-right text-indigo-300">
-                              {fmtMoneda(m.capital)}
-                            </td>
-                            <td className="py-2 px-2.5 text-right text-amber-300">
-                              {m.adelanto > 0 ? `+${fmtMoneda(m.adelanto)}` : '-'}
-                            </td>
-                            <td className="py-2 px-2.5 text-right text-emerald-400 font-bold">
-                              {fmtMoneda(m.abonadoMes)}
-                            </td>
-                            <td className="py-2 px-2.5 text-right text-slate-400">
-                              {fmtMoneda(m.saldoRemanente)}
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* ── 5. PESTAÑA 3: SIMULADOR DE CESIÓN (MINIMALISTA + LIQUIDACIÓN) ────── */}
-      {activeTab === 'cesion' && (
-        <div className="space-y-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-7 shadow-xl space-y-6">
-
-            {/* Cabecera de Cesión */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-inner">
-                  <ScrollText className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-white">Simulador de Cesión & Recupero de Capital</h3>
-                  <p className="text-xs text-slate-400">
-                    Calculá tu liquidación neta y la transferencia de tus cuotas restantes (Arts. 1614 y 1636 CCCN)
-                  </p>
-                </div>
-              </div>
-              <span className="text-xs bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono font-medium px-3 py-1 rounded-xl">
-                Socio D{socioId} • Depto {socioId}
-              </span>
-            </div>
-
-            {/* Controles de Configuración de la Cesión */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80">
-              <div>
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="block text-xs font-bold text-slate-300">
-                    ¿En qué cuota cederías?
-                  </label>
-                  <span className="text-xs text-amber-400 font-mono font-bold">
-                    {fechaCesion.fechaCorta}
-                  </span>
-                </div>
-                <input
-                  type="number"
-                  min="1"
-                  max={mesesTotales}
-                  value={simCuotaSalida}
-                  onChange={(e) =>
-                    setSimCuotaSalida(
-                      Math.max(1, Math.min(mesesTotales, parseInt(e.target.value) || 1))
-                    )
-                  }
-                  className="w-full bg-slate-900 border border-slate-700 focus:border-amber-500 rounded-xl px-4 py-2.5 text-sm text-white font-mono font-bold outline-none"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="block text-xs font-bold text-slate-300">
-                    Plusvalía / Prima acordada (%)
-                  </label>
-                  <span className="text-xs text-emerald-400 font-mono font-bold">
-                    +{fmtMoneda(liquidacionCesion.montoPrima)}
-                  </span>
-                </div>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={simPrimaCesion}
-                  onChange={(e) => setSimPrimaCesion(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-sm text-white font-mono font-bold outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  Mecanismo de Salida
-                </label>
-                <select
-                  value={simMecanismoCesion}
-                  onChange={(e) => setSimMecanismoCesion(e.target.value as MecanismoSalida)}
-                  className="w-full bg-slate-900 border border-slate-700 focus:border-amber-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none font-medium cursor-pointer"
-                >
-                  <option value="tercero">Cesión a Tercero Comprador</option>
-                  <option value="preferencia">Preferencia de Consorcistas del Fondo</option>
-                  <option value="diferido">Renuncia Diferida al Cierre</option>
-                </select>
-              </div>
-            </div>
-
-            {/* TARJETA HERO: NETO A PERCIBIR EN MANO */}
-            <div className="bg-gradient-to-br from-amber-950/30 via-slate-950 to-slate-950 border-2 border-amber-500/50 rounded-3xl p-5 sm:p-6 shadow-xl">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-amber-500/20 pb-4">
-                <div>
-                  <span className="text-xs font-extrabold text-amber-300 uppercase tracking-wider block">
-                    Liquidación Neta para el Socio Cedente
-                  </span>
-                  <div className="text-3xl sm:text-4xl font-black text-amber-300 font-mono mt-1">
-                    {fmtMoneda(liquidacionCesion.netoACobrar)}
-                  </div>
-                  <p className="text-xs text-amber-200/80 mt-1">
-                    Importe total neto que cobrás en mano al firmar la cesión notarial tripartita.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleSolicitarCesion}
-                  disabled={enviandoSolicitudCesion}
-                  className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-amber-600/30 transition flex items-center gap-2 shrink-0 cursor-pointer"
-                >
-                  <Send className="w-4 h-4" />
-                  <span>{enviandoSolicitudCesion ? 'Enviando...' : 'Iniciar Trámite de Cesión'}</span>
-                </button>
-              </div>
-
-              {/* Desglose de Liquidación */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
-                <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl">
-                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
-                    Capital Integrado
-                  </span>
-                  <div className="text-base font-black text-white font-mono mt-0.5">
-                    {fmtMoneda(liquidacionCesion.capitalAportado)}
-                  </div>
-                  <span className="text-[11px] text-slate-500">
-                    {liquidacionCesion.cuotasPagas} cuotas pagadas + anticipo
-                  </span>
-                </div>
-
-                <div className="bg-slate-900/80 border border-emerald-500/30 p-3.5 rounded-xl">
-                  <span className="text-emerald-400 text-[10px] uppercase font-bold tracking-wider block">
-                    Plusvalía ({simPrimaCesion}%)
-                  </span>
-                  <div className="text-base font-black text-emerald-400 font-mono mt-0.5">
-                    +{fmtMoneda(liquidacionCesion.montoPrima)}
-                  </div>
-                  <span className="text-[11px] text-slate-500">
-                    Revalorización sobre capital
-                  </span>
-                </div>
-
-                <div className="bg-slate-900/80 border border-rose-500/30 p-3.5 rounded-xl">
-                  <span className="text-rose-400 text-[10px] uppercase font-bold tracking-wider block">
-                    Arancel Fiduciario (2%)
-                  </span>
-                  <div className="text-base font-black text-rose-400 font-mono mt-0.5">
-                    -{fmtMoneda(liquidacionCesion.gastoCesion)}
-                  </div>
-                  <span className="text-[11px] text-slate-500">
-                    Gestión e inscripción notarial
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* LIBERACIÓN TOTAL DE CUOTAS FUTURAS */}
-            <div className="bg-slate-950/70 border border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white">
-                    Liberación Absoluta de Obligaciones Futuras
-                  </h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Quedás 100% desvinculado de abonar las <strong className="text-emerald-400">{liquidacionCesion.cuotasRestantesAdquirente} cuotas restantes</strong> ({fmtMoneda(liquidacionCesion.deudaRestanteAdquirente)}), que son asumidas por el nuevo adquirente.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* HOJA DE RUTA EN 4 PASOS SIMPLES */}
-            <div>
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                Procedimiento Notarial en 4 Pasos Simples
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
-                <div className="bg-slate-950/70 border border-slate-800 p-3.5 rounded-2xl space-y-1">
-                  <span className="text-[10px] font-black bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-md inline-block">
-                    Paso 1
-                  </span>
-                  <strong className="text-white block">Libre Deuda</strong>
-                  <p className="text-[11px] text-slate-400">
-                    Emisión del certificado de cuotas al día por la Administración.
-                  </p>
-                </div>
-
-                <div className="bg-slate-950/70 border border-slate-800 p-3.5 rounded-2xl space-y-1">
-                  <span className="text-[10px] font-black bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-md inline-block">
-                    Paso 2
-                  </span>
-                  <strong className="text-white block">Postular Adquirente</strong>
-                  <p className="text-[11px] text-slate-400">
-                    Presentación del comprador o activación del derecho de preferencia.
-                  </p>
-                </div>
-
-                <div className="bg-slate-950/70 border border-slate-800 p-3.5 rounded-2xl space-y-1">
-                  <span className="text-[10px] font-black bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-md inline-block">
-                    Paso 3
-                  </span>
-                  <strong className="text-white block">Redacción Notarial</strong>
-                  <p className="text-[11px] text-slate-400">
-                    Escribanía del fideicomiso confecciona el instrumento tripartito.
-                  </p>
-                </div>
-
-                <div className="bg-slate-950/70 border border-emerald-500/30 p-3.5 rounded-2xl space-y-1">
-                  <span className="text-[10px] font-black bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-md inline-block">
-                    Paso 4
-                  </span>
-                  <strong className="text-emerald-300 block">Firma y Cobro</strong>
-                  <p className="text-[11px] text-slate-400">
-                    Cobro del importe neto ({fmtMoneda(liquidacionCesion.netoACobrar)}) y finiquito.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Acordeón opcional de Requisitos Legales y Marco CCCN */}
-            <div className="border border-slate-800 rounded-2xl overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setMostrarMarcoLegalCesion((prev) => !prev)}
-                className="w-full bg-slate-950/90 hover:bg-slate-900/90 p-4 text-left flex items-center justify-between text-xs font-bold text-slate-300 transition cursor-pointer"
-              >
-                <span className="flex items-center gap-2">
-                  <FileCheck2 className="w-4 h-4 text-amber-400" />
-                  Marco Jurídico: Arts. 1614 y 1636 a 1640 del Código Civil y Comercial de la Nación
-                </span>
-                {mostrarMarcoLegalCesion ? (
-                  <ChevronUp className="w-4 h-4 text-slate-400" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                )}
-              </button>
-
-              {mostrarMarcoLegalCesion && (
-                <div className="p-4 bg-slate-950 border-t border-slate-800 text-xs text-slate-400 space-y-2 leading-relaxed">
-                  <p>
-                    • <strong>Art. 1636 (Transmisión Integral):</strong> En los contratos con prestaciones recíprocas, cualquiera de las partes puede ceder a un tercero su posición contractual si las demás partes lo consienten antes, simultáneamente o después de la cesión.
-                  </p>
-                  <p>
-                    • <strong>Art. 1637 (Efectos):</strong> Desde la cesión o notificación fehaciente a la Fiduciaria, el cedente queda desvinculado de sus obligaciones y no responde por el incumplimiento del cesionario.
-                  </p>
-                  <p>
-                    • <strong>Cláusula Sexta del Fideicomiso:</strong> Requiere comunicación escrita con 15 días de antelación, arancel del 2% y certificación de firmas en escribanía para la inscripción registral en el Padrón de Fideicomisarios.
-                  </p>
-                </div>
-              )}
-            </div>
-
-          </div>
         </div>
       )}
 
@@ -1629,7 +912,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
                 <div className="bg-indigo-950/20 border border-indigo-500/20 p-3 rounded-xl flex items-start gap-2 text-[11px] text-slate-400">
                   <AlertCircle className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
                   <span>
-                    Al confirmar, se enviará una notificación oficial con tu aviso al Centro de Mensajes de la Administración Fiduciaria para validar e imputar tu pago en la Cartola.
+                    Al confirmar, se enviará una notificación oficial con tu aviso al Centro de Mensajes de la Administración Fiduciaria para validar e imputar tu pago en el Estado de Cuenta Oficial.
                   </span>
                 </div>
 

@@ -42,7 +42,7 @@ interface ObrasAdminModalProps {
   isOpen: boolean;
   onClose: () => void;
   proyectos: FondoGuardado[];
-  onProyectosChange: () => void;
+  onProyectosChange: (newActiveId?: string) => void;
   initialEditId?: string;
   isAdmin?: boolean;
   activeFondoId?: string;
@@ -503,7 +503,7 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
       // Regenerar array de anticipos del tamaño correcto
       const anticipos = Array.from({ length: p.cantidadDeptos }, (_, i) => Number(editando.anticipos?.[i]) || 0);
 
-      await saveFondo(
+      const res = await saveFondo(
         editando.nombre!.trim(),
         p,
         g,
@@ -520,7 +520,11 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
         (editando.fotos || []).slice(0, 4)
       );
 
-      onProyectosChange();
+      // Si la obra editada/creada está activa o es la que estaba activa, actualizarla como obra activa en todo el proyecto
+      if (res.id && (editando.estadoPlan === 'activo' || editandoId === activeFondoId || !activeFondoId)) {
+        onSelectActiveFondo?.(res.id);
+      }
+      onProyectosChange(res.id);
       setFeedback({ ok: true, msg: mode === 'new' ? 'Obra creada exitosamente.' : 'Cambios guardados correctamente.' });
       setTimeout(() => setMode('list'), 900);
     } catch (err) {

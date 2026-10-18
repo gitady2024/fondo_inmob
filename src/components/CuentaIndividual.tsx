@@ -180,7 +180,7 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
               Estado de Cuenta Corriente Individual
             </h2>
             <p className="text-slate-400 text-xs mt-0.5">
-              Cartola financiera, evolución del capital integrado y amortización de saldo
+              Simulación financiera, evolución del capital integrado y amortización de saldo
             </p>
           </div>
         </div>
@@ -236,7 +236,7 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
           <button
             onClick={() => exportarFichaSocioExcel(flujoSocio, params, gastos, fechaInicio)}
             className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
-            title="Exportar Cartola a Excel"
+            title="Exportar Simulación a Excel"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Excel</span>
@@ -245,7 +245,7 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
           <button
             onClick={() => window.print()}
             className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-            title="Imprimir Cartola"
+            title="Imprimir Simulación"
           >
             <Printer className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Imprimir</span>

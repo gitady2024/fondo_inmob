@@ -21,7 +21,7 @@ const MENSAJES_INICIALES_DEMO: Mensaje[] = [
     receiverRole: 'admin',
     categoria: 'pago_cuota',
     asunto: 'Imputación del anticipo inicial y ajuste de cuota',
-    contenido: 'Estimada Administración Fiduciaria: Quería confirmar si el anticipo inicial de USD 6.500 que realicé ya se encuentra debidamente imputado en la Cartola y si el recálculo de la cuota mensual amortizada aplica desde la cuota 1.',
+    contenido: 'Estimada Administración Fiduciaria: Quería confirmar si el anticipo inicial de capital que realicé ya se encuentra debidamente imputado en el Estado de Cuenta y si el recálculo de la cuota mensual amortizada aplica desde la cuota 1.',
     leido: true,
     fechaCreacion: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString() // Hace 2 días
   },
@@ -35,7 +35,7 @@ const MENSAJES_INICIALES_DEMO: Mensaje[] = [
     receiverSocioId: 1,
     categoria: 'pago_cuota',
     asunto: 'Re: Imputación del anticipo inicial y ajuste de cuota',
-    contenido: 'Estimado Inversor de la Unidad D1: Confirmamos que su anticipo de USD 6.500 está acreditado correctamente en la cuenta fiduciaria y la modalidad activa es "reducir_cuota", lo que aminora el valor mensual. Puede descargarlo y verificarlo en su pestaña de Cartola Individual.',
+    contenido: 'Estimado Inversor de la Unidad D1: Confirmamos que su anticipo está acreditado correctamente en la cuenta fiduciaria y la modalidad activa es "reducir_cuota", lo que aminora el valor mensual. Puede descargarlo y verificarlo en su pestaña de Simulación y Estado de Cuenta.',
     replyToId: 'msg-seed-1',
     replyToPreview: {
       id: 'msg-seed-1',
