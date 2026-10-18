@@ -20,6 +20,7 @@ interface ProyectosActivosCTAProps {
   onAdoptarProyecto: (proyecto: FondoGuardado) => void;
   onPreinscribirProyecto?: (proyecto: FondoGuardado, cuotaEstimada: number) => void;
   onContactarProyecto?: (proyectoNombre: string) => void;
+  onVerDetallesPlan?: (proyectoId: string) => void;
 }
 
 export const ProyectosActivosCTA: React.FC<ProyectosActivosCTAProps> = ({
@@ -27,7 +28,8 @@ export const ProyectosActivosCTA: React.FC<ProyectosActivosCTAProps> = ({
   proyectoActivoId,
   onAdoptarProyecto,
   onPreinscribirProyecto,
-  onContactarProyecto
+  onContactarProyecto,
+  onVerDetallesPlan
 }) => {
   const [desplegado, setDesplegado] = useState<boolean>(true);
 
@@ -151,17 +153,37 @@ export const ProyectosActivosCTA: React.FC<ProyectosActivosCTAProps> = ({
                   <div className="space-y-2 pt-1">
                     <button
                       type="button"
-                      onClick={() => onAdoptarProyecto(p)}
+                      id={`btn-detalles-plan-${p.id}`}
+                      onClick={() => {
+                        if (esSeleccionado && onVerDetallesPlan) {
+                          onVerDetallesPlan(p.id);
+                        } else if (onAdoptarProyecto) {
+                          onAdoptarProyecto(p);
+                        }
+                      }}
                       className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm ${
                         esSeleccionado
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 hover:border-emerald-400'
                           : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
                       }`}
+                      title={esSeleccionado ? "Ver todos los detalles, especificaciones y cronograma del plan" : "Simular este proyecto en el simulador interactivo"}
                     >
                       <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
-                      <span>{esSeleccionado ? 'Parámetros Cargados' : 'Simular este Proyecto'}</span>
+                      <span>{esSeleccionado ? 'Detalles del Plan' : 'Simular este Proyecto'}</span>
                       {!esSeleccionado && <ArrowRight className="w-3.5 h-3.5" />}
                     </button>
+
+                    {/* Botón para ver detalles si no está seleccionado */}
+                    {!esSeleccionado && onVerDetallesPlan && (
+                      <button
+                        type="button"
+                        onClick={() => onVerDetallesPlan(p.id)}
+                        className="w-full py-1.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 text-[11px] font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                        title="Ver especificaciones técnicas y costos del proyecto"
+                      >
+                        <span>Detalles del Plan</span>
+                      </button>
+                    )}
 
                     {/* Botón de Preinscripción Oficial Llamativo */}
                     {onPreinscribirProyecto ? (

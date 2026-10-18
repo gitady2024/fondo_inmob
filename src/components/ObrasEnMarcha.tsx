@@ -277,13 +277,13 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
                     id="btn-panel-editar-obra"
                     onClick={() => onEditObra(proyectoActual.id)}
                     className="px-3 py-1.5 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/40 hover:border-amber-400 transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/10 hover:scale-[1.03]"
-                    title={isAdmin ? "Editar parámetros y datos de esta obra activa" : "Requiere cuenta de Administrador para editar esta obra"}
+                    title={isAdmin ? "Editar parámetros y datos de esta obra activa" : "Ver especificaciones y detalles del plan"}
                   >
                     <Pencil className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Editar esta obra</span>
+                    <span>{isAdmin ? 'Editar esta obra' : 'Detalles del Plan'}</span>
                     {!isAdmin && (
-                      <span className="text-[10px] font-mono text-amber-300/80 bg-amber-500/20 px-1 py-0.2 rounded border border-amber-500/30">
-                        Admin
+                      <span className="text-[10px] font-mono text-indigo-300/90 bg-indigo-500/20 px-1.5 py-0.5 rounded border border-indigo-500/30">
+                        Ver
                       </span>
                     )}
                   </button>

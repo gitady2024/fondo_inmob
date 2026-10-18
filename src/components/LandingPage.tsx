@@ -40,6 +40,8 @@ interface LandingPageProps {
   onOpenLogin?: () => void;
   /** Callback para editar directamente la obra activa */
   onEditObra?: (obraId?: string) => void;
+  /** Callback para ver los detalles completos del plan fiduciario */
+  onVerDetallesPlan?: (obraId: string) => void;
   /** Callback para cerrar sesión y salir de la cuenta */
   onSignOut?: () => void;
 }
@@ -56,6 +58,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   user,
   onOpenLogin,
   onEditObra,
+  onVerDetallesPlan,
   onSignOut
 }) => {
   const [modalPreinscripcionOpen, setModalPreinscripcionOpen] = useState(false);
@@ -361,8 +364,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     >
                       <Pencil className="w-4 h-4 text-amber-400 shrink-0" />
                       <div className="flex flex-col">
-                        <span className="font-semibold text-amber-200">Editar esta obra</span>
-                        <span className="text-[10px] text-slate-400">Modificar parámetros constructivos</span>
+                        <span className="font-semibold text-amber-200">
+                          {user?.role === 'admin' ? 'Editar esta obra' : 'Detalles de la obra'}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {user?.role === 'admin' ? 'Modificar parámetros constructivos' : 'Ver especificaciones, costos y plazos'}
+                        </span>
                       </div>
                     </button>
                   )}
@@ -511,6 +518,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <ProyectosActivosCTA
           proyectos={proyectosDisponibles}
           proyectoActivoId={proyectoActivoId}
+          onVerDetallesPlan={onVerDetallesPlan || onEditObra}
           onAdoptarProyecto={(p) => {
             if (onAdoptarProyecto) {
               onAdoptarProyecto(p);

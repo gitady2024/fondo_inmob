@@ -618,16 +618,15 @@ export const App: React.FC = () => {
               setLoginInitialRole('socio');
               setIsLoginOpen(true);
             }}
+            onVerDetallesPlan={(obraId) => {
+              const targetId = obraId || currentFondoId;
+              setEditObraId(targetId);
+              setIsObrasAdminOpen(true);
+            }}
             onEditObra={(obraId) => {
-              if (currentUser?.role === 'admin') {
-                const targetId = obraId || currentFondoId;
-                setEditObraId(targetId);
-                setIsObrasAdminOpen(true);
-              } else {
-                setLoginInitialRole('admin');
-                setIsLoginOpen(true);
-                setToastMessage('🔒 Solo el Administrador puede editar la obra. Iniciá sesión con tu cuenta de Administrador.');
-              }
+              const targetId = obraId || currentFondoId;
+              setEditObraId(targetId);
+              setIsObrasAdminOpen(true);
             }}
             onAdoptarProyecto={(p) => {
               handleSelectFondo(p.id);

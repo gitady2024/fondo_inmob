@@ -18,7 +18,8 @@ import {
   Star,
   Play,
   Coins,
-  ImageIcon
+  ImageIcon,
+  Lock
 } from 'lucide-react';
 import {
   type FondoGuardado,
@@ -698,7 +699,7 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
                     className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/50 transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/20"
                   >
                     <Pencil className="w-3.5 h-3.5" />
-                    {isAdmin ? 'Editar' : 'Ver Parámetros'}
+                    {isAdmin ? 'Editar' : 'Ver Detalles'}
                   </button>
 
                   {/* Eliminar */}
@@ -1459,22 +1460,22 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
             </div>
             <div>
               <h3 className="text-base font-extrabold text-white">
-                {isList && 'Gestión y Simulación de Obras (Panel Administrador)'}
+                {isList && (isAdmin ? 'Gestión y Simulación de Obras (Panel Administrador)' : 'Obras y Proyectos Fiduciarios')}
                 {mode === 'new' && 'Nueva Obra / Escenario de Simulación'}
-                {mode === 'edit' && 'Editar Obra y Parámetros'}
+                {mode === 'edit' && (isAdmin ? 'Editar Obra y Parámetros' : 'Detalles Oficiales del Plan')}
                 {isDelete && 'Confirmar Eliminación'}
               </h3>
               <p className="text-xs text-slate-400">
                 {isList && `${proyectos.length} proyectos registrados • Obras activas y simulaciones`}
-                {isForm && 'Configurá dirección, fotos, anticipos, cesión y adelantos'}
+                {isForm && (isAdmin ? 'Configurá dirección, fotos, anticipos, cesión y adelantos' : 'Especificaciones técnicas, financieras y contractuales (Solo lectura)')}
                 {isDelete && 'Acción irreversible'}
               </p>
             </div>
           </div>
           <button
             type="button"
-            onClick={isForm ? () => setMode('list') : onClose}
-            aria-label="Cerrar"
+            onClick={onClose}
+            aria-label="Cerrar ventana"
             className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -1527,23 +1528,42 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
               </>
             ) : (
               <>
-                <button
-                  type="button"
-                  onClick={() => { setMode('list'); setFeedback(null); }}
-                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition flex items-center gap-1.5 cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Volver a la lista
-                </button>
-                <button
-                  type="button"
-                  onClick={handleGuardar}
-                  disabled={guardando || !isAdmin}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <Save className="w-4 h-4" />
-                  {guardando ? 'Guardando...' : mode === 'new' ? 'Crear Proyecto' : 'Guardar Cambios'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition cursor-pointer"
+                  >
+                    Cerrar
+                  </button>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => { setMode('list'); setFeedback(null); }}
+                      className="px-3 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Volver a la lista
+                    </button>
+                  )}
+                </div>
+
+                {isAdmin ? (
+                  <button
+                    type="button"
+                    onClick={handleGuardar}
+                    disabled={guardando}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition cursor-pointer"
+                  >
+                    <Save className="w-4 h-4" />
+                    {guardando ? 'Guardando...' : mode === 'new' ? 'Crear Proyecto' : 'Guardar Cambios'}
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold shadow-sm">
+                    <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>Solo modificable con Perfil Administrador</span>
+                  </div>
+                )}
               </>
             )}
           </div>
