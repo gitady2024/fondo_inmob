@@ -34,9 +34,9 @@ export const NewFundModal: React.FC<NewFundModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/60">
+    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-auto max-h-[90vh] flex flex-col">
+        <div className="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/90 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
               <Building2 className="w-5 h-5" />
@@ -46,12 +46,16 @@ export const NewFundModal: React.FC<NewFundModalProps> = ({
               <p className="text-xs text-slate-400">Selecciona una plantilla base o inicia una configuración personalizada</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800">
+          <button
+            onClick={onClose}
+            aria-label="Cerrar modal"
+            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain">
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">Nombre del Plan o Fideicomiso</label>
             <input
@@ -123,7 +127,7 @@ export const NewFundModal: React.FC<NewFundModalProps> = ({
           </div>
         </div>
 
-        <div className="p-4 bg-slate-950 border-t border-slate-800 flex justify-end gap-2.5">
+        <div className="p-3.5 sm:p-4 bg-slate-950/90 border-t border-slate-800 flex justify-end gap-2.5 shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"

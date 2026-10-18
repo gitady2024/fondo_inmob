@@ -747,10 +747,10 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
       {/* ── 8. MODAL DE PAGO FIDUCIARIO & NOTIFICACIÓN DE TRANSFERENCIA ─────── */}
       {showModalPago && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
-          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl shadow-black/70 my-auto overflow-hidden animate-fadeIn">
+          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl shadow-black/70 my-auto overflow-hidden animate-fadeIn max-h-[90vh] flex flex-col">
 
             {/* Cabecera del Modal */}
-            <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-900/90">
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-800 bg-slate-900/90 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
                   <CreditCard className="w-5 h-5" />
@@ -775,7 +775,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
             </div>
 
             {/* Cuerpo del Modal */}
-            <div className="p-5 space-y-5 max-h-[75vh] overflow-y-auto">
+            <div className="p-4 sm:p-5 space-y-5 overflow-y-auto flex-1 overscroll-contain">
 
               {/* Bloque 1: Coordenadas Bancarias Fiduciarias con Copiado */}
               <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3">

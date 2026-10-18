@@ -1167,19 +1167,19 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
       {/* MODAL: REGISTRAR / EDITAR PROFESIONAL                              */}
       {/* ------------------------------------------------------------------ */}
       {isProfModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/60">
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/60 shrink-0">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Users className="w-4 h-4 text-amber-400" />
                 <span>{editingProfId ? 'Editar Datos del Profesional' : 'Registrar Nuevo Profesional a Cargo'}</span>
               </h3>
-              <button onClick={() => setIsProfModalOpen(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setIsProfModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveProf} className="p-6 space-y-4 text-xs">
+            <form onSubmit={handleSaveProf} className="p-5 sm:p-6 space-y-4 text-xs overflow-y-auto flex-1 overscroll-contain">
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">Rol / Cargo en el Proyecto</label>
                 <input
@@ -1300,19 +1300,19 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
       {/* MODAL PARA NUEVO TRÁMITE                                           */}
       {/* ------------------------------------------------------------------ */}
       {isNewTramiteOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/60">
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/60 shrink-0">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Landmark className="w-4 h-4 text-amber-400" />
                 <span>Registrar Nuevo Trámite / Permiso Oficial</span>
               </h3>
-              <button onClick={() => setIsNewTramiteOpen(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setIsNewTramiteOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleAddTramite} className="p-5 space-y-4 text-xs">
+            <form onSubmit={handleAddTramite} className="p-5 space-y-4 text-xs overflow-y-auto flex-1 overscroll-contain">
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">Organismo Público</label>
                 <select
@@ -1403,19 +1403,19 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
       {/* MODAL PARA NUEVO DOCUMENTO / PLANO                                 */}
       {/* ------------------------------------------------------------------ */}
       {isNewDocOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/60">
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/60 shrink-0">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <FolderPlus className="w-4 h-4 text-amber-400" />
                 <span>Agregar Plano o Documentación Técnica</span>
               </h3>
-              <button onClick={() => setIsNewDocOpen(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setIsNewDocOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleAddDocumento} className="p-5 space-y-4 text-xs">
+            <form onSubmit={handleAddDocumento} className="p-5 space-y-4 text-xs overflow-y-auto flex-1 overscroll-contain">
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">Categoría del Archivo</label>
                 <select

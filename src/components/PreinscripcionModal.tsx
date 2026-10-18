@@ -170,10 +170,10 @@ export const PreinscripcionModal: React.FC<PreinscripcionModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
-      <div className="relative w-full max-w-xl bg-slate-900 border border-amber-500/30 rounded-3xl shadow-2xl shadow-amber-500/10 overflow-hidden my-auto">
+      <div className="relative w-full max-w-xl bg-slate-900 border border-amber-500/30 rounded-3xl shadow-2xl shadow-amber-500/10 overflow-hidden my-auto max-h-[90vh] flex flex-col">
         
         {/* Cabecera decorativa premium */}
-        <div className="bg-gradient-to-r from-amber-600/30 via-emerald-600/20 to-slate-900 border-b border-slate-800 p-5 sm:p-6 flex items-start justify-between relative">
+        <div className="bg-gradient-to-r from-amber-600/30 via-emerald-600/20 to-slate-900 border-b border-slate-800 p-4 sm:p-6 flex items-start justify-between relative shrink-0">
           <div className="space-y-1 pr-8">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-[11px] font-extrabold uppercase tracking-wider text-amber-300">
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
@@ -201,7 +201,7 @@ export const PreinscripcionModal: React.FC<PreinscripcionModalProps> = ({
         </div>
 
         {/* CUERPO: Formulario o Pantalla de Éxito */}
-        <div className="p-5 sm:p-6">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain">
           {enviadoExitoso ? (
             <div className="text-center py-3 space-y-4 animate-in zoom-in-95 duration-200">
               <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/20">

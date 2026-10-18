@@ -151,11 +151,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-700 w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-700 w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-auto max-h-[90vh] flex flex-col">
         
         {/* Cabecera Institucional */}
-        <div className="p-5 sm:p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/90">
+        <div className="p-4 sm:p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/90 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
               <Shield className="w-6 h-6" />
@@ -181,7 +181,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </button>
         </div>
 
-        <div className="p-5 sm:p-6 space-y-5 max-h-[85vh] overflow-y-auto">
+        <div className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1 overscroll-contain">
           
           {/* ================================================================= */}
           {/* PASO 1: SELECCIÓN DEL ROL / PERFIL DE USUARIO                     */}
