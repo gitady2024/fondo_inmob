@@ -93,32 +93,37 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   // =========================================================
   // 5 PARÁMETROS DEL SIMULADOR DE PLAN (ORDEN DE IMPORTANCIA)
   // =========================================================
-  // 1ero: Importe de la unidad
-  const [simImporteUnidad, setSimImporteUnidad] = useState<number>(params.costoDepto || 72000);
-  // 2do: Anticipo mes 0 integrado
-  const [simAnticipo, setSimAnticipo] = useState<number>(flujoSocio.anticipoMes0 || 6500);
-  // 3ero: Adelanto específico en un mes a elegir
-  const [simTieneAdelanto, setSimTieneAdelanto] = useState<boolean>(true);
-  const [simMontoAdelanto, setSimMontoAdelanto] = useState<number>(10000);
-  const [simCuotaAdelanto, setSimCuotaAdelanto] = useState<number>(10);
+  // 1ero: Importe de la unidad (toma del plan o 60000 si está en 0)
+  const [simImporteUnidad, setSimImporteUnidad] = useState<number>(params.costoDepto || 60000);
+  // 2do: Anticipo mes 0 integrado (estrictamente en 0 para nuevas simulaciones)
+  const [simAnticipo, setSimAnticipo] = useState<number>(flujoSocio.anticipoMes0 || 0);
+  // 3ero: Adelanto específico (inactivo por defecto, monto en 0)
+  const [simTieneAdelanto, setSimTieneAdelanto] = useState<boolean>(false);
+  const [simMontoAdelanto, setSimMontoAdelanto] = useState<number>(0);
+  const [simCuotaAdelanto, setSimCuotaAdelanto] = useState<number>(12);
   const [simEstrategiaAdelanto, setSimEstrategiaAdelanto] = useState<EstrategiaImpactoAdelanto>('reducir_cuota');
   // 4to: Entrega/adjudicación de la unidad
-  const [simCuotaPosesion, setSimCuotaPosesion] = useState<number>(flujoSocio.cuotaPosesion || 15);
-  // 5to: Cesión/venta de la unidad o participación
+  const [simCuotaPosesion, setSimCuotaPosesion] = useState<number>(flujoSocio.cuotaPosesion || Math.round((params.cantidadCuotas || 48) / 2));
+  // 5to: Cesión/venta de la unidad o participación (inactivo por defecto)
   const [simActivarCesion, setSimActivarCesion] = useState<boolean>(false);
   const [simCuotaCesion, setSimCuotaCesion] = useState<number>(24);
-  const [simPorcentajePrimaCesion, setSimPorcentajePrimaCesion] = useState<number>(4);
+  const [simPorcentajePrimaCesion, setSimPorcentajePrimaCesion] = useState<number>(0);
 
   // Sincronizar si cambian los parámetros iniciales
   useEffect(() => {
     if (params.costoDepto) setSimImporteUnidad(params.costoDepto);
-    if (flujoSocio.anticipoMes0) setSimAnticipo(flujoSocio.anticipoMes0);
+    setSimAnticipo(flujoSocio.anticipoMes0 || 0);
     if (flujoSocio.cuotaPosesion) setSimCuotaPosesion(flujoSocio.cuotaPosesion);
-  }, [params.costoDepto, flujoSocio.anticipoMes0, flujoSocio.cuotaPosesion]);
+    if (currentFondo?.estadoPlan === 'simulacion') {
+      setSimTieneAdelanto(false);
+      setSimMontoAdelanto(0);
+      setSimActivarCesion(false);
+    }
+  }, [params.costoDepto, flujoSocio.anticipoMes0, flujoSocio.cuotaPosesion, currentFondo?.estadoPlan]);
 
   // Recálculo reactivo y dinámico del plan de inversión
   const flujoActivo = useMemo(() => {
-    const costoSeguro = simImporteUnidad > 0 ? simImporteUnidad : (params.costoDepto || 72000);
+    const costoSeguro = simImporteUnidad > 0 ? simImporteUnidad : (params.costoDepto || 60000);
     const anticipoSeguro = Math.min(simAnticipo, costoSeguro);
     const ratioCosto = params.costoDepto > 0 ? costoSeguro / params.costoDepto : 1;
     const recargoGastos = flujoSocio.recargoGastosPorCuota * ratioCosto;

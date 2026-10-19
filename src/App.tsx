@@ -15,6 +15,7 @@ import {
   getAllFondos,
   saveFondo,
   createFondoFromTemplate,
+  crearSimulacionDesdeCero,
   duplicateFondo,
   deleteFondo,
   getStoredCurrentFondoId,
@@ -385,26 +386,55 @@ export const App: React.FC = () => {
     setSocioSeleccionado(1);
   };
 
-  const handleCreateBlank = async (name: string) => {
-    const id = typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Date.now());
-    const tpl = PLANTILLAS_PREDEFINIDAS[0];
-    const res = await saveFondo(
-      name,
-      tpl.params,
-      tpl.gastos,
-      new Array(tpl.params.cantidadDeptos).fill(0),
-      {},
-      tpl.cesion,
-      tpl.adelanto,
-      id,
-      '',
-      DATOS_TECNICOS_DEFAULT
-    );
-    const all = await getAllFondos();
-    setFondosList(all);
-    setCurrentFondoId(res.id);
-    setStoredCurrentFondoId(res.id);
+  /**
+   * INICIAR SIMULACIÓN DESDE CERO (Unificada para todo el sistema)
+   * Garantiza que cualquier ingreso a la simulación comience con un nuevo plan
+   * limpio, con todos los anticipos en 0, adelantos inactivos y sin arrastrar datos anteriores.
+   */
+  const handleIniciarNuevaSimulacion = async (opciones?: { obraBase?: FondoGuardado }) => {
+    trackSimuladorInicio({ label: opciones?.obraBase ? 'obra-base' : 'nueva-desde-cero' });
+
+    const baseParams = opciones?.obraBase
+      ? {
+          costoDepto: opciones.obraBase.params.costoDepto,
+          cantidadDeptos: opciones.obraBase.params.cantidadDeptos,
+          cantidadCuotas: opciones.obraBase.params.cantidadCuotas,
+          fechaInicio: opciones.obraBase.params.fechaInicio
+        }
+      : undefined;
+
+    const nombreSim = opciones?.obraBase
+      ? `Simulación en ${opciones.obraBase.nombre}`
+      : 'Nueva Simulación de Plan';
+
+    const nuevaSim = await crearSimulacionDesdeCero(nombreSim, baseParams);
+
+    // Incorporar al listado y activar
+    setFondosList((prev) => [nuevaSim, ...prev.filter((f) => f.id !== nuevaSim.id)]);
+    setCurrentFondoId(nuevaSim.id);
+    setStoredCurrentFondoId(nuevaSim.id);
     setSocioSeleccionado(1);
+
+    // Si el usuario no tiene sesión activa, ingresa como invitado libre al simulador
+    if (!currentUser) {
+      setDevUserOverride(GUEST_SOCIO_USER);
+      setDevUser(GUEST_SOCIO_USER);
+    }
+
+    setGoToSimulador(true);
+    navigateTo('app');
+    setTimeout(() => setGoToSimulador(false), 500);
+
+    setToastMessage('✨ Nueva simulación iniciada desde cero. Todos los datos están listos para configurar.');
+  };
+
+  const handleCreateBlank = async (name: string) => {
+    const nueva = await crearSimulacionDesdeCero(name);
+    setFondosList((prev) => [nueva, ...prev]);
+    setCurrentFondoId(nueva.id);
+    setStoredCurrentFondoId(nueva.id);
+    setSocioSeleccionado(1);
+    setToastMessage('✨ Nuevo plan en blanco iniciado desde cero.');
   };
 
   const handleDuplicate = async (id: string) => {
@@ -629,31 +659,10 @@ export const App: React.FC = () => {
               setIsObrasAdminOpen(true);
             }}
             onAdoptarProyecto={(p) => {
-              handleSelectFondo(p.id);
-              if (currentUser) {
-                // Ya hay sesión activa: ir al app sin sobreescribir al usuario
-                setGoToSimulador(true);
-                navigateTo('app');
-                setTimeout(() => setGoToSimulador(false), 500);
-              } else {
-                navigateTo('app', { guestSim: true });
-              }
-              setToastMessage(`🏗️ Proyecto ${p.nombre} cargado en el simulador.`);
+              handleIniciarNuevaSimulacion({ obraBase: p });
             }}
             onStartSimulation={(proyecto) => {
-              if (proyecto) {
-                handleSelectFondo(proyecto.id);
-              }
-              if (currentUser) {
-                // Ya hay sesión activa (admin o socio): ir al app sin sobreescribir al usuario
-                setGoToSimulador(true);
-                navigateTo('app');
-                setTimeout(() => setGoToSimulador(false), 500);
-              } else {
-                // Sin sesión: entrar como invitado para simular
-                navigateTo('app', { guestSim: true });
-              }
-              setToastMessage('📊 Bienvenido al Simulador de Inversión');
+              handleIniciarNuevaSimulacion(proyecto ? { obraBase: proyecto } : undefined);
             }}
             onOpenContrato={() => setIsContratoOpen(true)}
             onPrint={() => window.print()}
@@ -687,11 +696,7 @@ export const App: React.FC = () => {
               onSimularPlan={() => {
                 // Solo admin y socio pueden simular; técnico no
                 if (currentUser?.role === 'tecnico') return;
-                trackSimuladorInicio({ label: 'navbar-app' });
-                setGoToSimulador(true);
-                setToastMessage('📊 Vista Simulador de Plan activada');
-                // Resetear flag después de un tick para que el portal se monte con el valor
-                setTimeout(() => setGoToSimulador(false), 500);
+                handleIniciarNuevaSimulacion();
               }}
               onNavigateLanding={() => navigateTo('landing')}
               onOpenObrasAdmin={
@@ -720,9 +725,7 @@ export const App: React.FC = () => {
                   currentFondoNombre={currentFondo.nombre}
                   cantidadSocios={currentFondo.params.cantidadDeptos}
                   onSimularLibre={() => {
-                    setDevUserOverride(GUEST_SOCIO_USER);
-                    setDevUser(GUEST_SOCIO_USER);
-                    setToastMessage('🧪 Acceso libre al Simulador Inmobiliario');
+                    handleIniciarNuevaSimulacion();
                   }}
                   onSelectSocio={(socioId) => {
                     const socioUser: UserProfile = {
@@ -763,6 +766,13 @@ export const App: React.FC = () => {
             onOpenNewModal={() => setIsNewModalOpen(true)}
             onShowToast={(msg) => setToastMessage(msg)}
             onSignOut={handleSignOutAll}
+            onEditCurrentObra={() => {
+              setEditObraId(currentFondoId);
+              setIsObrasAdminOpen(true);
+            }}
+            onTransformarEnObraActiva={() => {
+              handleToggleEstadoPlan(currentFondo.id, 'activo');
+            }}
             unreadCount={unreadCount}
             initialModule={goToSimulador ? 'simulador' : 'cobranzas'}
             childrenSimulador={
@@ -1139,11 +1149,9 @@ export const App: React.FC = () => {
           setToastMessage(`⭐ "${target?.nombre || 'Obra'}" ha sido establecida como la Obra Activa principal.`);
         }}
         onSimularFondo={(proyecto) => {
-          handleSelectFondo(proyecto.id);
+          handleIniciarNuevaSimulacion({ obraBase: proyecto });
           setIsObrasAdminOpen(false);
           setEditObraId(undefined);
-          navigateTo('app');
-          setToastMessage(`🔬 Modo Simulación: ${proyecto.nombre} cargado en el simulador.`);
         }}
         onClose={() => {
           setIsObrasAdminOpen(false);

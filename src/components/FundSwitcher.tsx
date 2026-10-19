@@ -188,17 +188,21 @@ export const FundSwitcher: React.FC<FundSwitcherProps> = ({
                   ? 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/40 shadow-sm'
                   : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/40 shadow-sm'
               }`}
-              title="Haz clic para alternar entre Modo Simulación y Plan Activo"
+              title={
+                currentFondo.estadoPlan === 'simulacion'
+                  ? 'Haz clic para transformar esta simulación en una Obra Activa oficial'
+                  : 'Obra activa en ejecución (clic para volver a modo simulación)'
+              }
             >
               {currentFondo.estadoPlan === 'simulacion' ? (
                 <>
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>🧪 Simulación Abierta</span>
+                  <span>🧪 Simulación (Transformar en Obra)</span>
                 </>
               ) : (
                 <>
                   <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>✅ Plan Activo</span>
+                  <span>✅ Obra Activa</span>
                 </>
               )}
             </button>

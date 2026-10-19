@@ -26,7 +26,10 @@ import {
   Calculator,
   HardHat,
   MessageSquare,
-  LogOut
+  LogOut,
+  Pencil,
+  Sparkles,
+  Rocket
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -39,6 +42,8 @@ interface AdminDashboardProps {
   onFondoCreated?: (nuevoFondo: FondoGuardado) => void;
   onShowToast: (msg: string) => void;
   onSignOut?: () => void;
+  onEditCurrentObra?: () => void;
+  onTransformarEnObraActiva?: () => void;
   childrenSimulador?: React.ReactNode;
   childrenTecnico?: React.ReactNode;
   childrenMensajeria?: React.ReactNode;
@@ -56,6 +61,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onFondoCreated: _onFondoCreated,
   onShowToast,
   onSignOut,
+  onEditCurrentObra,
+  onTransformarEnObraActiva,
   childrenSimulador,
   childrenTecnico,
   childrenMensajeria,
@@ -296,6 +303,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <span>{isPublishing ? 'Publicando en Supabase...' : 'Crear y Guardar Fondo'}</span>
               </button>
             </div>
+
+            {/* Botón: Editar Obra Activa / Parámetros */}
+            {onEditCurrentObra && (
+              <div className="self-end">
+                <button
+                  type="button"
+                  onClick={onEditCurrentObra}
+                  title="Editar todos los parámetros y ficha de esta obra"
+                  className="px-4 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-white rounded-xl border border-amber-500/40 text-xs font-bold transition-all flex items-center gap-2 shadow-sm cursor-pointer active:scale-95"
+                >
+                  <Pencil className="w-4 h-4 text-amber-400" />
+                  <span>Editar Obra</span>
+                </button>
+              </div>
+            )}
 
             {/* Nuevo Fondo */}
             <div className="self-end">
@@ -684,8 +706,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ==================================================================== */}
       {/* 5. MÓDULO: SIMULADOR FINANCIERO COMPLETO (INYECCIÓN DE HIJOS)        */}
       {/* ==================================================================== */}
-      {activeModule === 'simulador' && childrenSimulador && (
+      {activeModule === 'simulador' && (
         <div className="space-y-6 animate-fade-in">
+          {currentFondo.estadoPlan === 'simulacion' && onTransformarEnObraActiva && (
+            <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-emerald-950/40 border border-amber-500/40 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg shadow-amber-500/5">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-amber-400 uppercase tracking-wider">
+                      Modo Simulación / Estructuración
+                    </span>
+                    <span className="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-bold">
+                      Laboratorio Abierto
+                    </span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-extrabold text-white">
+                    ¿Este plan está listo para lanzarse al mercado?
+                  </h4>
+                  <p className="text-xs text-slate-400 max-w-xl">
+                    Podés transformar esta simulación en una <strong>Obra Activa</strong> para fijar las condiciones del fideicomiso, habilitar la recaudación del Mes 0 y publicarla en la sección de Obras en Marcha.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onTransformarEnObraActiva}
+                className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center gap-2 shrink-0 cursor-pointer active:scale-95"
+              >
+                <Rocket className="w-4 h-4" />
+                <span>Transformar en Obra Activa</span>
+              </button>
+            </div>
+          )}
           {childrenSimulador}
         </div>
       )}

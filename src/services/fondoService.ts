@@ -472,6 +472,67 @@ export const saveFondo = async (
   return { id, guardadoEn: isSupabaseConfigured() ? 'supabase' : 'local' };
 };
 
+export const crearSimulacionDesdeCero = async (
+  nombreCustom?: string,
+  baseParams?: {
+    costoDepto?: number;
+    cantidadDeptos?: number;
+    cantidadCuotas?: number;
+    fechaInicio?: string;
+  }
+): Promise<FondoGuardado> => {
+  const id = typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Date.now());
+  const fechaActual = new Date().toISOString().slice(0, 7);
+  const cantidadDeptos = baseParams?.cantidadDeptos || 10;
+  const cantidadCuotas = baseParams?.cantidadCuotas || 48;
+  const costoDepto = baseParams?.costoDepto || 60000;
+  const valorCuotaBase = Math.round(costoDepto / cantidadCuotas);
+  const nombre = nombreCustom || `Simulación de Plan (${cantidadDeptos} Deptos • ${cantidadCuotas} Meses)`;
+
+  const res = await saveFondo(
+    nombre,
+    {
+      costoDepto,
+      cantidadDeptos,
+      cantidadCuotas,
+      valorCuotaBase,
+      fechaInicio: baseParams?.fechaInicio || fechaActual,
+      modalidadAnticipo: 'reducir_cuota'
+    },
+    {
+      formaPagoGastos: 'final',
+      comisionGestion: 0,
+      comisionEscribania: 0,
+      otrosGastos: 0
+    },
+    new Array(cantidadDeptos).fill(0), // Anticipos estrictamente en 0
+    {}, // Sin adjudicaciones predeterminadas
+    {
+      activo: false,
+      socioCedente: 1,
+      cuotaSalida: 12,
+      primaCesion: 0,
+      mecanismoSalida: 'tercero'
+    },
+    {
+      activo: false,
+      socioAdelanta: 1,
+      monto: 0, // Adelanto inactivo y en 0
+      cuota: 12,
+      estrategia: 'reducir_cuota'
+    },
+    id,
+    'Nueva simulación interactiva iniciada desde cero.',
+    DATOS_TECNICOS_DEFAULT,
+    undefined,
+    [],
+    'simulacion'
+  );
+
+  const created = await loadFondoById(res.id);
+  return created!;
+};
+
 export const createFondoFromTemplate = async (
   templateIndex: number,
   customName?: string

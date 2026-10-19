@@ -19,7 +19,11 @@ import {
   Play,
   Coins,
   ImageIcon,
-  Lock
+  Lock,
+  Rocket,
+  Key,
+  Sparkles,
+  Calendar
 } from 'lucide-react';
 import {
   type FondoGuardado,
@@ -35,9 +39,10 @@ import type {
   ModalidadAnticipo,
   FormaPagoGastos,
   MecanismoSalida,
-  EstrategiaImpactoAdelanto
+  EstrategiaImpactoAdelanto,
+  AjusteCuota
 } from '../types/fondo';
-import { fmtMoneda } from '../utils/calculations';
+import { fmtMoneda, formatFecha } from '../utils/calculations';
 
 interface ObrasAdminModalProps {
   isOpen: boolean;
@@ -52,7 +57,7 @@ interface ObrasAdminModalProps {
 }
 
 type FormMode = 'list' | 'edit' | 'new' | 'confirm-delete';
-type SeccionAbierta = 'basico' | 'fotos' | 'anticipos' | 'cesion' | 'adelanto' | 'gastos';
+type SeccionAbierta = 'basico' | 'fotos' | 'anticipos' | 'adjudicaciones' | 'adelanto' | 'cesion' | 'gastos' | 'ajustes';
 
 // ─── Componentes estables de formulario (fuera para no perder foco al tipear) ───
 const Campo: React.FC<{ label: string; children: React.ReactNode; sublabel?: string }> = ({
@@ -217,6 +222,8 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
           anticipos: p.anticipos && p.anticipos.length > 0
             ? [...p.anticipos]
             : new Array(p.params?.cantidadDeptos || 10).fill(0),
+          adjudicacionFijada: p.adjudicacionFijada ? { ...p.adjudicacionFijada } : {},
+          ajustes: p.ajustes && p.ajustes.length > 0 ? [...p.ajustes] : [],
           cesion: p.cesion || {
             activo: false,
             socioCedente: 1,
@@ -319,6 +326,73 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
     }));
   };
 
+  // Adjudicaciones fijadas / posesión por unidad
+  const setAdjudicacionSocio = (socioId: number, cuota: number) => {
+    setEditando((prev) => ({
+      ...prev,
+      adjudicacionFijada: {
+        ...(prev.adjudicacionFijada || {}),
+        [socioId]: cuota
+      }
+    }));
+  };
+
+  const distribuirPosesionesUniforme = () => {
+    const cant = Number(editando.params?.cantidadDeptos) || 10;
+    const cuotas = Number(editando.params?.cantidadCuotas) || 48;
+    const nuevasAdjudicaciones: Record<number, number> = {};
+    for (let i = 1; i <= cant; i++) {
+      nuevasAdjudicaciones[i] = Math.max(1, Math.min(cuotas, Math.round((cuotas / cant) * i)));
+    }
+    setEditando((prev) => ({
+      ...prev,
+      adjudicacionFijada: nuevasAdjudicaciones
+    }));
+    setFeedback({ ok: true, msg: `Cronograma de posesiones distribuido uniformemente entre la cuota 1 y la cuota ${cuotas}.` });
+  };
+
+  // Ajustes por mayores costos e inflación CAC
+  const handleAgregarAjuste = () => {
+    setEditando((prev) => {
+      const lista = [...(prev.ajustes || [])];
+      const maxCuotas = Number(prev.params?.cantidadCuotas) || 48;
+      const ultimoMes = lista.length > 0 ? lista[lista.length - 1].mes : 0;
+      const nuevoMes = Math.min(maxCuotas, ultimoMes + 6 > maxCuotas ? maxCuotas : ultimoMes + 6 || 6);
+
+      lista.push({
+        id: `ajuste-${Date.now()}`,
+        mes: nuevoMes,
+        porcentaje: 8,
+        motivo: 'Ajuste Índice CAC / Inflación Materiales',
+        fechaAplicacion: formatFecha(prev.params?.fechaInicio || '2027-01', nuevoMes).fechaLarga
+      });
+      return { ...prev, ajustes: lista };
+    });
+  };
+
+  const handleModificarAjuste = (id: string, field: keyof AjusteCuota, value: unknown) => {
+    setEditando((prev) => {
+      const lista = (prev.ajustes || []).map((aj) => {
+        if (aj.id === id) {
+          const modificado = { ...aj, [field]: value };
+          if (field === 'mes') {
+            modificado.fechaAplicacion = formatFecha(prev.params?.fechaInicio || '2027-01', Number(value) || 1).fechaLarga;
+          }
+          return modificado;
+        }
+        return aj;
+      });
+      return { ...prev, ajustes: lista };
+    });
+  };
+
+  const handleEliminarAjuste = (id: string) => {
+    setEditando((prev) => ({
+      ...prev,
+      ajustes: (prev.ajustes || []).filter((aj) => aj.id !== id)
+    }));
+  };
+
   // Fotos (Hasta 4)
   const handleFotoUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -406,6 +480,8 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
       anticipos: p.anticipos && p.anticipos.length > 0
         ? [...p.anticipos]
         : new Array(p.params?.cantidadDeptos || 10).fill(0),
+      adjudicacionFijada: p.adjudicacionFijada ? { ...p.adjudicacionFijada } : {},
+      ajustes: p.ajustes && p.ajustes.length > 0 ? [...p.ajustes] : [],
       cesion: p.cesion || {
         activo: false,
         socioCedente: 1,
@@ -460,6 +536,78 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
     if (onSelectActiveFondo) {
       onSelectActiveFondo(id);
       setFeedback({ ok: true, msg: '⭐ Esta obra ha sido establecida como la Obra Activa principal de la plataforma.' });
+    }
+  };
+
+  const handleTransformarEnActiva = async (idAActivar?: string) => {
+    if (!isAdmin) {
+      setFeedback({ ok: false, msg: 'Acceso denegado: Solo el Administrador puede activar obras.' });
+      return;
+    }
+
+    const targetId = idAActivar || editandoId;
+    if (!targetId) return;
+
+    setGuardando(true);
+    setFeedback(null);
+    try {
+      if (targetId === editandoId && editando.nombre) {
+        setEditando((prev) => ({ ...prev, estadoPlan: 'activo' }));
+        const p = editando.params!;
+        const g = editando.gastos!;
+        const anticipos = Array.from({ length: Number(p.cantidadDeptos) || 10 }, (_, i) => Number(editando.anticipos?.[i]) || 0);
+
+        const res = await saveFondo(
+          editando.nombre.trim(),
+          p,
+          g,
+          anticipos,
+          editando.adjudicacionFijada || {},
+          editando.cesion || { activo: false, socioCedente: 1, cuotaSalida: 12, primaCesion: 10, mecanismoSalida: 'tercero' },
+          editando.adelanto || { activo: false, socioAdelanta: 1, monto: 10000, cuota: 12, estrategia: 'reducir_cuota' },
+          targetId,
+          editando.descripcion || '',
+          editando.datosTecnicos || { ...DATOS_TECNICOS_DEFAULT },
+          editando.contratoPersonalizado,
+          editando.ajustes || [],
+          'activo',
+          (editando.fotos || []).slice(0, 4)
+        );
+
+        onSelectActiveFondo?.(res.id);
+        onProyectosChange(res.id);
+      } else {
+        const proj = proyectos.find((item) => item.id === targetId);
+        if (proj) {
+          const res = await saveFondo(
+            proj.nombre,
+            proj.params,
+            proj.gastos,
+            proj.anticipos,
+            proj.adjudicacionFijada || {},
+            proj.cesion,
+            proj.adelanto,
+            proj.id,
+            proj.descripcion,
+            proj.datosTecnicos,
+            proj.contratoPersonalizado,
+            proj.ajustes,
+            'activo',
+            proj.fotos
+          );
+          onSelectActiveFondo?.(res.id);
+          onProyectosChange(res.id);
+        }
+      }
+
+      setFeedback({
+        ok: true,
+        msg: '🎉 ¡Plan transformado con éxito en Obra Activa! Ahora está disponible en la sección de Obras en Marcha de la plataforma.'
+      });
+    } catch {
+      setFeedback({ ok: false, msg: 'Error al transformar el plan en obra activa.' });
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -654,8 +802,21 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                  {/* Establecer como activa */}
-                  {isAdmin && !esActivaPrincipal && onSelectActiveFondo && (
+                  {/* Transformar Simulación en Obra Activa */}
+                  {isAdmin && p.estadoPlan === 'simulacion' && (
+                    <button
+                      type="button"
+                      onClick={() => handleTransformarEnActiva(p.id)}
+                      title="Transformar esta simulación en una Obra Activa oficial de la plataforma"
+                      className="px-3 py-1.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 border border-emerald-400/50 transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-600/30 active:scale-95"
+                    >
+                      <Rocket className="w-3.5 h-3.5" />
+                      <span>Activar como Obra</span>
+                    </button>
+                  )}
+
+                  {/* Establecer como activa principal */}
+                  {isAdmin && p.estadoPlan !== 'simulacion' && !esActivaPrincipal && onSelectActiveFondo && (
                     <button
                       type="button"
                       onClick={() => handleEstablecerActiva(p.id)}
@@ -744,6 +905,39 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
           <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>Modo Solo Lectura: Solo el usuario Administrador puede modificar los valores de esta obra.</span>
+          </div>
+        )}
+
+        {/* Banner de Simulación a Obra Activa */}
+        {editando.estadoPlan === 'simulacion' && (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/40 via-slate-900 to-emerald-950/40 border border-amber-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-extrabold text-white flex items-center gap-2">
+                  <span>Este proyecto está configurado como Simulación</span>
+                  <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">
+                    Laboratorio
+                  </span>
+                </h4>
+                <p className="text-[11px] text-slate-400">
+                  ¿Querés perfeccionar este plan y lanzarlo como Obra Activa para abrir suscripciones y mostrarlo en la portada?
+                </p>
+              </div>
+            </div>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => handleTransformarEnActiva(editandoId)}
+                disabled={guardando}
+                className="px-4 py-2 rounded-xl text-xs font-black text-white bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 shadow-md shadow-emerald-600/30 transition flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95 disabled:opacity-50"
+              >
+                <Rocket className="w-3.5 h-3.5" />
+                <span>Transformar en Obra Activa</span>
+              </button>
+            )}
           </div>
         )}
 
@@ -1153,7 +1347,70 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
           </div>
         </FormSeccion>
 
-        {/* ── 4. SECCIÓN: CESIÓN DE POSICIÓN CONTRACTUAL ────────────────────── */}
+        {/* ── 4. SECCIÓN: CRONOGRAMA DE ADJUDICACIÓN Y POSESIONES ──────────── */}
+        <FormSeccion
+          id="adjudicaciones"
+          titulo="🔑 Cronograma de Adjudicación y Entrega de Unidades"
+          badge={`${Object.keys(editando.adjudicacionFijada || {}).length} asignadas • ${p.cantidadDeptos} totales`}
+          badgeColor="bg-amber-500/20 text-amber-300 border-amber-500/30"
+          isOpen={seccionAbierta === 'adjudicaciones'}
+          onToggle={() => setSeccionAbierta((prev) => (prev === 'adjudicaciones' ? 'adelanto' : 'adjudicaciones'))}
+        >
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <p className="text-xs text-slate-400">
+                Fijá el mes/cuota proyectado de entrega de llaves y toma de posesión para cada socio y unidad habitacional.
+              </p>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={distribuirPosesionesUniforme}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Distribuir en Forma Escalonada</span>
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 max-h-56 overflow-y-auto p-1">
+              {Array.from({ length: Number(p.cantidadDeptos) || 10 }, (_, i) => {
+                const socioId = i + 1;
+                const cuotaAsignada = editando.adjudicacionFijada?.[socioId] || Math.max(1, Math.min(Number(p.cantidadCuotas) || 48, Math.round(((Number(p.cantidadCuotas) || 48) / (Number(p.cantidadDeptos) || 10)) * socioId)));
+                const fechaEst = formatFecha(p.fechaInicio || '2027-01', cuotaAsignada).fechaCorta;
+
+                return (
+                  <div
+                    key={socioId}
+                    className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-white flex items-center gap-1">
+                        <Key className="w-3 h-3 text-amber-400" />
+                        Unidad {socioId}
+                      </span>
+                      <span className="text-amber-400 font-mono text-[10px] font-semibold">{fechaEst}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-slate-500 font-mono">Mes:</span>
+                      <FormInput
+                        type="number"
+                        min={1}
+                        max={Number(p.cantidadCuotas) || 120}
+                        disabled={!isAdmin}
+                        value={cuotaAsignada || ''}
+                        onChange={(e) => setAdjudicacionSocio(socioId, Number(e.target.value) || 1)}
+                        className="text-xs font-mono py-1 px-2 text-center"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </FormSeccion>
+
+        {/* ── 5. SECCIÓN: CESIÓN DE POSICIÓN CONTRACTUAL ────────────────────── */}
         <FormSeccion
           id="cesion"
           titulo="🔄 Cesión de Posición Contractual (Art. 1614 CCCN)"
@@ -1381,6 +1638,99 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
                 }}
               />
             </Campo>
+          </div>
+        </FormSeccion>
+
+        {/* ── 8. SECCIÓN: AJUSTES POR MAYORES COSTOS E INFLACIÓN CAC ───────── */}
+        <FormSeccion
+          id="ajustes"
+          titulo="📈 Ajustes por Mayores Costos e Inflación (Índice CAC)"
+          badge={`${(editando.ajustes || []).length} ajustes programados`}
+          badgeColor="bg-rose-500/20 text-rose-300 border-rose-500/30"
+          isOpen={seccionAbierta === 'ajustes'}
+          onToggle={() => setSeccionAbierta((prev) => (prev === 'ajustes' ? 'basico' : 'ajustes'))}
+        >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <p className="text-xs text-slate-400">
+                Programá incrementos porcentuales sobre la cuota base por variación del índice CAC, materiales o mano de obra.
+              </p>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={handleAgregarAjuste}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Agregar Ajuste CAC</span>
+                </button>
+              )}
+            </div>
+
+            {(!editando.ajustes || editando.ajustes.length === 0) ? (
+              <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800 text-center text-xs text-slate-500">
+                No hay ajustes programados. Las cuotas se mantendrán puras sin recargos inflacionarios.
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {editando.ajustes.map((aj, idx) => (
+                  <div
+                    key={aj.id || idx}
+                    className="p-3 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  >
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 flex-1">
+                      <Campo label="Mes de Aplicación">
+                        <FormInput
+                          type="number"
+                          min={1}
+                          max={Number(p.cantidadCuotas) || 120}
+                          disabled={!isAdmin}
+                          value={aj.mes}
+                          onChange={(e) => handleModificarAjuste(aj.id, 'mes', Number(e.target.value) || 1)}
+                          className="text-xs font-mono"
+                        />
+                      </Campo>
+
+                      <Campo label="Incremento (%)">
+                        <FormInput
+                          type="number"
+                          min={0.1}
+                          max={100}
+                          step={0.5}
+                          disabled={!isAdmin}
+                          value={aj.porcentaje}
+                          onChange={(e) => handleModificarAjuste(aj.id, 'porcentaje', Number(e.target.value) || 0)}
+                          className="text-xs font-mono"
+                        />
+                      </Campo>
+
+                      <div className="col-span-2 sm:col-span-1">
+                        <Campo label="Motivo / Concepto">
+                          <FormInput
+                            disabled={!isAdmin}
+                            value={aj.motivo || ''}
+                            onChange={(e) => handleModificarAjuste(aj.id, 'motivo', e.target.value)}
+                            placeholder="Ej: Aumento CAC Materiales"
+                            className="text-xs"
+                          />
+                        </Campo>
+                      </div>
+                    </div>
+
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => handleEliminarAjuste(aj.id)}
+                        className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition cursor-pointer shrink-0 self-end sm:self-center"
+                        title="Eliminar este ajuste"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </FormSeccion>
 
