@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Building2,
+  Calendar,
   DollarSign,
   Zap,
   KeyRound,
@@ -183,6 +184,7 @@ export interface PanelSimuladorPlanProps {
 
   // Contexto y auxiliares
   cantidadCuotasTotal: number;
+  onCantidadCuotasChange: (val: number) => void;
   fechaInicio: string;
   capitalAportadoHastaCesion: number;
 }
@@ -210,6 +212,7 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
   porcentajePrimaCesion,
   onPorcentajePrimaCesionChange,
   cantidadCuotasTotal,
+  onCantidadCuotasChange,
   fechaInicio,
   capitalAportadoHastaCesion
 }) => {
@@ -238,7 +241,7 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
               Simulación de Plan de Inversión
             </h3>
             <span className="text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
-              5 Parámetros Clave
+              6 Parámetros Clave
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
@@ -247,7 +250,7 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
         </div>
       </div>
 
-      {/* Grid de los 5 ítems en estricto orden de importancia */}
+      {/* Grid de los 6 ítems en estricto orden de importancia */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
         {/* ========================================================= */}
@@ -306,13 +309,77 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
         </div>
 
         {/* ========================================================= */}
-        {/* 2DO: ANTICIPO MES 0 INTEGRADO                             */}
+        {/* 2DO: PLAZO DEL PLAN / CANTIDAD DE CUOTAS                   */}
+        {/* ========================================================= */}
+        <div className="bg-slate-950/70 border border-slate-800/90 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3 relative hover:border-indigo-500/40 transition-colors">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white font-black text-xs flex items-center justify-center shadow-md shadow-indigo-600/30">
+                2
+              </span>
+              <label className="text-sm font-extrabold text-white flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-indigo-400" />
+                Plazo del Plan / Cantidad de Cuotas
+              </label>
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">
+              {cantidadCuotasTotal} Meses ({Math.round((cantidadCuotasTotal / 12) * 10) / 10} Años)
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <FintechInput
+                  suffix="meses"
+                  value={cantidadCuotasTotal}
+                  onChange={(val) => onCantidadCuotasChange(Math.max(6, Math.min(240, val)))}
+                  borderColor="focus:border-indigo-500"
+                  textColor="text-white"
+                  min={6}
+                  max={240}
+                />
+              </div>
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-right shrink-0">
+                <span className="text-[10px] text-slate-400 block">Fin proyectado</span>
+                <strong className="text-sm text-indigo-300 font-mono block">
+                  {formatFecha(fechaInicio, cantidadCuotasTotal).fechaCorta}
+                </strong>
+              </div>
+            </div>
+
+            {/* Accesos rápidos de plazos habituales */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[10px] text-slate-500 font-semibold mr-1">Rápido:</span>
+              {[24, 36, 48, 60, 72, 84, 120].map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => onCantidadCuotasChange(m)}
+                  className={`text-[11px] font-mono px-2.5 py-1 rounded-lg border transition cursor-pointer ${
+                    cantidadCuotasTotal === m
+                      ? 'bg-indigo-600 border-indigo-500 text-white font-bold shadow-sm'
+                      : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
+                  }`}
+                >
+                  {m} m
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="text-[11px] text-slate-400">
+            Cantidad de cuotas mensuales en las que amortiza y se construye el proyecto fiduciario.
+          </p>
+        </div>
+
+        {/* ========================================================= */}
+        {/* 3ERO: ANTICIPO MES 0 INTEGRADO                             */}
         {/* ========================================================= */}
         <div className="bg-slate-950/70 border border-slate-800/90 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3 relative hover:border-emerald-500/40 transition-colors">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white font-black text-xs flex items-center justify-center shadow-md shadow-emerald-600/30">
-                2
+                3
               </span>
               <label className="text-sm font-extrabold text-white flex items-center gap-1.5">
                 <DollarSign className="w-4 h-4 text-emerald-400" />
@@ -320,7 +387,7 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
               </label>
             </div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-              Prioridad #2
+              Prioridad #3
             </span>
           </div>
 
@@ -367,13 +434,13 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
         </div>
 
         {/* ========================================================= */}
-        {/* 3ERO: ADELANTO ESPECÍFICO EN UN MES A ELEGIR               */}
+        {/* 4TO: ADELANTO ESPECÍFICO EN UN MES A ELEGIR               */}
         {/* ========================================================= */}
         <div className="bg-slate-950/70 border border-slate-800/90 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3 relative hover:border-amber-500/40 transition-colors">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-amber-600 text-white font-black text-xs flex items-center justify-center shadow-md shadow-amber-600/30">
-                3
+                4
               </span>
               <label className="text-sm font-extrabold text-white flex items-center gap-1.5">
                 <Zap className="w-4 h-4 text-amber-400" />
@@ -483,13 +550,13 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
         </div>
 
         {/* ========================================================= */}
-        {/* 4TO: ENTREGA / ADJUDICACIÓN DE LA UNIDAD                   */}
+        {/* 5TO: ENTREGA / ADJUDICACIÓN DE LA UNIDAD                   */}
         {/* ========================================================= */}
         <div className="bg-slate-950/70 border border-slate-800/90 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3 relative hover:border-amber-400/40 transition-colors">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-md shadow-amber-500/30">
-                4
+                5
               </span>
               <label className="text-sm font-extrabold text-white flex items-center gap-1.5">
                 <KeyRound className="w-4 h-4 text-amber-400" />
@@ -497,7 +564,7 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
               </label>
             </div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-              Prioridad #4
+              Prioridad #5
             </span>
           </div>
 
@@ -543,13 +610,13 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
         </div>
 
         {/* ========================================================= */}
-        {/* 5TO: CESIÓN / VENTA DE LA UNIDAD O PARTICIPACIÓN          */}
+        {/* 6TO: CESIÓN / VENTA DE LA UNIDAD O PARTICIPACIÓN          */}
         {/* ========================================================= */}
         <div className="lg:col-span-2 bg-slate-950/70 border border-slate-800/90 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4 relative hover:border-rose-500/40 transition-colors">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div className="flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-rose-600 text-white font-black text-xs flex items-center justify-center shadow-md shadow-rose-600/30">
-                5
+                6
               </span>
               <label className="text-sm font-extrabold text-white flex items-center gap-1.5">
                 <ScrollText className="w-4 h-4 text-rose-400" />

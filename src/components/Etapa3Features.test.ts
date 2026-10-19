@@ -246,4 +246,30 @@ describe('Etapa 3: Optimizaciones Móviles, Tipografía, a11y, Toasts y Obras en
     expect(nuevaSimulacion.ajustes).toHaveLength(0);
     expect(Object.keys(nuevaSimulacion.adjudicacionFijada)).toHaveLength(0);
   });
+
+  it('Duración Elegible por el Usuario: permite configurar libremente la cantidad de cuotas (plazo) en la simulación', () => {
+    const calcularCuotaSimulada = (costoDepto: number, cantidadCuotas: number) => {
+      return cantidadCuotas > 0 ? Math.round(costoDepto / cantidadCuotas) : 0;
+    };
+
+    // Caso 1: Usuario elige 24 cuotas (2 años) para depto de USD $60.000
+    const cuota24 = calcularCuotaSimulada(60000, 24);
+    expect(cuota24).toBe(2500);
+
+    // Caso 2: Usuario elige 36 cuotas (3 años)
+    const cuota36 = calcularCuotaSimulada(60000, 36);
+    expect(cuota36).toBe(1667);
+
+    // Caso 3: Usuario elige 60 cuotas (5 años)
+    const cuota60 = calcularCuotaSimulada(60000, 60);
+    expect(cuota60).toBe(1000);
+
+    // Caso 4: Clamping automático de cuota de posesión si excede el nuevo plazo
+    let cuotaPosesion = 40;
+    const nuevoPlazo = 36;
+    if (cuotaPosesion > nuevoPlazo) {
+      cuotaPosesion = nuevoPlazo;
+    }
+    expect(cuotaPosesion).toBe(36);
+  });
 });

@@ -95,24 +95,42 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   // =========================================================
   // 1ero: Importe de la unidad (estrictamente en 0 si es simulación nueva)
   const [simImporteUnidad, setSimImporteUnidad] = useState<number>(params.costoDepto || 0);
-  // 2do: Anticipo mes 0 integrado (estrictamente en 0 para nuevas simulaciones)
+  // 2do: Plazo / Cantidad de cuotas del plan
+  const [simCantidadCuotas, setSimCantidadCuotas] = useState<number>(params.cantidadCuotas || 48);
+  // 3ero: Anticipo mes 0 integrado (estrictamente en 0 para nuevas simulaciones)
   const [simAnticipo, setSimAnticipo] = useState<number>(flujoSocio.anticipoMes0 || 0);
-  // 3ero: Adelanto específico (inactivo por defecto, monto en 0)
+  // 4to: Adelanto específico (inactivo por defecto, monto en 0)
   const [simTieneAdelanto, setSimTieneAdelanto] = useState<boolean>(false);
   const [simMontoAdelanto, setSimMontoAdelanto] = useState<number>(0);
   const [simCuotaAdelanto, setSimCuotaAdelanto] = useState<number>(12);
   const [simEstrategiaAdelanto, setSimEstrategiaAdelanto] = useState<EstrategiaImpactoAdelanto>('reducir_cuota');
-  // 4to: Entrega/adjudicación de la unidad (0 = a definir)
+  // 5to: Entrega/adjudicación de la unidad (0 = a definir)
   const [simCuotaPosesion, setSimCuotaPosesion] = useState<number>(flujoSocio.cuotaPosesion || 0);
-  // 5to: Cesión/venta de la unidad o participación (inactivo por defecto)
+  // 6to: Cesión/venta de la unidad o participación (inactivo por defecto)
   const [simActivarCesion, setSimActivarCesion] = useState<boolean>(false);
   const [simCuotaCesion, setSimCuotaCesion] = useState<number>(24);
   const [simPorcentajePrimaCesion, setSimPorcentajePrimaCesion] = useState<number>(0);
+
+  // Manejador reactivo cuando el usuario cambia la duración en cuotas del plan
+  const handleCantidadCuotasChange = (nuevasCuotas: number) => {
+    const cuotasValidadas = Math.max(6, Math.min(240, nuevasCuotas));
+    setSimCantidadCuotas(cuotasValidadas);
+    if (simCuotaPosesion > cuotasValidadas) {
+      setSimCuotaPosesion(cuotasValidadas);
+    }
+    if (simCuotaAdelanto > cuotasValidadas) {
+      setSimCuotaAdelanto(Math.max(1, Math.round(cuotasValidadas / 2)));
+    }
+    if (simCuotaCesion > cuotasValidadas) {
+      setSimCuotaCesion(Math.max(1, Math.round(cuotasValidadas / 2)));
+    }
+  };
 
   // Sincronizar si cambian los parámetros iniciales
   useEffect(() => {
     if (currentFondo?.estadoPlan === 'simulacion') {
       setSimImporteUnidad(currentFondo.params?.costoDepto || 0);
+      setSimCantidadCuotas(currentFondo.params?.cantidadCuotas || 48);
       setSimAnticipo(0);
       setSimTieneAdelanto(false);
       setSimMontoAdelanto(0);
@@ -121,6 +139,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
       setSimPorcentajePrimaCesion(0);
     } else {
       setSimImporteUnidad(params.costoDepto || 0);
+      setSimCantidadCuotas(params.cantidadCuotas || 48);
       setSimAnticipo(flujoSocio.anticipoMes0 || 0);
       setSimCuotaPosesion(flujoSocio.cuotaPosesion || 0);
     }
@@ -128,8 +147,10 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
     currentFondo?.id,
     currentFondo?.estadoPlan,
     currentFondo?.params?.costoDepto,
+    currentFondo?.params?.cantidadCuotas,
     currentFondo?.adjudicacionFijada,
     params.costoDepto,
+    params.cantidadCuotas,
     flujoSocio.anticipoMes0,
     flujoSocio.cuotaPosesion,
     socioId
@@ -147,12 +168,12 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
       socioId,
       costoSeguro,
       anticipoSeguro,
-      params.cantidadCuotas || 48,
+      simCantidadCuotas,
       params.modalidadAnticipo,
       recargoGastos,
       {
         activo: simTieneAdelanto && simMontoAdelanto > 0,
-        mes: simCuotaAdelanto,
+        mes: Math.min(simCuotaAdelanto, simCantidadCuotas),
         monto: simMontoAdelanto,
         estrategia: simEstrategiaAdelanto
       },
@@ -163,8 +184,8 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   }, [
     socioId,
     simImporteUnidad,
+    simCantidadCuotas,
     simAnticipo,
-    params.cantidadCuotas,
     params.modalidadAnticipo,
     params.costoDepto,
     flujoSocio.recargoGastosPorCuota,
@@ -376,7 +397,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
 
               <button
                 type="button"
-                onClick={() => exportarFichaSocioPDF(flujoActivo, params, gastos, fechaInicio, proximaCuotaNum)}
+                onClick={() => exportarFichaSocioPDF(flujoActivo, { ...params, cantidadCuotas: simCantidadCuotas }, gastos, fechaInicio, proximaCuotaNum)}
                 className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
                 title="Descargar Simulación en PDF"
               >
@@ -572,7 +593,8 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
             onCuotaCesionChange={setSimCuotaCesion}
             porcentajePrimaCesion={simPorcentajePrimaCesion}
             onPorcentajePrimaCesionChange={setSimPorcentajePrimaCesion}
-            cantidadCuotasTotal={params.cantidadCuotas}
+            cantidadCuotasTotal={simCantidadCuotas}
+            onCantidadCuotasChange={handleCantidadCuotasChange}
             fechaInicio={fechaInicio}
             capitalAportadoHastaCesion={capitalAportadoHastaCesion}
           />
@@ -585,7 +607,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
             fechaInicio={fechaInicio}
             costoDepto={simImporteUnidad}
             formaPagoGastos={gastos.formaPagoGastos}
-            params={params}
+            params={{ ...params, cantidadCuotas: simCantidadCuotas }}
             gastos={gastos}
             onSelectSocio={() => {}} // Bloqueado para el socio
             onAdjudicacionChange={(_, cuota) => setSimCuotaPosesion(cuota)}
