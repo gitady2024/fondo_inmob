@@ -40,7 +40,7 @@ describe('preinscripcionService & conversion logic', () => {
     expect(guardadas[0].dni).toBe('28456123');
     expect(guardadas[0].importeMensualInvertir).toBe(1500);
     expect(guardadas[0].proyectoNombre).toBe('Torre Alvear Suite');
-  });
+  }, 15000);
 
   it('genera correctamente el enlace dinámico de WhatsApp con los parámetros', () => {
     const link = generarEnlaceWhatsApp('Complejo Los Olivos', 1200, 1500);

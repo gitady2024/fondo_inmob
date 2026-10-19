@@ -278,10 +278,10 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
         <div className="bg-slate-900/80 border border-slate-700/80 p-4 rounded-xl shadow-sm">
           <span className="text-[11px] font-medium text-slate-400">Posesión Programada</span>
           <div className="text-lg sm:text-xl font-bold text-amber-300 mt-1 font-mono">
-            Cuota {mPos}
+            {mPos > 0 ? `Cuota ${mPos}` : 'A definir'}
           </div>
           <span className="text-[10px] text-amber-400/90 font-medium">
-            Fecha: {fechaPosesion.fechaLarga}
+            {mPos > 0 ? `Fecha: ${fechaPosesion.fechaLarga}` : 'Sin cuota asignada'}
           </span>
         </div>
 
@@ -290,10 +290,10 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
             {cesionInfo?.activo ? 'Salida por Cesión / Venta' : 'Fin del Plan del Socio'}
           </span>
           <div className="text-lg sm:text-xl font-bold text-indigo-300 mt-1 font-mono">
-            Cuota {cesionInfo?.activo ? cesionInfo.mes : mesesTotales}
+            {mesesTotales > 0 ? `Cuota ${cesionInfo?.activo ? cesionInfo.mes : mesesTotales}` : '0 cuotas'}
           </div>
           <span className="text-[10px] text-indigo-400/90 font-medium">
-            Fecha: {cesionInfo?.activo ? formatFecha(fechaInicio, cesionInfo.mes).fechaLarga : fechaCancelacion.fechaLarga}
+            {mesesTotales > 0 ? `Fecha: ${cesionInfo?.activo ? formatFecha(fechaInicio, cesionInfo.mes).fechaLarga : fechaCancelacion.fechaLarga}` : 'A proyectar'}
           </span>
         </div>
       </div>
@@ -403,6 +403,22 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800/80 font-sans font-semibold">
                     Integrado
                   </span>
+                </td>
+              </tr>
+            )}
+
+            {/* Mensaje de estado inicial limpio cuando no hay cuotas aún */}
+            {cuotasPaginadas.length === 0 && (
+              <tr>
+                <td colSpan={7} className="py-8 px-4 text-center font-sans text-slate-400">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <span className="text-sm font-semibold text-slate-300">
+                      ✨ Plan en Cero: Ingresá el Importe de la Unidad arriba para calcular las cuotas
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      Podés tipear el valor o usar los accesos rápidos ($65.000, $72.000, $85.000, $110.000)
+                    </span>
+                  </div>
                 </td>
               </tr>
             )}

@@ -93,8 +93,8 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   // =========================================================
   // 5 PARÁMETROS DEL SIMULADOR DE PLAN (ORDEN DE IMPORTANCIA)
   // =========================================================
-  // 1ero: Importe de la unidad (toma del plan o 60000 si está en 0)
-  const [simImporteUnidad, setSimImporteUnidad] = useState<number>(params.costoDepto || 60000);
+  // 1ero: Importe de la unidad (estrictamente en 0 si es simulación nueva)
+  const [simImporteUnidad, setSimImporteUnidad] = useState<number>(params.costoDepto || 0);
   // 2do: Anticipo mes 0 integrado (estrictamente en 0 para nuevas simulaciones)
   const [simAnticipo, setSimAnticipo] = useState<number>(flujoSocio.anticipoMes0 || 0);
   // 3ero: Adelanto específico (inactivo por defecto, monto en 0)
@@ -102,8 +102,8 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   const [simMontoAdelanto, setSimMontoAdelanto] = useState<number>(0);
   const [simCuotaAdelanto, setSimCuotaAdelanto] = useState<number>(12);
   const [simEstrategiaAdelanto, setSimEstrategiaAdelanto] = useState<EstrategiaImpactoAdelanto>('reducir_cuota');
-  // 4to: Entrega/adjudicación de la unidad
-  const [simCuotaPosesion, setSimCuotaPosesion] = useState<number>(flujoSocio.cuotaPosesion || Math.round((params.cantidadCuotas || 48) / 2));
+  // 4to: Entrega/adjudicación de la unidad (0 = a definir)
+  const [simCuotaPosesion, setSimCuotaPosesion] = useState<number>(flujoSocio.cuotaPosesion || 0);
   // 5to: Cesión/venta de la unidad o participación (inactivo por defecto)
   const [simActivarCesion, setSimActivarCesion] = useState<boolean>(false);
   const [simCuotaCesion, setSimCuotaCesion] = useState<number>(24);
@@ -111,29 +111,43 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
 
   // Sincronizar si cambian los parámetros iniciales
   useEffect(() => {
-    if (params.costoDepto) setSimImporteUnidad(params.costoDepto);
-    setSimAnticipo(flujoSocio.anticipoMes0 || 0);
-    if (flujoSocio.cuotaPosesion) setSimCuotaPosesion(flujoSocio.cuotaPosesion);
     if (currentFondo?.estadoPlan === 'simulacion') {
+      setSimImporteUnidad(currentFondo.params?.costoDepto || 0);
+      setSimAnticipo(0);
       setSimTieneAdelanto(false);
       setSimMontoAdelanto(0);
+      setSimCuotaPosesion(currentFondo.adjudicacionFijada?.[socioId] || 0);
       setSimActivarCesion(false);
+      setSimPorcentajePrimaCesion(0);
+    } else {
+      setSimImporteUnidad(params.costoDepto || 0);
+      setSimAnticipo(flujoSocio.anticipoMes0 || 0);
+      setSimCuotaPosesion(flujoSocio.cuotaPosesion || 0);
     }
-  }, [params.costoDepto, flujoSocio.anticipoMes0, flujoSocio.cuotaPosesion, currentFondo?.estadoPlan]);
+  }, [
+    currentFondo?.id,
+    currentFondo?.estadoPlan,
+    currentFondo?.params?.costoDepto,
+    currentFondo?.adjudicacionFijada,
+    params.costoDepto,
+    flujoSocio.anticipoMes0,
+    flujoSocio.cuotaPosesion,
+    socioId
+  ]);
 
   // Recálculo reactivo y dinámico del plan de inversión
   const flujoActivo = useMemo(() => {
-    const costoSeguro = simImporteUnidad > 0 ? simImporteUnidad : (params.costoDepto || 60000);
+    const costoSeguro = Math.max(0, simImporteUnidad);
     const anticipoSeguro = Math.min(simAnticipo, costoSeguro);
-    const ratioCosto = params.costoDepto > 0 ? costoSeguro / params.costoDepto : 1;
-    const recargoGastos = flujoSocio.recargoGastosPorCuota * ratioCosto;
-    const pagoFinalGastos = flujoSocio.pagoFinalGastos * ratioCosto;
+    const ratioCosto = (costoSeguro > 0 && params.costoDepto > 0) ? costoSeguro / params.costoDepto : 0;
+    const recargoGastos = (flujoSocio.recargoGastosPorCuota || 0) * (costoSeguro > 0 ? ratioCosto : 0);
+    const pagoFinalGastos = (flujoSocio.pagoFinalGastos || 0) * (costoSeguro > 0 ? ratioCosto : 0);
 
     return calcularFlujoIndividual(
       socioId,
       costoSeguro,
       anticipoSeguro,
-      params.cantidadCuotas,
+      params.cantidadCuotas || 48,
       params.modalidadAnticipo,
       recargoGastos,
       {
@@ -418,7 +432,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
               <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
                 <span className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-                  Próxima Cuota #{proximaCuotaNum}
+                  Próxima Cuota #{flujoActivo.flujo.length > 0 ? proximaCuotaNum : 1}
                 </span>
                 <span className="text-[11px] font-mono text-indigo-300 font-bold">
                   {fechaProximaCuota.fechaCorta}
@@ -426,10 +440,10 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
               </div>
               <div className="mt-2">
                 <div className="text-2xl font-black text-white font-mono">
-                  {fmtMoneda(proximaCuotaObj?.abonadoMes || 0)}
+                  {fmtMoneda(flujoActivo.flujo.length > 0 ? (proximaCuotaObj?.abonadoMes || 0) : 0)}
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
-                  <span>Capital puro: {fmtMoneda(proximaCuotaObj?.capital || 0)}</span>
+                  <span>Capital puro: {fmtMoneda(flujoActivo.flujo.length > 0 ? (proximaCuotaObj?.capital || 0) : 0)}</span>
                   <span className="text-emerald-400 font-medium">Al Día</span>
                 </div>
               </div>
@@ -459,7 +473,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
                   />
                 </div>
                 <p className="text-[10px] text-slate-400">
-                  {cuotasAbonadasEstimadas} de {mesesTotales} cuotas computadas + anticipo
+                  {cuotasAbonadasEstimadas} de {flujoActivo.flujo.length} cuotas computadas + anticipo
                 </p>
               </div>
             </div>
@@ -472,12 +486,12 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
                   Posesión Programada
                 </span>
                 <span className="text-amber-300 font-mono font-bold text-xs">
-                  Cuota {mPos}
+                  {mPos > 0 ? `Cuota ${mPos}` : 'A definir'}
                 </span>
               </div>
               <div className="mt-2">
                 <div className="text-lg font-black text-amber-300 font-mono">
-                  {fechaPos.fechaLarga}
+                  {mPos > 0 ? fechaPos.fechaLarga : 'Sin cuota asignada'}
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">
                   Tipología: <strong className="text-slate-200">{esTresAmbientes ? '3 Amb.' : '2 Amb.'}</strong> ({supTotalUnidad} m²) • Llaves en mano

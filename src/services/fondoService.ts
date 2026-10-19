@@ -485,9 +485,9 @@ export const crearSimulacionDesdeCero = async (
   const fechaActual = new Date().toISOString().slice(0, 7);
   const cantidadDeptos = baseParams?.cantidadDeptos || 10;
   const cantidadCuotas = baseParams?.cantidadCuotas || 48;
-  const costoDepto = baseParams?.costoDepto || 60000;
-  const valorCuotaBase = Math.round(costoDepto / cantidadCuotas);
-  const nombre = nombreCustom || `Simulación de Plan (${cantidadDeptos} Deptos • ${cantidadCuotas} Meses)`;
+  const costoDepto = baseParams?.costoDepto !== undefined ? baseParams.costoDepto : 0;
+  const valorCuotaBase = cantidadCuotas > 0 && costoDepto > 0 ? Math.round(costoDepto / cantidadCuotas) : 0;
+  const nombre = nombreCustom || (costoDepto > 0 ? `Simulación de Plan (${cantidadDeptos} Deptos • ${cantidadCuotas} Meses)` : 'Nueva Simulación de Plan');
 
   const res = await saveFondo(
     nombre,

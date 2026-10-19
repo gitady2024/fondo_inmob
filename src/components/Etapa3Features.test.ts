@@ -202,10 +202,10 @@ describe('Etapa 3: Optimizaciones Móviles, Tipografía, a11y, Toasts y Obras en
         nombre: nombre || 'Nueva Simulación de Plan',
         estadoPlan: 'simulacion' as const,
         params: {
-          costoDepto: base?.costoDepto || 60000,
+          costoDepto: base?.costoDepto !== undefined ? base.costoDepto : 0,
           cantidadDeptos,
           cantidadCuotas: 48,
-          valorCuotaBase: 1250,
+          valorCuotaBase: 0,
           fechaInicio: '2027-01',
           modalidadAnticipo: 'reducir_cuota' as const
         },
@@ -237,6 +237,8 @@ describe('Etapa 3: Optimizaciones Móviles, Tipografía, a11y, Toasts y Obras en
 
     const nuevaSimulacion = crearSimulacionPrueba('Simulación 1');
     expect(nuevaSimulacion.estadoPlan).toBe('simulacion');
+    expect(nuevaSimulacion.params.costoDepto).toBe(0);
+    expect(nuevaSimulacion.params.valorCuotaBase).toBe(0);
     expect(nuevaSimulacion.anticipos.every((a) => a === 0)).toBe(true);
     expect(nuevaSimulacion.adelanto.activo).toBe(false);
     expect(nuevaSimulacion.adelanto.monto).toBe(0);

@@ -394,14 +394,12 @@ export const App: React.FC = () => {
   const handleIniciarNuevaSimulacion = async (opciones?: { obraBase?: FondoGuardado }) => {
     trackSimuladorInicio({ label: opciones?.obraBase ? 'obra-base' : 'nueva-desde-cero' });
 
-    const baseParams = opciones?.obraBase
-      ? {
-          costoDepto: opciones.obraBase.params.costoDepto,
-          cantidadDeptos: opciones.obraBase.params.cantidadDeptos,
-          cantidadCuotas: opciones.obraBase.params.cantidadCuotas,
-          fechaInicio: opciones.obraBase.params.fechaInicio
-        }
-      : undefined;
+    const baseParams = {
+      costoDepto: 0, // Inicia estrictamente en 0 para simulación limpia
+      cantidadDeptos: opciones?.obraBase?.params.cantidadDeptos || 10,
+      cantidadCuotas: opciones?.obraBase?.params.cantidadCuotas || 48,
+      fechaInicio: opciones?.obraBase?.params.fechaInicio
+    };
 
     const nombreSim = opciones?.obraBase
       ? `Simulación en ${opciones.obraBase.nombre}`
@@ -504,7 +502,7 @@ export const App: React.FC = () => {
       const mPosesion =
         currentFondo.adjudicacionFijada[i] !== undefined
           ? currentFondo.adjudicacionFijada[i]
-          : Math.max(1, Math.min(Math.round(i * cicloPorDefecto), currentFondo.params.cantidadCuotas));
+          : (currentFondo.estadoPlan === 'simulacion' ? 0 : Math.max(1, Math.min(Math.round(i * cicloPorDefecto), currentFondo.params.cantidadCuotas)));
 
       const configAdelantoSocio = {
         activo: currentFondo.adelanto.activo && i === currentFondo.adelanto.socioAdelanta,

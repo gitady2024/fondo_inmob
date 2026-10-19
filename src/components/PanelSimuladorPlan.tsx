@@ -277,7 +277,7 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
                 onChange={onImporteChange}
                 borderColor="focus:border-indigo-500"
                 textColor="text-white"
-                min={1000}
+                min={0}
               />
             </div>
 
@@ -332,7 +332,7 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
                 onChange={onAnticipoChange}
                 borderColor="focus:border-emerald-500"
                 textColor="text-emerald-300"
-                max={importeUnidad}
+                max={importeUnidad > 0 ? importeUnidad : undefined}
                 min={0}
               />
             </div>
@@ -509,10 +509,11 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
                 </label>
                 <select
                   value={cuotaPosesion}
-                  onChange={(e) => onCuotaPosesionChange(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  onChange={(e) => onCuotaPosesionChange(parseInt(e.target.value, 10) || 0)}
                   className="w-full bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl px-4 py-2.5 text-base font-mono font-bold text-amber-300 outline-none cursor-pointer"
                 >
-                  {Array.from({ length: cantidadCuotasTotal }, (_, i) => i + 1).map((c) => (
+                  <option value={0}>A definir (seleccionar cuota de posesión)</option>
+                  {Array.from({ length: cantidadCuotasTotal || 48 }, (_, i) => i + 1).map((c) => (
                     <option key={c} value={c}>
                       Cuota #{c} ({formatFecha(fechaInicio, c).fechaCorta}) {c === 15 ? '★ (Previsto por Obra)' : ''}
                     </option>
@@ -523,7 +524,7 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-right shrink-0">
                 <span className="text-[10px] text-slate-400 block">Posesión Estimada</span>
                 <strong className="text-sm text-amber-300 font-mono block">
-                  {fechaPosesion.fechaCorta}
+                  {cuotaPosesion > 0 ? fechaPosesion.fechaCorta : 'A definir'}
                 </strong>
               </div>
             </div>

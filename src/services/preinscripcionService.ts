@@ -33,14 +33,18 @@ export const enviarEmailPreinscripcion = async (
       _captcha: 'false'
     };
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
     const response = await fetch(`https://formsubmit.co/ajax/${ADMIN_EMAIL_DESTINATARIO}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify(payload)
-    });
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    }).finally(() => clearTimeout(timeoutId));
 
     if (response.ok) {
       return { success: true, status: 'sent' };
