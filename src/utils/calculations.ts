@@ -65,6 +65,24 @@ export const calcularFlujoIndividual = (
   pagoFinalGastos: number,
   ajustes: AjusteCuota[] = []
 ): FlujoSocioCalculado => {
+  if (cuotasTotalesPlan <= 0) {
+    return {
+      socioId,
+      anticipoMes0: ant,
+      cuotaPosesion: mPosesion,
+      cuotaInmInicial: 0,
+      cuotaFinInicial: 0,
+      pagoFinalGastos: 0,
+      recargoGastosPorCuota: 0,
+      mesesTotales: 0,
+      totalAbonado: ant,
+      flujo: [],
+      totalAjustesPorcentaje: 0,
+      cuotaInmActual: 0,
+      cuotaFinActual: 0
+    };
+  }
+
   const flujo: FlujoMes[] = [];
   let saldo = costoDepto - ant;
   const cuotaBase = cuotasTotalesPlan > 0 ? costoDepto / cuotasTotalesPlan : 0;

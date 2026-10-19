@@ -10,9 +10,11 @@ import {
   TrendingDown,
   Info,
   CheckCircle2,
-  HelpCircle
+  HelpCircle,
+  Scale,
+  Percent
 } from 'lucide-react';
-import type { EstrategiaImpactoAdelanto } from '../types/fondo';
+import type { EstrategiaImpactoAdelanto, GastosConfigState } from '../types/fondo';
 import { fmtMoneda, formatFecha } from '../utils/calculations';
 
 // Componente de entrada numérica optimizado para valores financieros
@@ -173,6 +175,8 @@ export interface PanelSimuladorPlanProps {
   cuotaPosesion: number;
   onCuotaPosesionChange: (val: number) => void;
   gastosAdjudicacion: number;
+  gastos?: GastosConfigState;
+  onGastosChange?: (newGastos: Partial<GastosConfigState>) => void;
 
   // 5to: Cesión/venta de la unidad o participación
   activarCesion: boolean;
@@ -206,6 +210,8 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
   cuotaPosesion,
   onCuotaPosesionChange,
   gastosAdjudicacion,
+  gastos,
+  onGastosChange,
   activarCesion,
   onActivarCesionChange,
   cuotaCesion,
@@ -218,6 +224,21 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
   fechaInicio,
   capitalAportadoHastaCesion
 }) => {
+  const [internalGastos, setInternalGastos] = useState<GastosConfigState>(() => ({
+    formaPagoGastos: gastos?.formaPagoGastos || 'final',
+    comisionGestion: gastos?.comisionGestion ?? 0,
+    comisionEscribania: gastos?.comisionEscribania ?? 0,
+    otrosGastos: gastos?.otrosGastos ?? 0
+  }));
+
+  const activeGastos = gastos || internalGastos;
+  const triggerGastosChange = (newG: Partial<GastosConfigState>) => {
+    setInternalGastos((prev) => ({ ...prev, ...newG }));
+    if (onGastosChange) {
+      onGastosChange(newG);
+    }
+  };
+
   // Cálculos para Cesión (5to paso)
   const montoPrimaCesion = (importeUnidad * (porcentajePrimaCesion || 0)) / 100;
   const desgloseGestion = montoPrimaCesion * 0.50;
@@ -325,7 +346,9 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
               </label>
             </div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">
-              {cantidadCuotasTotal} Meses ({Math.round((cantidadCuotasTotal / 12) * 10) / 10} Años)
+              {cantidadCuotasTotal > 0
+                ? `${cantidadCuotasTotal} Meses (${Math.round((cantidadCuotasTotal / 12) * 10) / 10} Años)`
+                : 'A definir'}
             </span>
           </div>
 
@@ -334,18 +357,19 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
               <div className="flex-1">
                 <FintechInput
                   suffix="meses"
+                  placeholder="0"
                   value={cantidadCuotasTotal}
-                  onChange={(val) => onCantidadCuotasChange(Math.max(6, Math.min(240, val)))}
+                  onChange={(val) => onCantidadCuotasChange(val === 0 ? 0 : Math.max(1, Math.min(240, val)))}
                   borderColor="focus:border-indigo-500"
                   textColor="text-white"
-                  min={6}
+                  min={0}
                   max={240}
                 />
               </div>
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-right shrink-0">
                 <span className="text-[10px] text-slate-400 block">Fin proyectado</span>
                 <strong className="text-sm text-indigo-300 font-mono block">
-                  {formatFecha(fechaInicio, cantidadCuotasTotal).fechaCorta}
+                  {cantidadCuotasTotal > 0 ? formatFecha(fechaInicio, cantidadCuotasTotal).fechaCorta : 'A definir'}
                 </strong>
               </div>
             </div>
@@ -370,7 +394,9 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
             </div>
           </div>
           <p className="text-[11px] text-slate-400">
-            Cantidad de cuotas mensuales en las que amortiza y se construye el proyecto fiduciario.
+            {cantidadCuotasTotal > 0
+              ? `Plazo total en el que prorrateas el valor de construcción en ${cantidadCuotasTotal} cuotas mensuales.`
+              : 'Selecciona o escribe el plazo en meses deseado para tu plan de inversión.'}
           </p>
         </div>
 
@@ -497,11 +523,15 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
                     onChange={(e) => onCuotaAdelantoChange(parseInt(e.target.value, 10))}
                     className="w-full bg-slate-900 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-sm font-mono font-bold text-amber-300 outline-none cursor-pointer"
                   >
-                    {Array.from({ length: Math.max(1, cantidadCuotasTotal - 1) }, (_, i) => i + 2).map((m) => (
-                      <option key={m} value={m}>
-                        Cuota #{m} ({formatFecha(fechaInicio, m).fechaCorta})
-                      </option>
-                    ))}
+                    {cantidadCuotasTotal > 1 ? (
+                      Array.from({ length: Math.max(1, cantidadCuotasTotal - 1) }, (_, i) => i + 2).map((m) => (
+                        <option key={m} value={m}>
+                          Cuota #{m} ({formatFecha(fechaInicio, m).fechaCorta})
+                        </option>
+                      ))
+                    ) : (
+                      <option value={0}>Elegir plazo en meses primero</option>
+                    )}
                   </select>
                 </div>
               </div>
@@ -570,7 +600,7 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
             </span>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="flex-1">
                 <label className="block text-[11px] font-bold text-slate-400 mb-1">
@@ -582,7 +612,7 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
                   className="w-full bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl px-4 py-2.5 text-base font-mono font-bold text-amber-300 outline-none cursor-pointer"
                 >
                   <option value={0}>A definir (seleccionar cuota de posesión)</option>
-                  {Array.from({ length: cantidadCuotasTotal || 48 }, (_, i) => i + 1).map((c) => (
+                  {cantidadCuotasTotal > 0 && Array.from({ length: cantidadCuotasTotal }, (_, i) => i + 1).map((c) => (
                     <option key={c} value={c}>
                       Cuota #{c} ({formatFecha(fechaInicio, c).fechaCorta}){cuotaPosesionPrevistaObra && c === cuotaPosesionPrevistaObra ? ' ★ (Prevista en Obra)' : ''}
                     </option>
@@ -598,12 +628,182 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
               </div>
             </div>
 
-            {/* Impacto de Gastos de Adjudicación */}
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-2.5 flex items-center justify-between text-xs">
-              <span className="text-slate-400">Gastos de posesión y escrituración:</span>
-              <span className="font-mono font-bold text-amber-300">
-                +{fmtMoneda(gastosAdjudicacion)}
-              </span>
+            {/* Sección editable: Gastos de Escribanía, Honorarios y Administrativos */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div className="flex items-center gap-1.5">
+                  <Scale className="w-4 h-4 text-amber-400" />
+                  <div>
+                    <span className="text-xs font-bold text-slate-200 block">
+                      Gastos de Escribanía y Administrativos
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      Honorarios de escrituración, gestión y perfeccionamiento
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-mono font-black text-amber-300 block">
+                    +{fmtMoneda(gastosAdjudicacion)}
+                  </span>
+                  {importeUnidad > 0 && (
+                    <span className="text-[10px] font-mono text-slate-400">
+                      {((gastosAdjudicacion / importeUnidad) * 100).toFixed(1)}% total
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {/* Selector Modalidad de Cobro */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-[11px] bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                  <label className="text-slate-300 font-semibold flex items-center gap-1.5">
+                    <Percent className="w-3.5 h-3.5 text-amber-400" />
+                    ¿Cómo abona los gastos el socio?
+                  </label>
+                  <select
+                    value={activeGastos.formaPagoGastos || 'final'}
+                    onChange={(e) => triggerGastosChange({ formaPagoGastos: e.target.value as any })}
+                    className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-[11px] text-amber-300 font-bold outline-none cursor-pointer"
+                  >
+                    <option value="final">Opción A: Al final (100% de contado al adjudicar)</option>
+                    <option value="prorrateado">Opción B: Prorrateado en cuotas mensuales</option>
+                  </select>
+                </div>
+
+                {/* 3 Inputs Editables: Escribanía, Administrativos / Gestión y Otros */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {/* 1. Escribanía (%) */}
+                  <div className="bg-slate-950/80 border border-slate-800 hover:border-amber-400/50 transition-colors rounded-xl p-2.5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-center text-[11px] mb-0.5">
+                        <span className="font-bold text-slate-200">Escribanía</span>
+                        <span className="font-mono text-amber-300 font-extrabold text-[11px]">
+                          {fmtMoneda((importeUnidad * (activeGastos.comisionEscribania || 0)) / 100)}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mb-1.5">Escrituración y boleto</p>
+                      <FintechInput
+                        suffix="%"
+                        placeholder="0"
+                        value={activeGastos.comisionEscribania ?? 0}
+                        onChange={(val) => triggerGastosChange({ comisionEscribania: val })}
+                        borderColor="focus:border-amber-400"
+                        textColor="text-amber-200"
+                        min={0}
+                        max={100}
+                        isDecimal={true}
+                        className="py-1 text-xs"
+                      />
+                    </div>
+                    {/* Presets rápidos */}
+                    <div className="flex items-center gap-1 pt-1.5 mt-1 border-t border-slate-800/60">
+                      {[2.5, 3.0, 3.5].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => triggerGastosChange({ comisionEscribania: pct })}
+                          className={`text-[9px] font-mono px-1.5 py-0.5 rounded border transition cursor-pointer ${
+                            activeGastos.comisionEscribania === pct
+                              ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold'
+                              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          {pct}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 2. Administrativos / Gestión (%) */}
+                  <div className="bg-slate-950/80 border border-slate-800 hover:border-amber-400/50 transition-colors rounded-xl p-2.5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-center text-[11px] mb-0.5">
+                        <span className="font-bold text-slate-200">Administrativos</span>
+                        <span className="font-mono text-amber-300 font-extrabold text-[11px]">
+                          {fmtMoneda((importeUnidad * (activeGastos.comisionGestion || 0)) / 100)}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mb-1.5">Gestión fiduciaria</p>
+                      <FintechInput
+                        suffix="%"
+                        placeholder="0"
+                        value={activeGastos.comisionGestion ?? 0}
+                        onChange={(val) => triggerGastosChange({ comisionGestion: val })}
+                        borderColor="focus:border-amber-400"
+                        textColor="text-amber-200"
+                        min={0}
+                        max={100}
+                        isDecimal={true}
+                        className="py-1 text-xs"
+                      />
+                    </div>
+                    {/* Presets rápidos */}
+                    <div className="flex items-center gap-1 pt-1.5 mt-1 border-t border-slate-800/60">
+                      {[5.0, 6.0, 7.0].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => triggerGastosChange({ comisionGestion: pct })}
+                          className={`text-[9px] font-mono px-1.5 py-0.5 rounded border transition cursor-pointer ${
+                            activeGastos.comisionGestion === pct
+                              ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold'
+                              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          {pct}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 3. Otros Gastos Fijos (USD) */}
+                  <div className="bg-slate-950/80 border border-slate-800 hover:border-amber-400/50 transition-colors rounded-xl p-2.5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-center text-[11px] mb-0.5">
+                        <span className="font-bold text-slate-200">Otros Fijos</span>
+                        <span className="font-mono text-amber-300 font-extrabold text-[11px]">
+                          {fmtMoneda(activeGastos.otrosGastos || 0)}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mb-1.5">Sellados y trámites</p>
+                      <FintechInput
+                        prefix="$"
+                        placeholder="0"
+                        value={activeGastos.otrosGastos ?? 0}
+                        onChange={(val) => triggerGastosChange({ otrosGastos: val })}
+                        borderColor="focus:border-amber-400"
+                        textColor="text-amber-200"
+                        min={0}
+                        className="py-1 text-xs"
+                      />
+                    </div>
+                    {/* Presets rápidos */}
+                    <div className="flex items-center gap-1 pt-1.5 mt-1 border-t border-slate-800/60">
+                      {[0, 300, 500].map((fijo) => (
+                        <button
+                          key={fijo}
+                          type="button"
+                          onClick={() => triggerGastosChange({ otrosGastos: fijo })}
+                          className={`text-[9px] font-mono px-1.5 py-0.5 rounded border transition cursor-pointer ${
+                            activeGastos.otrosGastos === fijo
+                              ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold'
+                              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          ${fijo}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-slate-400 pt-0.5">
+                  {activeGastos.formaPagoGastos === 'prorrateado'
+                    ? `Gastos prorrateados: distribuidos mensualmente en tus cuotas (+${cantidadCuotasTotal > 0 ? fmtMoneda(gastosAdjudicacion / cantidadCuotasTotal) : '$0'} / mes). Abonarás $0 adicional al adjudicar.`
+                    : `Abonarás ${fmtMoneda(gastosAdjudicacion)} de contado al tomar posesión en la cuota ${cuotaPosesion > 0 ? `#${cuotaPosesion}` : 'a definir'}.`}
+                </p>
+              </div>
             </div>
           </div>
           <p className="text-[11px] text-slate-400">

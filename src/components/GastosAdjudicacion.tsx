@@ -3,7 +3,7 @@ import type { GastosConfigState } from '../types/fondo';
 
 import { fmtMoneda, calcularGastos } from '../utils/calculations';
 import { Scale, Briefcase, Percent } from 'lucide-react';
-import { CurrencyInput } from './common/CurrencyInput';
+import { FintechInput } from './PanelSimuladorPlan';
 
 interface GastosAdjudicacionProps {
   costoDepto: number;
@@ -72,16 +72,18 @@ export const GastosAdjudicacion: React.FC<GastosAdjudicacionProps> = ({
               <span className="text-slate-300 font-medium">Gestión de Fondo (%)</span>
               <span className="text-amber-300 font-bold font-mono">{fmtMoneda(montoGestion)}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                step="0.5"
-                value={gastos.comisionGestion}
-                onChange={(e) => onChange({ comisionGestion: parseFloat(e.target.value) || 0 })}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none font-mono focus:border-amber-400"
-              />
-              <span className="text-slate-400 font-bold">%</span>
-            </div>
+            <FintechInput
+              suffix="%"
+              placeholder="0"
+              value={gastos.comisionGestion}
+              onChange={(val) => onChange({ comisionGestion: val })}
+              borderColor="focus:border-amber-400"
+              textColor="text-white"
+              min={0}
+              max={100}
+              isDecimal={true}
+              className="py-1.5 text-xs"
+            />
           </div>
 
           <div>
@@ -89,16 +91,18 @@ export const GastosAdjudicacion: React.FC<GastosAdjudicacionProps> = ({
               <span className="text-slate-300 font-medium">Escribanía (%)</span>
               <span className="text-slate-300 font-bold font-mono">{fmtMoneda(montoEscribania)}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                step="0.5"
-                value={gastos.comisionEscribania}
-                onChange={(e) => onChange({ comisionEscribania: parseFloat(e.target.value) || 0 })}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none font-mono focus:border-slate-500"
-              />
-              <span className="text-slate-400 font-bold">%</span>
-            </div>
+            <FintechInput
+              suffix="%"
+              placeholder="0"
+              value={gastos.comisionEscribania}
+              onChange={(val) => onChange({ comisionEscribania: val })}
+              borderColor="focus:border-slate-500"
+              textColor="text-white"
+              min={0}
+              max={100}
+              isDecimal={true}
+              className="py-1.5 text-xs"
+            />
           </div>
 
           <div>
@@ -106,10 +110,15 @@ export const GastosAdjudicacion: React.FC<GastosAdjudicacionProps> = ({
               <span className="text-slate-300 font-medium">Otros Gastos Fijos ($)</span>
               <span className="text-slate-400 font-mono font-medium">{fmtMoneda(gastos.otrosGastos)}</span>
             </div>
-            <CurrencyInput
+            <FintechInput
+              prefix="$"
+              placeholder="0"
               value={gastos.otrosGastos}
               onChange={(val) => onChange({ otrosGastos: val })}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none font-mono focus:border-slate-500"
+              borderColor="focus:border-slate-500"
+              textColor="text-white"
+              min={0}
+              className="py-1.5 text-xs"
             />
           </div>
         </div>

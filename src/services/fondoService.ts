@@ -105,18 +105,18 @@ export const PLANTILLAS_PREDEFINIDAS: Omit<FondoGuardado, 'id' | 'updated_at'>[]
     descripcion: 'Espacio interactivo para que los socios jueguen libremente con todas las variables antes de cerrar el círculo.',
     estadoPlan: 'simulacion',
     params: {
-      costoDepto: 70000,
+      costoDepto: 0,
       cantidadDeptos: 8,
-      cantidadCuotas: 48,
-      valorCuotaBase: 1458,
+      cantidadCuotas: 0,
+      valorCuotaBase: 0,
       fechaInicio: '2027-01',
       modalidadAnticipo: 'reducir_cuota'
     },
     gastos: {
       formaPagoGastos: 'final',
-      comisionGestion: 7,
-      comisionEscribania: 3,
-      otrosGastos: 500
+      comisionGestion: 0,
+      comisionEscribania: 0,
+      otrosGastos: 0
     },
     anticipos: [0, 0, 0, 0, 0, 0, 0, 0],
     adjudicacionFijada: { 1: 12 },
@@ -320,6 +320,20 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
               ajustes: f.ajustes || []
             };
           }
+          if (f.nombre === 'Nueva Simulación de Plan' || (f.estadoPlan === 'simulacion' && (!f.params.costoDepto || f.params.costoDepto === 0))) {
+            if (f.params.cantidadCuotas !== 0) {
+              changed = true;
+              return {
+                ...f,
+                params: {
+                  ...f.params,
+                  costoDepto: 0,
+                  cantidadCuotas: 0,
+                  valorCuotaBase: 0
+                }
+              };
+            }
+          }
           return {
             ...f,
             ajustes: f.ajustes || []
@@ -484,10 +498,10 @@ export const crearSimulacionDesdeCero = async (
   const id = typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Date.now());
   const fechaActual = new Date().toISOString().slice(0, 7);
   const cantidadDeptos = baseParams?.cantidadDeptos || 10;
-  const cantidadCuotas = baseParams?.cantidadCuotas || 48;
+  const cantidadCuotas = baseParams?.cantidadCuotas !== undefined ? baseParams.cantidadCuotas : 0;
   const costoDepto = baseParams?.costoDepto !== undefined ? baseParams.costoDepto : 0;
   const valorCuotaBase = cantidadCuotas > 0 && costoDepto > 0 ? Math.round(costoDepto / cantidadCuotas) : 0;
-  const nombre = nombreCustom || (costoDepto > 0 ? `Simulación de Plan (${cantidadDeptos} Deptos • ${cantidadCuotas} Meses)` : 'Nueva Simulación de Plan');
+  const nombre = nombreCustom || (costoDepto > 0 && cantidadCuotas > 0 ? `Simulación de Plan (${cantidadDeptos} Deptos • ${cantidadCuotas} Meses)` : 'Nueva Simulación de Plan');
 
   const res = await saveFondo(
     nombre,

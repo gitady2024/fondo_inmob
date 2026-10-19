@@ -397,7 +397,7 @@ export const App: React.FC = () => {
     const baseParams = {
       costoDepto: 0, // Inicia estrictamente en 0 para simulación limpia
       cantidadDeptos: opciones?.obraBase?.params.cantidadDeptos || 10,
-      cantidadCuotas: opciones?.obraBase?.params.cantidadCuotas || 48,
+      cantidadCuotas: 0, // Estrictamente en 0 por defecto para que el usuario elija
       fechaInicio: opciones?.obraBase?.params.fechaInicio
     };
 
@@ -427,7 +427,11 @@ export const App: React.FC = () => {
   };
 
   const handleCreateBlank = async (name: string) => {
-    const nueva = await crearSimulacionDesdeCero(name);
+    const nueva = await crearSimulacionDesdeCero(name, {
+      costoDepto: 0,
+      cantidadCuotas: 0,
+      cantidadDeptos: 10
+    });
     setFondosList((prev) => [nueva, ...prev]);
     setCurrentFondoId(nueva.id);
     setStoredCurrentFondoId(nueva.id);
@@ -984,6 +988,7 @@ export const App: React.FC = () => {
               fechaInicio={currentFondo.params.fechaInicio}
               params={currentFondo.params}
               gastos={currentFondo.gastos}
+              onUpdateGastos={handleGastosChange}
               onOpenContrato={() => setIsContratoOpen(true)}
               onSignOut={currentUser.isGuest ? undefined : handleSignOutAll}
               onLogin={currentUser.isGuest ? () => setIsLoginOpen(true) : undefined}

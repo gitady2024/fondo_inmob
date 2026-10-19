@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { calcularGastos, calcularFlujoIndividual } from '../utils/calculations';
+import type { GastosConfigState } from '../types/fondo';
 
 describe('Etapa 3: Optimizaciones Móviles, Tipografía, a11y, Toasts y Obras en Marcha', () => {
   it('Contador Dinámico de Escasez: calcula correctamente las unidades disponibles (cantidadDeptos - unidadesAdjudicadas)', () => {
@@ -204,7 +206,7 @@ describe('Etapa 3: Optimizaciones Móviles, Tipografía, a11y, Toasts y Obras en
         params: {
           costoDepto: base?.costoDepto !== undefined ? base.costoDepto : 0,
           cantidadDeptos,
-          cantidadCuotas: 48,
+          cantidadCuotas: 0, // Estrictamente 0 por defecto
           valorCuotaBase: 0,
           fechaInicio: '2027-01',
           modalidadAnticipo: 'reducir_cuota' as const
@@ -238,6 +240,7 @@ describe('Etapa 3: Optimizaciones Móviles, Tipografía, a11y, Toasts y Obras en
     const nuevaSimulacion = crearSimulacionPrueba('Simulación 1');
     expect(nuevaSimulacion.estadoPlan).toBe('simulacion');
     expect(nuevaSimulacion.params.costoDepto).toBe(0);
+    expect(nuevaSimulacion.params.cantidadCuotas).toBe(0); // Debe salir cero por defecto
     expect(nuevaSimulacion.params.valorCuotaBase).toBe(0);
     expect(nuevaSimulacion.anticipos.every((a) => a === 0)).toBe(true);
     expect(nuevaSimulacion.adelanto.activo).toBe(false);
@@ -294,5 +297,85 @@ describe('Etapa 3: Optimizaciones Móviles, Tipografía, a11y, Toasts y Obras en
     const opcionesObraReal = generarOpcionesPosesion(48, 18);
     expect(opcionesObraReal.find((o) => o.cuota === 18)?.esPrevistaEnObra).toBe(true);
     expect(opcionesObraReal.find((o) => o.cuota === 15)?.esPrevistaEnObra).toBe(false);
+  });
+
+  it('Gastos de Escribanía, Gestión y Otros: permite edición y cálculo reactivo en cuotas y posesión', () => {
+    // Depto de USD 75.000 con 3% Escribanía, 2% Gestión, $500 otros gastos
+    const costoDepto = 75000;
+    const gastosEditados: GastosConfigState = {
+      formaPagoGastos: 'final',
+      comisionEscribania: 3,
+      comisionGestion: 2,
+      otrosGastos: 500
+    };
+
+    const resFinal = calcularGastos(costoDepto, gastosEditados, 36);
+    expect(resFinal.montoEscribania).toBe(2250); // 75000 * 3%
+    expect(resFinal.montoGestion).toBe(1500);    // 75000 * 2%
+    expect(resFinal.gastosTotales).toBe(4250);   // 2250 + 1500 + 500
+    expect(resFinal.pagoFinalGastos).toBe(4250); // Pago al adjudicar
+    expect(resFinal.recargoGastosPorCuota).toBe(0);
+
+    // Modalidad prorrateada en 36 meses
+    const gastosProrrateados: GastosConfigState = {
+      ...gastosEditados,
+      formaPagoGastos: 'prorrateado'
+    };
+    const resProrrateado = calcularGastos(costoDepto, gastosProrrateados, 36);
+    expect(resProrrateado.gastosTotales).toBe(4250);
+    expect(resProrrateado.pagoFinalGastos).toBe(0);
+    expect(Math.round(resProrrateado.recargoGastosPorCuota)).toBe(Math.round(4250 / 36)); // ~118 USD/mes
+  });
+
+  it('Simulación con 0 cuotas: flujo individual maneja estado en cero sin bucles ni divisiones por cero', () => {
+    const flujoVacio = calcularFlujoIndividual(
+      1,
+      60000,
+      0,
+      0, // 0 cuotas
+      'reducir_cuota',
+      0,
+      { activo: false, mes: 1, monto: 0, estrategia: 'reducir_cuota' },
+      0,
+      0,
+      []
+    );
+
+    expect(flujoVacio.mesesTotales).toBe(0);
+    expect(flujoVacio.flujo).toHaveLength(0);
+    expect(flujoVacio.cuotaInmInicial).toBe(0);
+    expect(flujoVacio.cuotaFinInicial).toBe(0);
+  });
+
+  it('Gastos Fiduciarios: cálculo de escribanía y gastos administrativos tanto en 0 como con valores personalizados', () => {
+    // Al inicio en 0
+    const gastosCero: GastosConfigState = {
+      formaPagoGastos: 'final',
+      comisionEscribania: 0,
+      comisionGestion: 0,
+      otrosGastos: 0
+    };
+    const resCero = calcularGastos(0, gastosCero, 0);
+    expect(resCero.gastosTotales).toBe(0);
+    expect(resCero.montoEscribania).toBe(0);
+    expect(resCero.montoGestion).toBe(0);
+
+    // Cuando el usuario ingresa 3% escribanía y 6% administrativos sobre $80.000
+    const gastosUsuario: GastosConfigState = {
+      formaPagoGastos: 'final',
+      comisionEscribania: 3,
+      comisionGestion: 6,
+      otrosGastos: 300
+    };
+    const resUsuario = calcularGastos(80000, gastosUsuario, 36);
+    expect(resUsuario.montoEscribania).toBe(2400); // 80000 * 3%
+    expect(resUsuario.montoGestion).toBe(4800);    // 80000 * 6%
+    expect(resUsuario.gastosTotales).toBe(7500);   // 2400 + 4800 + 300
+    expect(resUsuario.pagoFinalGastos).toBe(7500);
+
+    // Modalidad prorrateada
+    const resProrrateada = calcularGastos(80000, { ...gastosUsuario, formaPagoGastos: 'prorrateado' }, 36);
+    expect(resProrrateada.pagoFinalGastos).toBe(0);
+    expect(resProrrateada.recargoGastosPorCuota).toBeCloseTo(7500 / 36, 2);
   });
 });
