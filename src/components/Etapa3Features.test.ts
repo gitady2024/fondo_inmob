@@ -272,4 +272,27 @@ describe('Etapa 3: Optimizaciones Móviles, Tipografía, a11y, Toasts y Obras en
     }
     expect(cuotaPosesion).toBe(36);
   });
+
+  it('Cuota de Posesión Libre: el usuario elige cualquier cuota sin etiqueta forzada ni hardcodeo de cuota 15', () => {
+    const generarOpcionesPosesion = (
+      totalCuotas: number,
+      cuotaPosesionPrevistaObra?: number
+    ) => {
+      return Array.from({ length: totalCuotas }, (_, i) => i + 1).map((c) => ({
+        cuota: c,
+        label: `Cuota #${c}`,
+        esPrevistaEnObra: Boolean(cuotaPosesionPrevistaObra && c === cuotaPosesionPrevistaObra)
+      }));
+    };
+
+    // Caso 1: En simulación libre, ninguna cuota tiene etiqueta forzada "Prevista en Obra"
+    const opcionesSimulacion = generarOpcionesPosesion(36);
+    expect(opcionesSimulacion.some((o) => o.esPrevistaEnObra)).toBe(false);
+    expect(opcionesSimulacion.find((o) => o.cuota === 15)?.esPrevistaEnObra).toBe(false);
+
+    // Caso 2: En obra activa con posesión fijada en cuota 18, solo cuota 18 se marca
+    const opcionesObraReal = generarOpcionesPosesion(48, 18);
+    expect(opcionesObraReal.find((o) => o.cuota === 18)?.esPrevistaEnObra).toBe(true);
+    expect(opcionesObraReal.find((o) => o.cuota === 15)?.esPrevistaEnObra).toBe(false);
+  });
 });

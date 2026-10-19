@@ -185,6 +185,7 @@ export interface PanelSimuladorPlanProps {
   // Contexto y auxiliares
   cantidadCuotasTotal: number;
   onCantidadCuotasChange: (val: number) => void;
+  cuotaPosesionPrevistaObra?: number;
   fechaInicio: string;
   capitalAportadoHastaCesion: number;
 }
@@ -213,6 +214,7 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
   onPorcentajePrimaCesionChange,
   cantidadCuotasTotal,
   onCantidadCuotasChange,
+  cuotaPosesionPrevistaObra,
   fechaInicio,
   capitalAportadoHastaCesion
 }) => {
@@ -582,7 +584,7 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
                   <option value={0}>A definir (seleccionar cuota de posesión)</option>
                   {Array.from({ length: cantidadCuotasTotal || 48 }, (_, i) => i + 1).map((c) => (
                     <option key={c} value={c}>
-                      Cuota #{c} ({formatFecha(fechaInicio, c).fechaCorta}) {c === 15 ? '★ (Previsto por Obra)' : ''}
+                      Cuota #{c} ({formatFecha(fechaInicio, c).fechaCorta}){cuotaPosesionPrevistaObra && c === cuotaPosesionPrevistaObra ? ' ★ (Prevista en Obra)' : ''}
                     </option>
                   ))}
                 </select>

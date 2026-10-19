@@ -595,6 +595,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
             onPorcentajePrimaCesionChange={setSimPorcentajePrimaCesion}
             cantidadCuotasTotal={simCantidadCuotas}
             onCantidadCuotasChange={handleCantidadCuotasChange}
+            cuotaPosesionPrevistaObra={currentFondo?.estadoPlan === 'activo' ? currentFondo.adjudicacionFijada?.[socioId] : undefined}
             fechaInicio={fechaInicio}
             capitalAportadoHastaCesion={capitalAportadoHastaCesion}
           />
