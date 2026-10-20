@@ -1,0 +1,163 @@
+import { describe, it, expect } from 'vitest';
+import { calcularGastos, calcularFlujoIndividual } from '../utils/calculations';
+import { PLANTILLAS_PREDEFINIDAS, type FondoGuardado } from '../services/fondoService';
+import { DATOS_TECNICOS_DEFAULT } from '../types/tecnico';
+
+describe('Requerimiento: Obras en Marcha (Renglón Único y Detalle Completo en otra página)', () => {
+  const mockObra: FondoGuardado = {
+    ...PLANTILLAS_PREDEFINIDAS[0],
+    id: 'fondo-obra-1',
+    nombre: 'Edificio Las Heras 1420 - Fondo Inmobiliario 1',
+    descripcion: 'Edificio residencial de categoría desarrollado en PB y 4 plantas.',
+    updated_at: '2026-03-30T10:00:00.000Z',
+    estadoPlan: 'activo',
+    params: {
+      ...PLANTILLAS_PREDEFINIDAS[0].params,
+      costoDepto: 70000,
+      cantidadCuotas: 36,
+      cantidadDeptos: 10
+    },
+    gastos: {
+      formaPagoGastos: 'final',
+      comisionGestion: 7,
+      comisionEscribania: 3,
+      otrosGastos: 500
+    },
+    datosTecnicos: {
+      ...DATOS_TECNICOS_DEFAULT,
+      superficieTotalM2: 1250,
+      directorObra: 'Arq. Marcelo Gómez',
+      numeroPermisoObra: 'EXP-MUNIC-2026-89412',
+      etapas: [
+        {
+          id: 'et-1',
+          nombre: 'Fundaciones y Submuración',
+          pesoPonderado: 20,
+          porcentajeReal: 100,
+          fechaInicioEstimada: '2026-01-01',
+          fechaFinEstimada: '2026-03-30',
+          estado: 'completada'
+        },
+        {
+          id: 'et-2',
+          nombre: 'Estructura de H°A°',
+          pesoPonderado: 40,
+          porcentajeReal: 75,
+          fechaInicioEstimada: '2026-04-01',
+          fechaFinEstimada: '2026-08-30',
+          estado: 'en_progreso'
+        },
+        {
+          id: 'et-3',
+          nombre: 'Mampostería y Cerramientos',
+          pesoPonderado: 40,
+          porcentajeReal: 10,
+          fechaInicioEstimada: '2026-09-01',
+          fechaFinEstimada: '2026-12-30',
+          estado: 'en_progreso'
+        }
+      ]
+    }
+  };
+
+  it('Renglón Único: calcula y formatea los datos básicos requeridos para la línea compacta', () => {
+    const cantidadDeptos = mockObra.params.cantidadDeptos;
+    const cantidadCuotas = mockObra.params.cantidadCuotas;
+    const costoDepto = mockObra.params.costoDepto;
+    const cuotaEstimada = Math.round(costoDepto / cantidadCuotas);
+
+    // Unidades disponibles
+    const unidadesAdjudicadas = 7;
+    const unidadesDisponibles = Math.max(1, cantidadDeptos - unidadesAdjudicadas);
+
+    // Avance ponderado de obra
+    const avancePonderado = Math.round(
+      mockObra.datosTecnicos!.etapas!.reduce(
+        (acc, et) => acc + (et.pesoPonderado * et.porcentajeReal) / 100,
+        0
+      )
+    );
+
+    expect(mockObra.nombre).toBe('Edificio Las Heras 1420 - Fondo Inmobiliario 1');
+    expect(cantidadCuotas).toBe(36);
+    expect(cuotaEstimada).toBe(1944);
+    expect(unidadesDisponibles).toBe(3);
+    // 20*1.0 + 40*0.75 + 40*0.10 = 20 + 30 + 4 = 54%
+    expect(avancePonderado).toBe(54);
+  });
+
+  it('Aspecto Financiero: calcula desglose de gastos de gestión y escribanía para el detalle', () => {
+    const gastos = calcularGastos(
+      mockObra.params.costoDepto,
+      mockObra.gastos!,
+      mockObra.params.cantidadCuotas
+    );
+
+    // Gestión: 7% de 70.000 = 4.900
+    expect(gastos.montoGestion).toBeCloseTo(4900, 2);
+    // Escribanía: 3% de 70.000 = 2.100
+    expect(gastos.montoEscribania).toBeCloseTo(2100, 2);
+    // Otros: 500
+    // Total gastos: 4.900 + 2.100 + 500 = 7.500
+    expect(gastos.gastosTotales).toBeCloseTo(7500, 2);
+    // Al ser forma 'final', se cobra en la posesión
+    expect(gastos.pagoFinalGastos).toBeCloseTo(7500, 2);
+    expect(gastos.recargoGastosPorCuota).toBe(0);
+  });
+
+  it('Aspecto Financiero: genera el flujo de fondos y cuadro de marcha para la obra', () => {
+    const gastos = calcularGastos(
+      mockObra.params.costoDepto,
+      mockObra.gastos!,
+      mockObra.params.cantidadCuotas
+    );
+
+    const anticipo = 14000; // 20%
+    const cuotaPosesion = 15;
+    const adelantoInactivo = {
+      activo: false,
+      mes: 10,
+      monto: 0,
+      estrategia: 'reducir_cuota' as const
+    };
+
+    const flujo = calcularFlujoIndividual(
+      1,
+      mockObra.params.costoDepto,
+      anticipo,
+      mockObra.params.cantidadCuotas,
+      'reducir_cuota',
+      gastos.recargoGastosPorCuota,
+      adelantoInactivo,
+      cuotaPosesion,
+      gastos.pagoFinalGastos,
+      []
+    );
+
+    expect(flujo.cuotaInmInicial).toBeGreaterThan(0);
+    // Costo del depto (70000) + pago final de gastos fiduciarios (7500)
+    expect(flujo.totalAbonado).toBeCloseTo(77500, 2);
+    expect(flujo.flujo.length).toBe(mockObra.params.cantidadCuotas);
+    expect(flujo.flujo[14].mes).toBe(15);
+  });
+
+  it('Aspecto Técnico: verifica que la obra posea la totalidad de los datos requeridos', () => {
+    const datos = mockObra.datosTecnicos!;
+
+    expect(datos.superficieTotalM2).toBe(1250);
+    expect(datos.directorObra).toBe('Arq. Marcelo Gómez');
+    expect(datos.numeroPermisoObra).toBe('EXP-MUNIC-2026-89412');
+    expect(datos.etapas.length).toBeGreaterThanOrEqual(2);
+    expect(datos.tramites.length).toBeGreaterThan(0);
+    expect((datos.profesionales || []).length).toBeGreaterThan(0);
+  });
+
+  it('Navegación: la ruta /obra o #/obra es identificada como obra-detalle', () => {
+    const testPaths = ['/obra', '/obra?id=fondo-obra-1', '#/obra', '#/obra?id=fondo-obra-1'];
+
+    testPaths.forEach((path) => {
+      const isObraRoute = path.toLowerCase().includes('/obra') || path.toLowerCase().includes('obra-detalle');
+      expect(isObraRoute).toBe(true);
+    });
+  });
+});

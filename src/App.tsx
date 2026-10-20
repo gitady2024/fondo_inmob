@@ -60,6 +60,8 @@ import { useAuth } from './hooks/useAuth';
 import { LandingPage } from './components/LandingPage';
 import { trackSimuladorInicio, trackSimulacionCompartida } from './services/analyticsService';
 import { ObrasAdminModal } from './components/ObrasAdminModal';
+import { ObraDetallePage } from './components/ObraDetallePage';
+import { PreinscripcionModal } from './components/PreinscripcionModal';
 
 export const App: React.FC = () => {
   const {
@@ -83,11 +85,14 @@ export const App: React.FC = () => {
     setToastMessage('👋 Sesión cerrada correctamente.');
   }, [handleSupabaseSignOut, setDevUser]);
 
-  // Detección de ruta inicial: Separación de entornos (/ vs /app o /acceso)
-  const getInitialRoute = (): 'landing' | 'app' => {
+  // Detección de ruta inicial: Separación de entornos (/ vs /app vs /obra o /obra-detalle)
+  const getInitialRoute = (): 'landing' | 'app' | 'obra-detalle' => {
     if (typeof window === 'undefined') return 'landing';
     const path = window.location.pathname.toLowerCase();
     const hash = window.location.hash.toLowerCase();
+    if (path.includes('/obra') || hash.includes('/obra') || hash.includes('obra-detalle')) {
+      return 'obra-detalle';
+    }
     if (
       path.includes('/app') ||
       path.includes('/acceso') ||
@@ -99,21 +104,52 @@ export const App: React.FC = () => {
     return 'landing';
   };
 
-  const [currentRoute, setCurrentRoute] = useState<'landing' | 'app'>(getInitialRoute);
+  const [currentRoute, setCurrentRoute] = useState<'landing' | 'app' | 'obra-detalle'>(getInitialRoute);
+  const [obraDetalleId, setObraDetalleId] = useState<string | undefined>(() => {
+    if (typeof window === 'undefined') return undefined;
+    try {
+      const searchStr = window.location.search || (window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '');
+      const urlParams = new URLSearchParams(searchStr);
+      return urlParams.get('id') || undefined;
+    } catch {
+      return undefined;
+    }
+  });
 
-  // Navegación fluida entre la landing pública (/) y el entorno de gestión (/app)
+  // Navegación fluida entre la landing pública (/), el detalle de obra (/obra) y el entorno de gestión (/app)
   const navigateTo = useCallback(
-    (route: 'landing' | 'app', options?: { openLoginRole?: UserRole; guestSim?: boolean }) => {
+    (
+      route: 'landing' | 'app' | 'obra-detalle',
+      options?: { openLoginRole?: UserRole; guestSim?: boolean; obraId?: string }
+    ) => {
       setCurrentRoute(route);
-      const targetPath = route === 'landing' ? '/' : '/app';
+      if (options?.obraId) {
+        setObraDetalleId(options.obraId);
+      }
+      const targetPath =
+        route === 'landing'
+          ? '/'
+          : route === 'app'
+          ? '/app'
+          : options?.obraId
+          ? `/obra?id=${encodeURIComponent(options.obraId)}`
+          : '/obra';
+
+      const hashTarget =
+        route === 'landing'
+          ? '#/'
+          : route === 'app'
+          ? '#/app'
+          : `#/obra${options?.obraId ? `?id=${encodeURIComponent(options.obraId)}` : ''}`;
+
       try {
         if (window.location.protocol === 'file:') {
-          window.location.hash = route === 'landing' ? '#/' : '#/app';
+          window.location.hash = hashTarget;
         } else {
-          window.history.pushState({ route }, '', targetPath);
+          window.history.pushState({ route, obraId: options?.obraId }, '', targetPath);
         }
       } catch {
-        window.location.hash = route === 'landing' ? '#/' : '#/app';
+        window.location.hash = hashTarget;
       }
 
       if (route === 'landing') {
@@ -139,6 +175,16 @@ export const App: React.FC = () => {
   useEffect(() => {
     const handleLocationChange = () => {
       setCurrentRoute(getInitialRoute());
+      try {
+        const searchStr = window.location.search || (window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '');
+        const urlParams = new URLSearchParams(searchStr);
+        const idParam = urlParams.get('id');
+        if (idParam) {
+          setObraDetalleId(idParam);
+        }
+      } catch {
+        // no-op
+      }
     };
     window.addEventListener('popstate', handleLocationChange);
     window.addEventListener('hashchange', handleLocationChange);
@@ -158,6 +204,13 @@ export const App: React.FC = () => {
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
   const [isObrasAdminOpen, setIsObrasAdminOpen] = useState<boolean>(false);
   const [editObraId, setEditObraId] = useState<string | undefined>(undefined);
+  const [modalPreinscripcionOpen, setModalPreinscripcionOpen] = useState<boolean>(false);
+  const [preinscripcionTarget, setPreinscripcionTarget] = useState<{
+    nombre: string;
+    id: string;
+    cuota?: number;
+    anticipo?: number;
+  }>({ nombre: '', id: '' });
   /** Cuando es true, al renderizar el portal del usuario se abre directo en la vista de simulación */
   const [goToSimulador, setGoToSimulador] = useState<boolean>(false);
 
@@ -641,7 +694,51 @@ export const App: React.FC = () => {
         {/* ------------------------------------------------------------------ */}
         {/* ENTORNO 1: LANDING COMERCIAL AISLADA EN LA RUTA RAÍZ (/)           */}
         {/* ------------------------------------------------------------------ */}
-        {currentRoute === 'landing' ? (
+        {/* ------------------------------------------------------------------ */}
+        {/* ENTORNO: DETALLE COMPLETO DE LA OBRA ACTIVA (/obra)                 */}
+        {/* ------------------------------------------------------------------ */}
+        {currentRoute === 'obra-detalle' ? (
+          <>
+            <ObraDetallePage
+              obra={fondosList.find((f) => f.id === (obraDetalleId || currentFondoId)) || currentFondo}
+              proyectosActivos={fondosList.filter((f) => f.estadoPlan !== 'simulacion')}
+              onSelectObra={(id) => {
+                setObraDetalleId(id);
+                setCurrentFondoId(id);
+                setStoredCurrentFondoId(id);
+                navigateTo('obra-detalle', { obraId: id });
+              }}
+              onVolverInicio={() => navigateTo('landing')}
+              onSimularObra={(obraTarget) => {
+                handleIniciarNuevaSimulacion({ obraBase: obraTarget });
+              }}
+              onPreinscribirObra={(obraTarget, cuota) => {
+                setPreinscripcionTarget({
+                  nombre: obraTarget.nombre,
+                  id: obraTarget.id,
+                  cuota: cuota,
+                  anticipo: obraTarget.params.costoDepto * 0.2
+                });
+                setModalPreinscripcionOpen(true);
+              }}
+              onEditarObra={(id) => {
+                setEditObraId(id);
+                setIsObrasAdminOpen(true);
+              }}
+              isAdmin={currentUser?.role === 'admin' || currentUser?.role === 'tecnico'}
+            />
+
+            {/* Modal de Preinscripción Oficial para la Obra */}
+            <PreinscripcionModal
+              isOpen={modalPreinscripcionOpen}
+              onClose={() => setModalPreinscripcionOpen(false)}
+              proyectoNombre={preinscripcionTarget.nombre}
+              proyectoId={preinscripcionTarget.id}
+              cuotaEstimada={preinscripcionTarget.cuota}
+              anticipoEstimado={preinscripcionTarget.anticipo}
+            />
+          </>
+        ) : currentRoute === 'landing' ? (
           <LandingPage
             proyectos={fondosList}
             proyectoActivoId={currentFondoId}
@@ -650,10 +747,13 @@ export const App: React.FC = () => {
               setLoginInitialRole('socio');
               setIsLoginOpen(true);
             }}
+            onOpenObraDetalle={(obraId) => {
+              const targetId = obraId || currentFondoId;
+              navigateTo('obra-detalle', { obraId: targetId });
+            }}
             onVerDetallesPlan={(obraId) => {
               const targetId = obraId || currentFondoId;
-              setEditObraId(targetId);
-              setIsObrasAdminOpen(true);
+              navigateTo('obra-detalle', { obraId: targetId });
             }}
             onEditObra={(obraId) => {
               const targetId = obraId || currentFondoId;

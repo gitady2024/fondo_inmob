@@ -19,7 +19,6 @@ import {
 import type { FondoGuardado } from '../services/fondoService';
 import { PLANTILLAS_PREDEFINIDAS } from '../services/fondoService';
 import type { UserProfile } from '../types/auth';
-import { ProyectosActivosCTA } from './ProyectosActivosCTA';
 import { ObrasEnMarcha } from './ObrasEnMarcha';
 import { PreinscripcionModal } from './PreinscripcionModal';
 import { trackSimuladorInicio, trackClicAgendarEntrevista } from '../services/analyticsService';
@@ -42,6 +41,8 @@ interface LandingPageProps {
   onEditObra?: (obraId?: string) => void;
   /** Callback para ver los detalles completos del plan fiduciario */
   onVerDetallesPlan?: (obraId: string) => void;
+  /** Callback para abrir la página completa de detalle de la obra */
+  onOpenObraDetalle?: (obraId?: string) => void;
   /** Callback para cerrar sesión y salir de la cuenta */
   onSignOut?: () => void;
 }
@@ -59,6 +60,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onOpenLogin,
   onEditObra,
   onVerDetallesPlan,
+  onOpenObraDetalle,
   onSignOut
 }) => {
   const [modalPreinscripcionOpen, setModalPreinscripcionOpen] = useState(false);
@@ -164,11 +166,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="hidden lg:flex items-center space-x-6 text-sm font-medium">
             <button
               type="button"
-              onClick={() => scrollToSection('obras-activas')}
-              className="text-amber-300 hover:text-amber-200 font-semibold transition cursor-pointer flex items-center gap-1.5"
+              onClick={() => {
+                if (onOpenObraDetalle) {
+                  onOpenObraDetalle(proyectoActivoId);
+                } else if (onVerDetallesPlan) {
+                  onVerDetallesPlan(proyectoActivoId || '');
+                } else {
+                  scrollToSection('obras-activas');
+                }
+              }}
+              className="text-amber-300 hover:text-amber-200 font-bold transition cursor-pointer flex items-center gap-1.5"
             >
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Obras Activas</span>
+              <span>Obras en Marcha</span>
             </button>
             <button
               type="button"
@@ -193,8 +203,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </button>
           </div>
 
-          {/* Zona de Acción: Iniciar Sesión + Simular + Menú (⋮) */}
+          {/* Zona de Acción: Obras en Marcha (Botón Amarillo) + Iniciar Sesión + Simular + Menú (⋮) */}
           <div className="flex items-center gap-2 sm:gap-2.5">
+            {/* BOTÓN AMARILLO DESTACADO SOLICITADO: OBRAS EN MARCHA */}
+            <button
+              type="button"
+              id="btn-obras-en-marcha-nav"
+              onClick={() => {
+                if (onOpenObraDetalle) {
+                  onOpenObraDetalle(proyectoActivoId);
+                } else if (onVerDetallesPlan) {
+                  onVerDetallesPlan(proyectoActivoId || '');
+                } else {
+                  scrollToSection('obras-activas');
+                }
+              }}
+              className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl shadow-md shadow-amber-400/25 transition transform hover:scale-[1.02] cursor-pointer flex items-center gap-1.5"
+              title="Ver Obras en Marcha con detalles financieros y técnicos completos"
+            >
+              <HardHat className="w-4 h-4 text-slate-950 shrink-0" />
+              <span>Obras en Marcha</span>
+            </button>
+
             {/* BOTÓN INICIAR SESIÓN / INGRESAR A MI CUENTA */}
             {onOpenLogin && (
               user ? (
@@ -489,11 +519,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* ==================================================================== */}
-      {/* SECCIÓN: OBRAS EN MARCHA (PRUEBA SOCIAL, AVANCE Y ESCASEZ)           */}
+      {/* SECCIÓN: OBRAS EN MARCHA (RENGLÓN ÚNICO Y APERTURA A DETALLE COMPLETO) */}
       {/* ==================================================================== */}
-      <section id="obras-activas" className="mb-16 scroll-mt-24 space-y-8">
+      <section id="obras-activas" className="mb-14 scroll-mt-24 space-y-3">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+            <h2 className="text-sm sm:text-base font-extrabold text-white tracking-wide uppercase">
+              Obras en Marcha Activas
+            </h2>
+          </div>
+          <span className="text-xs text-slate-400 hidden sm:inline">
+            Clic en el renglón para abrir la totalidad de datos financieros y técnicos
+          </span>
+        </div>
+
         <ObrasEnMarcha
           proyectos={proyectosDisponibles}
+          proyectoActivoId={proyectoActivoId}
+          onOpenObraDetalle={onOpenObraDetalle || onVerDetallesPlan}
           onSimularProyecto={(p) => {
             if (onAdoptarProyecto) {
               onAdoptarProyecto(p);
@@ -512,29 +556,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           }}
           onEditObra={onEditObra}
           isAdmin={user?.role === 'admin'}
-        />
-
-        {/* Listado complementario de oportunidades */}
-        <ProyectosActivosCTA
-          proyectos={proyectosDisponibles}
-          proyectoActivoId={proyectoActivoId}
-          onVerDetallesPlan={onVerDetallesPlan || onEditObra}
-          onAdoptarProyecto={(p) => {
-            if (onAdoptarProyecto) {
-              onAdoptarProyecto(p);
-            } else {
-              onStartSimulation(p);
-            }
-          }}
-          onPreinscribirProyecto={(p, cuota) => {
-            setPreinscripcionTarget({
-              nombre: p.nombre,
-              id: p.id,
-              cuota: cuota,
-              anticipo: p.params.costoDepto * 0.2
-            });
-            setModalPreinscripcionOpen(true);
-          }}
         />
       </section>
 
