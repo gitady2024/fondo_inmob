@@ -290,7 +290,33 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
             ajustes: []
           });
         }
-        if (supabaseFondos.length > 0) return supabaseFondos;
+        if (supabaseFondos.length > 0) {
+          try {
+            const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
+            if (raw) {
+              const localList: FondoGuardado[] = JSON.parse(raw);
+              return supabaseFondos.map((sf) => {
+                const local = localList.find((l) => l.id === sf.id);
+                if (local) {
+                  return {
+                    ...sf,
+                    estadoPlan: local.estadoPlan || sf.estadoPlan || 'activo',
+                    params: local.params || sf.params,
+                    gastos: local.gastos || sf.gastos,
+                    anticipos: (local.anticipos && local.anticipos.length > 0) ? local.anticipos : sf.anticipos,
+                    adjudicacionFijada: local.adjudicacionFijada || sf.adjudicacionFijada,
+                    datosTecnicos: local.datosTecnicos || sf.datosTecnicos,
+                    fotos: local.fotos && local.fotos.length > 0 ? local.fotos : sf.fotos,
+                    ajustes: local.ajustes && local.ajustes.length > 0 ? local.ajustes : sf.ajustes,
+                    contratoPersonalizado: local.contratoPersonalizado || sf.contratoPersonalizado
+                  };
+                }
+                return sf;
+              });
+            }
+          } catch {}
+          return supabaseFondos;
+        }
       }
     } catch (err) {
       console.warn('Error al cargar fondos de Supabase:', err);
@@ -456,8 +482,13 @@ export const saveFondo = async (
     descripcion: descripcion || '',
     updated_at: updatedAt,
     estadoPlan: estadoPlan !== undefined ? estadoPlan : (existingEstadoPlan || 'activo'),
-    params,
-    gastos,
+    params: { ...params },
+    gastos: {
+      formaPagoGastos: gastos.formaPagoGastos || 'final',
+      comisionGestion: Number(gastos.comisionGestion) || 0,
+      comisionEscribania: Number(gastos.comisionEscribania) || 0,
+      otrosGastos: Number(gastos.otrosGastos) || 0
+    },
     anticipos,
     adjudicacionFijada,
     cesion,

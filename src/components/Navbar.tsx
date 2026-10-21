@@ -315,8 +315,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
                 )}
 
-                {/* Opción 6: Gestionar / Editar Obras Activas (Admin / Técnico) */}
-                {user && (user.role === 'admin' || user.role === 'tecnico') && onOpenObrasAdmin && (
+                {/* Opción 6: Gestionar / Editar Obras Activas (Solo Administrador) */}
+                {user && user.role === 'admin' && onOpenObrasAdmin && (
                   <button
                     type="button"
                     onClick={() => {

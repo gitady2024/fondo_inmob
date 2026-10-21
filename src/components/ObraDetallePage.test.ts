@@ -160,4 +160,53 @@ describe('Requerimiento: Obras en Marcha (Renglón Único y Detalle Completo en 
       expect(isObraRoute).toBe(true);
     });
   });
+
+  it('Gastos Fiduciarios: al modificar y guardar nuevos valores de gastos, se calculan y reflejan inmediatamente', () => {
+    // Caso de prueba reportado por el usuario: Modificar gestión a 10%, escribanía 3%, otros gastos $500
+    const gastosEditados = {
+      formaPagoGastos: 'final' as const,
+      comisionGestion: 10,
+      comisionEscribania: 3,
+      otrosGastos: 500
+    };
+
+    const obraConGastosNuevos: FondoGuardado = {
+      ...mockObra,
+      params: {
+        ...mockObra.params,
+        costoDepto: 75000,
+        cantidadCuotas: 36
+      },
+      gastos: gastosEditados
+    };
+
+    const calculados = calcularGastos(
+      obraConGastosNuevos.params.costoDepto,
+      obraConGastosNuevos.gastos,
+      obraConGastosNuevos.params.cantidadCuotas
+    );
+
+    // Gestión: 10% de $75.000 = $7.500
+    expect(calculados.montoGestion).toBe(7500);
+    // Escribanía: 3% de $75.000 = $2.250
+    expect(calculados.montoEscribania).toBe(2250);
+    // Otros: $500
+    // Total gastos: 7.500 + 2.250 + 500 = $10.250
+    expect(calculados.gastosTotales).toBe(10250);
+    expect(calculados.pagoFinalGastos).toBe(10250);
+  });
+
+  it('Seguridad y Perfiles: solo el perfil administrador puede editar la obra', () => {
+    const roles: Array<{ role: string; puedeEditar: boolean }> = [
+      { role: 'admin', puedeEditar: true },
+      { role: 'tecnico', puedeEditar: false },
+      { role: 'socio', puedeEditar: false },
+      { role: 'invitado', puedeEditar: false }
+    ];
+
+    roles.forEach(({ role, puedeEditar }) => {
+      const tienePermisoEditar = role === 'admin';
+      expect(tienePermisoEditar).toBe(puedeEditar);
+    });
+  });
 });

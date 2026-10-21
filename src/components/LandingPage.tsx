@@ -166,22 +166,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="hidden lg:flex items-center space-x-6 text-sm font-medium">
             <button
               type="button"
-              onClick={() => {
-                if (onOpenObraDetalle) {
-                  onOpenObraDetalle(proyectoActivoId);
-                } else if (onVerDetallesPlan) {
-                  onVerDetallesPlan(proyectoActivoId || '');
-                } else {
-                  scrollToSection('obras-activas');
-                }
-              }}
-              className="text-amber-300 hover:text-amber-200 font-bold transition cursor-pointer flex items-center gap-1.5"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Obras en Marcha</span>
-            </button>
-            <button
-              type="button"
               onClick={() => scrollToSection('comparativa')}
               className="text-slate-300 hover:text-white transition cursor-pointer"
             >
@@ -381,8 +365,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     </button>
                   )}
 
-                  {/* Opción de Editar Obra en el Menú */}
-                  {onEditObra && (
+                  {/* Opción de Editar Obra en el Menú (Solo Administrador) */}
+                  {onEditObra && user?.role === 'admin' && (
                     <button
                       type="button"
                       id="btn-menu-editar-obra"
@@ -395,17 +379,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       <Pencil className="w-4 h-4 text-amber-400 shrink-0" />
                       <div className="flex flex-col">
                         <span className="font-semibold text-amber-200">
-                          {user?.role === 'admin' ? 'Editar esta obra' : 'Detalles de la obra'}
+                          Editar esta obra
                         </span>
                         <span className="text-[10px] text-slate-400">
-                          {user?.role === 'admin' ? 'Modificar parámetros constructivos' : 'Ver especificaciones, costos y plazos'}
+                          Modificar parámetros constructivos y gastos
                         </span>
                       </div>
                     </button>
                   )}
 
-                  {/* Sección Admin — solo visible si el usuario tiene permisos */}
-                  {onOpenObrasAdmin && (
+                  {/* Sección Admin — solo visible si el usuario es administrador */}
+                  {onOpenObrasAdmin && user?.role === 'admin' && (
                     <>
                       <div className="mx-3 my-1.5 border-t border-slate-800" />
                       <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-400">

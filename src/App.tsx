@@ -237,9 +237,11 @@ export const App: React.FC = () => {
     if (targetId && list.some((f) => f.id === targetId)) {
       setCurrentFondoId(targetId);
       setStoredCurrentFondoId(targetId);
+      setObraDetalleId(targetId);
     } else if (list.length > 0 && !list.some((f) => f.id === currentFondoId)) {
       setCurrentFondoId(list[0].id);
       setStoredCurrentFondoId(list[0].id);
+      setObraDetalleId(list[0].id);
     }
   };
 
@@ -292,9 +294,9 @@ export const App: React.FC = () => {
     currentFondo.adjudicacionFijada
   ]);
 
-  // Sincronizar actualización de campos en el fondo activo (Admin y Técnico)
+  // Sincronizar actualización de campos en el fondo activo (Solo Administrador)
   const updateCurrentFondo = (updater: (prev: FondoGuardado) => FondoGuardado) => {
-    if (!currentUser || currentUser.role === 'socio') return; // Bloqueo estricto para inversores socios o no autenticados
+    if (!currentUser || currentUser.role !== 'admin') return; // Bloqueo estricto: solo el administrador puede modificar la obra
     setFondosList((prevList) => {
       const index = prevList.findIndex((f) => f.id === currentFondo.id);
       if (index === -1) return prevList;
@@ -428,6 +430,7 @@ export const App: React.FC = () => {
   const handleSelectFondo = (id: string) => {
     setCurrentFondoId(id);
     setStoredCurrentFondoId(id);
+    setObraDetalleId(id);
     setSocioSeleccionado(1);
   };
 
@@ -721,11 +724,15 @@ export const App: React.FC = () => {
                 });
                 setModalPreinscripcionOpen(true);
               }}
-              onEditarObra={(id) => {
-                setEditObraId(id);
-                setIsObrasAdminOpen(true);
-              }}
-              isAdmin={currentUser?.role === 'admin' || currentUser?.role === 'tecnico'}
+              onEditarObra={
+                currentUser?.role === 'admin'
+                  ? (id) => {
+                      setEditObraId(id);
+                      setIsObrasAdminOpen(true);
+                    }
+                  : undefined
+              }
+              isAdmin={currentUser?.role === 'admin'}
             />
 
             {/* Modal de Preinscripción Oficial para la Obra */}
@@ -755,11 +762,15 @@ export const App: React.FC = () => {
               const targetId = obraId || currentFondoId;
               navigateTo('obra-detalle', { obraId: targetId });
             }}
-            onEditObra={(obraId) => {
-              const targetId = obraId || currentFondoId;
-              setEditObraId(targetId);
-              setIsObrasAdminOpen(true);
-            }}
+            onEditObra={
+              currentUser?.role === 'admin'
+                ? (obraId) => {
+                    const targetId = obraId || currentFondoId;
+                    setEditObraId(targetId);
+                    setIsObrasAdminOpen(true);
+                  }
+                : undefined
+            }
             onAdoptarProyecto={(p) => {
               handleIniciarNuevaSimulacion({ obraBase: p });
             }}
@@ -802,7 +813,7 @@ export const App: React.FC = () => {
               }}
               onNavigateLanding={() => navigateTo('landing')}
               onOpenObrasAdmin={
-                currentUser?.role === 'admin' || currentUser?.role === 'tecnico'
+                currentUser?.role === 'admin'
                   ? () => {
                       setEditObraId(currentFondoId);
                       setIsObrasAdminOpen(true);
@@ -1243,7 +1254,7 @@ export const App: React.FC = () => {
 
       {/* ── MODAL ADMIN: GESTIÓN DE OBRAS ACTIVAS (solo admin) ── */}
       <ObrasAdminModal
-        isOpen={isObrasAdminOpen}
+        isOpen={isObrasAdminOpen && currentUser?.role === 'admin'}
         isAdmin={currentUser?.role === 'admin'}
         activeFondoId={currentFondoId}
         onSelectActiveFondo={(id) => {

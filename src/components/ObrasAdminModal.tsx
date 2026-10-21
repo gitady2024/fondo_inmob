@@ -192,7 +192,7 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
   proyectos,
   onProyectosChange,
   initialEditId,
-  isAdmin = true,
+  isAdmin = false,
   activeFondoId,
   onSelectActiveFondo,
   onSimularFondo
@@ -217,6 +217,12 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
       if (p) {
         setEditando({
           ...p,
+          gastos: {
+            formaPagoGastos: p.gastos?.formaPagoGastos || 'final',
+            comisionGestion: p.gastos?.comisionGestion ?? 7,
+            comisionEscribania: p.gastos?.comisionEscribania ?? 3,
+            otrosGastos: p.gastos?.otrosGastos ?? 500
+          },
           datosTecnicos: p.datosTecnicos || { ...DATOS_TECNICOS_DEFAULT },
           fotos: p.fotos && p.fotos.length > 0 ? [...p.fotos] : [...FOTOS_OBRA_PREDETERMINADAS],
           anticipos: p.anticipos && p.anticipos.length > 0
@@ -475,6 +481,12 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
   const abrirEditar = (p: FondoGuardado) => {
     setEditando({
       ...p,
+      gastos: {
+        formaPagoGastos: p.gastos?.formaPagoGastos || 'final',
+        comisionGestion: p.gastos?.comisionGestion ?? 7,
+        comisionEscribania: p.gastos?.comisionEscribania ?? 3,
+        otrosGastos: p.gastos?.otrosGastos ?? 500
+      },
       datosTecnicos: p.datosTecnicos || { ...DATOS_TECNICOS_DEFAULT },
       fotos: p.fotos && p.fotos.length > 0 ? [...p.fotos] : [...FOTOS_OBRA_PREDETERMINADAS],
       anticipos: p.anticipos && p.anticipos.length > 0
@@ -642,11 +654,10 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
       };
 
       const g: FondoGuardado['gastos'] = {
-        ...editando.gastos!,
-        formaPagoGastos: editando.gastos!.formaPagoGastos || 'final',
-        comisionGestion: Number(editando.gastos!.comisionGestion) || 0,
-        comisionEscribania: Number(editando.gastos!.comisionEscribania) || 0,
-        otrosGastos: Number(editando.gastos!.otrosGastos) || 0
+        formaPagoGastos: editando.gastos?.formaPagoGastos || 'final',
+        comisionGestion: Number(editando.gastos?.comisionGestion) || 0,
+        comisionEscribania: Number(editando.gastos?.comisionEscribania) || 0,
+        otrosGastos: Number(editando.gastos?.otrosGastos) || 0
       };
 
       // Regenerar array de anticipos del tamaño correcto
@@ -673,9 +684,11 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
       if (res.id && (editando.estadoPlan === 'activo' || editandoId === activeFondoId || !activeFondoId)) {
         onSelectActiveFondo?.(res.id);
       }
-      onProyectosChange(res.id);
+      await onProyectosChange(res.id);
       setFeedback({ ok: true, msg: mode === 'new' ? 'Obra creada exitosamente.' : 'Cambios guardados correctamente.' });
-      setTimeout(() => setMode('list'), 900);
+      setTimeout(() => {
+        onClose();
+      }, 700);
     } catch (err) {
       setFeedback({ ok: false, msg: 'Error al guardar. Intentá de nuevo.' });
     } finally {

@@ -56,13 +56,19 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
   const cantidadDeptos = obra.params?.cantidadDeptos || 10;
   const fechaInicio = obra.params?.fechaInicio || new Date().toISOString().slice(0, 7);
 
-  // Gastos del fideicomiso
+  // Gastos del fideicomiso reactivos
   const gastosConfig = useMemo(() => ({
     formaPagoGastos: obra.gastos?.formaPagoGastos || 'final',
     comisionGestion: obra.gastos?.comisionGestion ?? 7,
     comisionEscribania: obra.gastos?.comisionEscribania ?? 3,
     otrosGastos: obra.gastos?.otrosGastos ?? 500
-  }), [obra.gastos]);
+  }), [
+    obra.id,
+    obra.gastos?.formaPagoGastos,
+    obra.gastos?.comisionGestion,
+    obra.gastos?.comisionEscribania,
+    obra.gastos?.otrosGastos
+  ]);
 
   // Datos Técnicos completos (con fallback a valores oficiales si están vacíos)
   const datosTec: DatosTecnicosProyecto = useMemo(() => {
