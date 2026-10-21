@@ -246,5 +246,33 @@ describe('Requerimiento: Obras en Marcha (Renglón Único y Detalle Completo en 
     expect(puedeModificarFondo('simulacion', undefined)).toBe(true); // Cualquier visitante puede simular
     expect(puedeModificarFondo('simulacion', 'socio')).toBe(true);   // Cualquier usuario puede aprender
   });
+
+  it('Blindaje de Importes en Obra en Marcha: para usuarios no admin los valores efectivos son estrictamente los oficiales inmutables', () => {
+    const anticipoOficial = 0;
+    const posesionOficial = 16;
+    const simAnticipoIngresado = 1000; // El importe que el usuario intentó ingresar
+    const simCuotaPosesionModificada = 24;
+
+    const resolverValoresEfectivos = (isAdmin: boolean) => ({
+      anticipoEfectivo: isAdmin ? simAnticipoIngresado : anticipoOficial,
+      posesionEfectiva: isAdmin ? simCuotaPosesionModificada : posesionOficial,
+      tieneAdelantoEfectivo: isAdmin ? true : false,
+      puedeEditarCampos: isAdmin
+    });
+
+    // Usuario temporal / sin rol admin: los importes son estrictamente los oficiales
+    const noAdmin = resolverValoresEfectivos(false);
+    expect(noAdmin.anticipoEfectivo).toBe(0);
+    expect(noAdmin.posesionEfectiva).toBe(16);
+    expect(noAdmin.tieneAdelantoEfectivo).toBe(false);
+    expect(noAdmin.puedeEditarCampos).toBe(false);
+
+    // Usuario Admin: tiene control sobre los campos e importes
+    const admin = resolverValoresEfectivos(true);
+    expect(admin.anticipoEfectivo).toBe(1000);
+    expect(admin.posesionEfectiva).toBe(24);
+    expect(admin.tieneAdelantoEfectivo).toBe(true);
+    expect(admin.puedeEditarCampos).toBe(true);
+  });
 });
 

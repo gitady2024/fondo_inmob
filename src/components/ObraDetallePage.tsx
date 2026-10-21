@@ -129,6 +129,18 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
   const [simCuotaAdelanto, setSimCuotaAdelanto] = useState<number>(10);
   const [simEstrategiaAdelanto, setSimEstrategiaAdelanto] = useState<'reducir_cuota' | 'acortar_plazo'>('reducir_cuota');
 
+  // Valores fiduciarios oficiales fijados por la administración
+  const anticipoOficial = (obra.anticipos && obra.anticipos.length > 0) ? Number(obra.anticipos[0]) || 0 : 0;
+  const posesionOficial = obra.adjudicacionFijada?.[1] || Math.round(cantidadCuotasBase * 0.45) || 16;
+
+  // Si no es admin, los valores son estricta e inmutablemente los oficiales fijados
+  const anticipoEfectivo = isAdmin ? simAnticipo : anticipoOficial;
+  const posesionEfectiva = isAdmin ? simCuotaPosesion : posesionOficial;
+  const tieneAdelantoEfectivo = isAdmin ? simTieneAdelanto : false;
+  const montoAdelantoEfectivo = isAdmin ? simMontoAdelanto : 0;
+  const cuotaAdelantoEfectiva = isAdmin ? simCuotaAdelanto : 10;
+  const estrategiaAdelantoEfectiva = isAdmin ? simEstrategiaAdelanto : 'reducir_cuota';
+
   // Cálculos de gastos reactivos
   const gastosCalculados = useMemo(() => {
     return calcularGastos(costoDeptoBase, gastosConfig, cantidadCuotasBase);
@@ -139,31 +151,31 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
     return calcularFlujoIndividual(
       1,
       costoDeptoBase,
-      simAnticipo,
+      anticipoEfectivo,
       cantidadCuotasBase,
       'reducir_cuota',
       gastosCalculados.recargoGastosPorCuota,
       {
-        activo: simTieneAdelanto && simMontoAdelanto > 0,
-        mes: Math.min(simCuotaAdelanto, cantidadCuotasBase > 0 ? cantidadCuotasBase : 1),
-        monto: simMontoAdelanto,
-        estrategia: simEstrategiaAdelanto === 'acortar_plazo' ? 'acelerar' : 'reducir_cuota'
+        activo: tieneAdelantoEfectivo && montoAdelantoEfectivo > 0,
+        mes: Math.min(cuotaAdelantoEfectiva, cantidadCuotasBase > 0 ? cantidadCuotasBase : 1),
+        monto: montoAdelantoEfectivo,
+        estrategia: estrategiaAdelantoEfectiva === 'acortar_plazo' ? 'acelerar' : 'reducir_cuota'
       },
-      simCuotaPosesion,
+      posesionEfectiva,
       gastosCalculados.pagoFinalGastos,
       obra.ajustes || []
     );
   }, [
     costoDeptoBase,
-    simAnticipo,
+    anticipoEfectivo,
     cantidadCuotasBase,
     gastosCalculados.recargoGastosPorCuota,
     gastosCalculados.pagoFinalGastos,
-    simTieneAdelanto,
-    simMontoAdelanto,
-    simCuotaAdelanto,
-    simEstrategiaAdelanto,
-    simCuotaPosesion,
+    tieneAdelantoEfectivo,
+    montoAdelantoEfectivo,
+    cuotaAdelantoEfectiva,
+    estrategiaAdelantoEfectiva,
+    posesionEfectiva,
     obra.ajustes
   ]);
 
@@ -251,15 +263,28 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
               <span className="hidden sm:inline">Descargar PDF</span>
             </button>
 
-            <button
-              type="button"
-              id="btn-detalle-simular-plan"
-              onClick={() => onSimularObra(obra)}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition transform hover:scale-[1.02] flex items-center gap-1.5 cursor-pointer"
-            >
-              <span>Simular mi Plan</span>
-              <ArrowRight className="w-4 h-4 text-slate-950" />
-            </button>
+            {isAdmin ? (
+              <button
+                type="button"
+                id="btn-detalle-simular-plan"
+                onClick={() => onSimularObra(obra)}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition transform hover:scale-[1.02] flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Probar en Simulador</span>
+                <ArrowRight className="w-4 h-4 text-slate-950" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                id="btn-detalle-simular-plan"
+                onClick={() => onSimularObra(obra)}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                title="Abrir el simulador libre de aprendizaje (no modifica esta obra oficial)"
+              >
+                <span>Simular Libremente</span>
+                <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
+              </button>
+            )}
 
             <button
               type="button"
@@ -528,29 +553,35 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
                   </div>
                   <div>
                     <h3 className="text-base sm:text-lg font-extrabold text-white flex items-center gap-2 flex-wrap">
-                      <span>Simulador Interactivo para esta Obra</span>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                        {isAdmin ? 'Modo Administración' : 'Simulación & Aprendizaje'}
+                      <span>{isAdmin ? 'Simulador & Editor de Parámetros de la Obra' : 'Condiciones Financieras Oficiales de esta Obra'}</span>
+                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                        isAdmin
+                          ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                          : 'bg-slate-800 text-slate-300 border-slate-700'
+                      }`}>
+                        {isAdmin ? '👑 Modo Administrador' : '🔒 Solo Lectura • Fijada por Admin'}
                       </span>
                     </h3>
                     <p className="text-xs text-slate-400">
-                      Personalizá tu anticipo y cuota de posesión para calcular tus cuotas exactas en este edificio.
+                      {isAdmin
+                        ? 'Personalizá el anticipo y cuota de posesión para calcular y ajustar las cuotas en este edificio.'
+                        : 'Valores oficiales establecidos de manera definitiva por la Administración del fideicomiso.'}
                     </p>
                   </div>
                 </div>
 
                 <span className="text-xs text-emerald-400 font-bold bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-800/60">
-                  Cálculo Dinámico en Tiempo Real
+                  {isAdmin ? 'Cálculo Dinámico en Tiempo Real' : 'Parámetros Oficiales Blindados'}
                 </span>
               </div>
 
               {/* Aviso explicativo de permisos */}
               {!isAdmin ? (
-                <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 text-xs text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-400 font-bold shrink-0">🛡️ Simulación Libre:</span>
-                    <span>
-                      Podés simular anticipos y cuotas para aprender cómo funciona el fideicomiso. La configuración constructiva y gastos de esta Obra en Marcha son definitivos y solo pueden ser modificados por el Perfil Administrador.
+                <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-amber-500/30 text-xs text-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-inner">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-amber-400 font-bold text-sm shrink-0">🔒 Obra en Marcha Oficial:</span>
+                    <span className="leading-relaxed">
+                      Esta obra ha sido establecida de manera definitiva por la Administración. Los importes, plazos y condiciones son inmutables y <strong>el único autorizado a editar o modificar esta obra es el Perfil Administrador</strong>.
                     </span>
                   </div>
                 </div>
@@ -574,7 +605,7 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
                 </div>
               )}
 
-              {/* Controles del Simulador */}
+              {/* Controles / Ficha Oficial de Parámetros */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                 
                 {/* Control 1: Anticipo Inicial */}
@@ -582,102 +613,153 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
                   <div className="flex justify-between items-center text-xs">
                     <label className="font-bold text-slate-200">1. Anticipo Inicial (Mes 0)</label>
                     <span className="text-emerald-400 font-mono font-bold">
-                      {costoDeptoBase > 0 ? Math.round((simAnticipo / costoDeptoBase) * 100) : 0}%
+                      {costoDeptoBase > 0 ? Math.round((anticipoEfectivo / costoDeptoBase) * 100) : 0}%
                     </span>
                   </div>
-                  <CurrencyInput
-                    value={simAnticipo}
-                    onChange={(val) => setSimAnticipo(Math.min(costoDeptoBase, Math.max(0, val)))}
-                    placeholder="Monto de anticipo"
-                    className="w-full text-base font-mono font-bold bg-slate-900 border-slate-700 text-white"
-                  />
-                  <div className="flex gap-1.5">
-                    {[0, 10, 20, 30].map((pct) => (
-                      <button
-                        key={pct}
-                        type="button"
-                        onClick={() => setSimAnticipo(Math.round((costoDeptoBase * pct) / 100))}
-                        className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] font-mono text-slate-300 border border-slate-800 cursor-pointer"
-                      >
-                        {pct}%
-                      </button>
-                    ))}
-                  </div>
-                  <span className="text-[11px] text-slate-500 block leading-tight">
-                    Reduce el saldo a financiar y amortiza inmediatamente las cuotas.
-                  </span>
+
+                  {isAdmin ? (
+                    <>
+                      <CurrencyInput
+                        value={simAnticipo}
+                        onChange={(val) => setSimAnticipo(Math.min(costoDeptoBase, Math.max(0, val)))}
+                        placeholder="Monto de anticipo"
+                        className="w-full text-base font-mono font-bold bg-slate-900 border-slate-700 text-white"
+                      />
+                      <div className="flex gap-1.5">
+                        {[0, 10, 20, 30].map((pct) => (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => setSimAnticipo(Math.round((costoDeptoBase * pct) / 100))}
+                            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] font-mono text-slate-300 border border-slate-800 cursor-pointer"
+                          >
+                            {pct}%
+                          </button>
+                        ))}
+                      </div>
+                      <span className="text-[11px] text-slate-500 block leading-tight">
+                        Reduce el saldo a financiar y amortiza inmediatamente las cuotas.
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-full text-lg font-mono font-black bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-3 text-white flex items-center justify-between">
+                        <span>{fmtMoneda(anticipoOficial)}</span>
+                        <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+                          🔒 Inmutable
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-400 block leading-tight">
+                        Monto de anticipo base oficial estipulado en el pliego de adhesión del fideicomiso.
+                      </span>
+                    </>
+                  )}
                 </div>
 
                 {/* Control 2: Cuota de Posesión */}
                 <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3">
                   <div className="flex justify-between items-center text-xs">
                     <label className="font-bold text-slate-200">2. Cuota de Posesión (Mes)</label>
-                    <span className="text-amber-400 font-mono font-bold">Mes {simCuotaPosesion}</span>
+                    <span className="text-amber-400 font-mono font-bold">Mes {posesionEfectiva}</span>
                   </div>
-                  <input
-                    type="range"
-                    min={1}
-                    max={cantidadCuotasBase > 0 ? cantidadCuotasBase : 36}
-                    value={simCuotaPosesion}
-                    onChange={(e) => setSimCuotaPosesion(Number(e.target.value))}
-                    className="w-full accent-amber-400 cursor-pointer"
-                  />
-                  <div className="flex justify-between text-[11px] text-slate-500 font-mono">
-                    <span>Mes 1</span>
-                    <span>Entrega: Mes {simCuotaPosesion}</span>
-                    <span>Mes {cantidadCuotasBase}</span>
-                  </div>
-                  <span className="text-[11px] text-slate-500 block leading-tight">
-                    El mes en que recibís la llave del departamento y comenzás a habitar o alquilar.
-                  </span>
+
+                  {isAdmin ? (
+                    <>
+                      <input
+                        type="range"
+                        min={1}
+                        max={cantidadCuotasBase > 0 ? cantidadCuotasBase : 36}
+                        value={simCuotaPosesion}
+                        onChange={(e) => setSimCuotaPosesion(Number(e.target.value))}
+                        className="w-full accent-amber-400 cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[11px] text-slate-500 font-mono">
+                        <span>Mes 1</span>
+                        <span>Entrega: Mes {simCuotaPosesion}</span>
+                        <span>Mes {cantidadCuotasBase}</span>
+                      </div>
+                      <span className="text-[11px] text-slate-500 block leading-tight">
+                        El mes en que recibís la llave del departamento y comenzás a habitar o alquilar.
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-full text-lg font-mono font-black bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-3 text-amber-300 flex items-center justify-between">
+                        <span>Mes {posesionOficial}</span>
+                        <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                          🔒 Entrega Programada
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-400 block leading-tight">
+                        Hito contractual de posesión y entrega de llaves fijado para esta obra.
+                      </span>
+                    </>
+                  )}
                 </div>
 
                 {/* Control 3: Adelanto Extraordinario */}
                 <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3">
                   <div className="flex items-center justify-between text-xs">
                     <label className="font-bold text-slate-200">3. Adelanto Voluntario</label>
-                    <input
-                      type="checkbox"
-                      checked={simTieneAdelanto}
-                      onChange={(e) => setSimTieneAdelanto(e.target.checked)}
-                      className="accent-indigo-500 w-4 h-4 cursor-pointer"
-                    />
-                  </div>
-                  {simTieneAdelanto ? (
-                    <div className="space-y-2">
-                      <CurrencyInput
-                        value={simMontoAdelanto}
-                        onChange={(val) => setSimMontoAdelanto(Math.max(0, val))}
-                        placeholder="Monto a adelantar"
-                        className="w-full text-sm font-mono font-bold bg-slate-900 border-slate-700 text-white"
+                    {isAdmin && (
+                      <input
+                        type="checkbox"
+                        checked={simTieneAdelanto}
+                        onChange={(e) => setSimTieneAdelanto(e.target.checked)}
+                        className="accent-indigo-500 w-4 h-4 cursor-pointer"
                       />
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-400 font-mono">Mes:</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={cantidadCuotasBase}
-                          value={simCuotaAdelanto}
-                          onChange={(e) => setSimCuotaAdelanto(Number(e.target.value))}
-                          className="w-20 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-xs font-mono text-white text-center"
+                    )}
+                  </div>
+
+                  {isAdmin ? (
+                    simTieneAdelanto ? (
+                      <div className="space-y-2">
+                        <CurrencyInput
+                          value={simMontoAdelanto}
+                          onChange={(val) => setSimMontoAdelanto(Math.max(0, val))}
+                          placeholder="Monto a adelantar"
+                          className="w-full text-sm font-mono font-bold bg-slate-900 border-slate-700 text-white"
                         />
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-400 font-mono">Mes:</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={cantidadCuotasBase}
+                            value={simCuotaAdelanto}
+                            onChange={(e) => setSimCuotaAdelanto(Number(e.target.value))}
+                            className="w-20 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-xs font-mono text-white text-center"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-400 font-mono">Modo:</span>
+                          <select
+                            value={simEstrategiaAdelanto}
+                            onChange={(e) => setSimEstrategiaAdelanto(e.target.value as 'reducir_cuota' | 'acortar_plazo')}
+                            className="px-2 py-1 rounded bg-slate-900 border border-slate-700 text-xs font-mono text-white"
+                          >
+                            <option value="reducir_cuota">Reducir Cuota</option>
+                            <option value="acortar_plazo">Acelerar Plazo</option>
+                          </select>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-400 font-mono">Modo:</span>
-                        <select
-                          value={simEstrategiaAdelanto}
-                          onChange={(e) => setSimEstrategiaAdelanto(e.target.value as 'reducir_cuota' | 'acortar_plazo')}
-                          className="px-2 py-1 rounded bg-slate-900 border border-slate-700 text-xs font-mono text-white"
-                        >
-                          <option value="reducir_cuota">Reducir Cuota</option>
-                          <option value="acortar_plazo">Acelerar Plazo</option>
-                        </select>
-                      </div>
-                    </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-500 leading-tight">
+                        Podés activar una inyección de capital en un mes específico para liquidar cuotas antes de tiempo.
+                      </p>
+                    )
                   ) : (
-                    <p className="text-[11px] text-slate-500 leading-tight">
-                      Podés activar una inyección de capital en un mes específico para liquidar cuotas antes de tiempo.
-                    </p>
+                    <>
+                      <div className="w-full text-sm font-semibold bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-3.5 text-slate-300 flex items-center justify-between">
+                        <span>Sin adelantos extraordinarios</span>
+                        <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                          🔒 Plan Base
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-400 block leading-tight">
+                        El plan fiduciario se liquida de forma regular en {cantidadCuotasBase} cuotas ordinarias continuas.
+                      </span>
+                    </>
                   )}
                 </div>
 
