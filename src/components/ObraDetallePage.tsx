@@ -527,8 +527,11 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-extrabold text-white">
-                      Simulador Interactivo para esta Obra
+                    <h3 className="text-base sm:text-lg font-extrabold text-white flex items-center gap-2 flex-wrap">
+                      <span>Simulador Interactivo para esta Obra</span>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                        {isAdmin ? 'Modo Administración' : 'Simulación & Aprendizaje'}
+                      </span>
                     </h3>
                     <p className="text-xs text-slate-400">
                       Personalizá tu anticipo y cuota de posesión para calcular tus cuotas exactas en este edificio.
@@ -540,6 +543,36 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
                   Cálculo Dinámico en Tiempo Real
                 </span>
               </div>
+
+              {/* Aviso explicativo de permisos */}
+              {!isAdmin ? (
+                <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 text-xs text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-400 font-bold shrink-0">🛡️ Simulación Libre:</span>
+                    <span>
+                      Podés simular anticipos y cuotas para aprender cómo funciona el fideicomiso. La configuración constructiva y gastos de esta Obra en Marcha son definitivos y solo pueden ser modificados por el Perfil Administrador.
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-amber-400 font-bold shrink-0">👑 Perfil Administrador:</span>
+                    <span>
+                      Tenés autorización para editar y modificar los parámetros constructivos, costos y gastos de esta Obra en Marcha.
+                    </span>
+                  </div>
+                  {onEditarObra && (
+                    <button
+                      type="button"
+                      onClick={() => onEditarObra(obra.id)}
+                      className="px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-black text-xs hover:bg-amber-400 transition cursor-pointer shrink-0"
+                    >
+                      Editar Obra Oficial
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Controles del Simulador */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">

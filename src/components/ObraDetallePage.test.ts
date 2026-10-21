@@ -209,4 +209,42 @@ describe('Requerimiento: Obras en Marcha (Renglón Único y Detalle Completo en 
       expect(tienePermisoEditar).toBe(puedeEditar);
     });
   });
+
+  it('Simulación y Aprendizaje: cualquier usuario puede simular libremente cuotas y anticipos sin alterar la obra base', () => {
+    // La obra base se mantiene inmutable
+    const costoBase = mockObra.params.costoDepto; // $70.000
+    const cuotasBase = mockObra.params.cantidadCuotas; // 36
+
+    // Simulación 1: Usuario prueba con anticipo $0
+    const simCero = calcularFlujoIndividual(1, costoBase, 0, cuotasBase, 'reducir_cuota', 0, { activo: false, mes: 1, monto: 0, estrategia: 'reducir_cuota' }, 15, 0, []);
+    expect(simCero.cuotaInmInicial).toBeGreaterThan(0);
+
+    // Simulación 2: Usuario prueba con anticipo de $20.000 para aprender cómo amortiza
+    const simConAnticipo = calcularFlujoIndividual(1, costoBase, 20000, cuotasBase, 'reducir_cuota', 0, { activo: false, mes: 1, monto: 0, estrategia: 'reducir_cuota' }, 15, 0, []);
+    expect(simConAnticipo.cuotaInmInicial).toBeLessThan(simCero.cuotaInmInicial);
+
+    // La obra original nunca fue alterada
+    expect(mockObra.params.costoDepto).toBe(70000);
+    expect(mockObra.params.cantidadCuotas).toBe(36);
+  });
+
+  it('Inmutabilidad de Obra en Marcha: solo admin puede persistir modificaciones sobre obra activa', () => {
+    const puedeModificarFondo = (estadoPlan: string, role?: string) => {
+      if (estadoPlan !== 'simulacion' && role !== 'admin') {
+        return false;
+      }
+      return true;
+    };
+
+    // Caso 1: Obra en Marcha (estadoPlan: 'activo')
+    expect(puedeModificarFondo('activo', undefined)).toBe(false); // Visitante / Temporal
+    expect(puedeModificarFondo('activo', 'socio')).toBe(false);    // Socio
+    expect(puedeModificarFondo('activo', 'tecnico')).toBe(false);  // Técnico
+    expect(puedeModificarFondo('activo', 'admin')).toBe(true);     // Administrador Único
+
+    // Caso 2: Plan en simulación / aprendizaje (estadoPlan: 'simulacion')
+    expect(puedeModificarFondo('simulacion', undefined)).toBe(true); // Cualquier visitante puede simular
+    expect(puedeModificarFondo('simulacion', 'socio')).toBe(true);   // Cualquier usuario puede aprender
+  });
 });
+

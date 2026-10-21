@@ -294,9 +294,12 @@ export const App: React.FC = () => {
     currentFondo.adjudicacionFijada
   ]);
 
-  // Sincronizar actualización de campos en el fondo activo (Solo Administrador)
+  // Sincronizar actualización de campos en el fondo activo
   const updateCurrentFondo = (updater: (prev: FondoGuardado) => FondoGuardado) => {
-    if (!currentUser || currentUser.role !== 'admin') return; // Bloqueo estricto: solo el administrador puede modificar la obra
+    // Si el fondo activo es una Obra en Marcha (no es simulación), el ÚNICO que puede modificarla es el Administrador
+    if (currentFondo.estadoPlan !== 'simulacion' && (!currentUser || currentUser.role !== 'admin')) {
+      return; // Bloqueo estricto: nadie salvo el Administrador puede editar o modificar una Obra en Marcha
+    }
     setFondosList((prevList) => {
       const index = prevList.findIndex((f) => f.id === currentFondo.id);
       if (index === -1) return prevList;
