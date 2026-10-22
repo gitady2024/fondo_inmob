@@ -274,5 +274,77 @@ describe('Requerimiento: Obras en Marcha (Renglón Único y Detalle Completo en 
     expect(admin.tieneAdelantoEfectivo).toBe(true);
     expect(admin.puedeEditarCampos).toBe(true);
   });
+
+  it('Edición Admin: al cambiar el monto de la unidad a 75.000, la cuota pura se recalcula automáticamente y no regresa a 70.000', () => {
+    // 1. Simulación de edición por parte del Admin
+    const costoModificado = 75000;
+    const cuotasModificadas = 36;
+    const cantidadDeptos = 10;
+    const direccionModificada = 'Av. Roque Saenz Peña esquina 12 de Octubre. Santa Lucía. San Juan.';
+
+    // Recálculo automático de la cuota pura
+    const cuotaPuraCalculada = Math.round(costoModificado / cuotasModificadas);
+    expect(cuotaPuraCalculada).toBe(2083);
+
+    // Simulación de guardado del fondo editado
+    const obraEditada: FondoGuardado = {
+      ...mockObra,
+      nombre: 'Nueva Simulación de Plan', // Mismo nombre que en la captura
+      estadoPlan: 'activo',
+      params: {
+        costoDepto: costoModificado,
+        cantidadDeptos,
+        cantidadCuotas: cuotasModificadas,
+        valorCuotaBase: cuotaPuraCalculada,
+        fechaInicio: '2027-01',
+        modalidadAnticipo: 'reducir_cuota'
+      },
+      datosTecnicos: {
+        ...DATOS_TECNICOS_DEFAULT,
+        direccionObra: direccionModificada
+      }
+    };
+
+    // 2. Verificar que los valores en la vista y en los cálculos impactan con 75.000 y NO con 70.000
+    const costoDeptoBase = Number(obraEditada.params?.costoDepto) > 0 ? Number(obraEditada.params.costoDepto) : 70000;
+    const cantidadCuotasBase = Number(obraEditada.params?.cantidadCuotas) > 0 ? Number(obraEditada.params.cantidadCuotas) : 36;
+    const cuotaEstimadaBase = (Number(obraEditada.params?.valorCuotaBase) > 0)
+      ? Number(obraEditada.params.valorCuotaBase)
+      : (cantidadCuotasBase > 0 ? Math.round(costoDeptoBase / cantidadCuotasBase) : 0);
+    const totalConsorcio = costoDeptoBase * obraEditada.params.cantidadDeptos;
+
+    expect(costoDeptoBase).toBe(75000);
+    expect(costoDeptoBase).not.toBe(70000);
+    expect(cuotaEstimadaBase).toBe(2083);
+    expect(totalConsorcio).toBe(750000);
+    expect(totalConsorcio).not.toBe(700000);
+    expect(obraEditada.datosTecnicos?.direccionObra).toBe(direccionModificada);
+
+    // 3. Verificar que el cálculo de flujo individual utiliza el nuevo costo de 75.000
+    const gastosConfig = {
+      formaPagoGastos: obraEditada.gastos.formaPagoGastos,
+      comisionGestion: obraEditada.gastos.comisionGestion,
+      comisionEscribania: obraEditada.gastos.comisionEscribania,
+      otrosGastos: obraEditada.gastos.otrosGastos
+    };
+    const gastos = calcularGastos(costoDeptoBase, gastosConfig, cantidadCuotasBase);
+    const flujo = calcularFlujoIndividual(
+      1,
+      costoDeptoBase,
+      0,
+      cantidadCuotasBase,
+      'reducir_cuota',
+      gastos.recargoGastosPorCuota,
+      { activo: false, mes: 1, monto: 0, estrategia: 'reducir_cuota' },
+      16,
+      gastos.pagoFinalGastos,
+      []
+    );
+
+    // En cuota 1, la cuota pura debe basarse en 75000 / 36 = 2083.33 -> redondeado 2083
+    expect(Math.round(flujo.cuotaInmInicial)).toBe(2083);
+    expect(Math.round(flujo.flujo[0].capital)).toBe(2083);
+    expect(flujo.flujo.length).toBe(36);
+  });
 });
 

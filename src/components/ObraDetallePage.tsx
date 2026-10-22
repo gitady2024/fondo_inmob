@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { FondoGuardado } from '../services/fondoService';
 import { fmtMoneda, calcularGastos, calcularFlujoIndividual } from '../utils/calculations';
 import type { DatosTecnicosProyecto } from '../types/tecnico';
@@ -51,9 +51,9 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
   const [fotoActivaIndex, setFotoActivaIndex] = useState<number>(0);
 
   // Parámetros financieros del proyecto
-  const costoDeptoBase = obra.params?.costoDepto || 70000;
-  const cantidadCuotasBase = obra.params?.cantidadCuotas || 36;
-  const cantidadDeptos = obra.params?.cantidadDeptos || 10;
+  const costoDeptoBase = Number(obra.params?.costoDepto) > 0 ? Number(obra.params.costoDepto) : 70000;
+  const cantidadCuotasBase = Number(obra.params?.cantidadCuotas) > 0 ? Number(obra.params.cantidadCuotas) : 36;
+  const cantidadDeptos = Number(obra.params?.cantidadDeptos) > 0 ? Number(obra.params.cantidadDeptos) : 10;
   const fechaInicio = obra.params?.fechaInicio || new Date().toISOString().slice(0, 7);
 
   // Gastos del fideicomiso reactivos
@@ -119,15 +119,31 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
   const porcentajeOcupacion = Math.round((unidadesAdjudicadas / cantidadDeptos) * 100);
 
   // Estados interactivos para simulación integrada dentro de la obra
-  const [simAnticipo, setSimAnticipo] = useState<number>(0);
+  const [simAnticipo, setSimAnticipo] = useState<number>(() => {
+    return (obra.anticipos && obra.anticipos.length > 0) ? Number(obra.anticipos[0]) || 0 : 0;
+  });
   const [simCuotaPosesion, setSimCuotaPosesion] = useState<number>(() => {
     const defaultPos = Math.round(cantidadCuotasBase * 0.45);
     return defaultPos > 0 ? defaultPos : 15;
   });
-  const [simTieneAdelanto, setSimTieneAdelanto] = useState<boolean>(false);
-  const [simMontoAdelanto, setSimMontoAdelanto] = useState<number>(0);
-  const [simCuotaAdelanto, setSimCuotaAdelanto] = useState<number>(10);
-  const [simEstrategiaAdelanto, setSimEstrategiaAdelanto] = useState<'reducir_cuota' | 'acortar_plazo'>('reducir_cuota');
+  const [simTieneAdelanto, setSimTieneAdelanto] = useState<boolean>(!!obra.adelanto?.activo);
+  const [simMontoAdelanto, setSimMontoAdelanto] = useState<number>(Number(obra.adelanto?.monto) || 0);
+  const [simCuotaAdelanto, setSimCuotaAdelanto] = useState<number>(Number(obra.adelanto?.cuota) || 10);
+  const [simEstrategiaAdelanto, setSimEstrategiaAdelanto] = useState<'reducir_cuota' | 'acortar_plazo'>(
+    obra.adelanto?.estrategia === 'acelerar' ? 'acortar_plazo' : 'reducir_cuota'
+  );
+
+  // Sincronización cuando se editan o modifican los parámetros de la obra
+  useEffect(() => {
+    const anticipoInicial = (obra.anticipos && obra.anticipos.length > 0) ? Number(obra.anticipos[0]) || 0 : 0;
+    const posesionInicial = obra.adjudicacionFijada?.[1] || Math.round(cantidadCuotasBase * 0.45) || 16;
+    setSimAnticipo(anticipoInicial);
+    setSimCuotaPosesion(posesionInicial);
+    setSimTieneAdelanto(!!obra.adelanto?.activo);
+    setSimMontoAdelanto(Number(obra.adelanto?.monto) || 0);
+    setSimCuotaAdelanto(Number(obra.adelanto?.cuota) || 10);
+    setSimEstrategiaAdelanto(obra.adelanto?.estrategia === 'acelerar' ? 'acortar_plazo' : 'reducir_cuota');
+  }, [obra.id, obra.params?.costoDepto, obra.params?.cantidadCuotas, obra.anticipos, obra.adjudicacionFijada, obra.adelanto, cantidadCuotasBase]);
 
   // Valores fiduciarios oficiales fijados por la administración
   const anticipoOficial = (obra.anticipos && obra.anticipos.length > 0) ? Number(obra.anticipos[0]) || 0 : 0;
@@ -179,7 +195,9 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
     obra.ajustes
   ]);
 
-  const cuotaEstimadaBase = cantidadCuotasBase > 0 ? Math.round(costoDeptoBase / cantidadCuotasBase) : 0;
+  const cuotaEstimadaBase = (Number(obra.params?.valorCuotaBase) > 0)
+    ? Number(obra.params.valorCuotaBase)
+    : (cantidadCuotasBase > 0 ? Math.round(costoDeptoBase / cantidadCuotasBase) : 0);
 
   const handleDescargarPDF = () => {
     exportarReporteEjecutivoPDF(

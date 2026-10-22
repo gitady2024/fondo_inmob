@@ -215,8 +215,22 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
     } else if (initialEditId) {
       const p = proyectos.find((proj) => proj.id === initialEditId);
       if (p) {
+        const costoInit = Number(p.params?.costoDepto) || 0;
+        const cuotasInit = Number(p.params?.cantidadCuotas) || 0;
+        const cuotaBaseInit = Number(p.params?.valorCuotaBase) || 0;
+        const cuotaCalculada = (costoInit > 0 && cuotasInit > 0) ? Math.round(costoInit / cuotasInit) : 0;
+
         setEditando({
           ...p,
+          params: {
+            ...p.params!,
+            costoDepto: p.params?.costoDepto !== undefined ? p.params.costoDepto : 75000,
+            cantidadDeptos: Number(p.params?.cantidadDeptos) || 10,
+            cantidadCuotas: Number(p.params?.cantidadCuotas) || 36,
+            valorCuotaBase: cuotaBaseInit > 0 ? cuotaBaseInit : cuotaCalculada,
+            fechaInicio: p.params?.fechaInicio || '2027-01',
+            modalidadAnticipo: p.params?.modalidadAnticipo || 'reducir_cuota'
+          },
           gastos: {
             formaPagoGastos: p.gastos?.formaPagoGastos || 'final',
             comisionGestion: p.gastos?.comisionGestion ?? 7,
@@ -260,6 +274,42 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
       ...prev,
       params: { ...prev.params!, [key]: value } as FondoGuardado['params']
     }));
+
+  // Modificación interactiva de costo con recálculo automático de la cuota base pura
+  const handleCostoDeptoChange = (valStr: string) => {
+    const val = valStr === '' ? '' : Number(valStr);
+    setEditando((prev) => {
+      const nuevoCosto = val === '' ? 0 : Number(val);
+      const cuotas = Number(prev.params?.cantidadCuotas) || 0;
+      const cuotaCalculada = (nuevoCosto > 0 && cuotas > 0) ? Math.round(nuevoCosto / cuotas) : 0;
+      return {
+        ...prev,
+        params: {
+          ...prev.params!,
+          costoDepto: val as unknown as number,
+          valorCuotaBase: cuotaCalculada > 0 ? cuotaCalculada : (prev.params?.valorCuotaBase || 0)
+        }
+      };
+    });
+  };
+
+  // Modificación interactiva de cuotas con recálculo automático de la cuota base pura
+  const handleCantidadCuotasChange = (valStr: string) => {
+    const val = valStr === '' ? '' : Number(valStr);
+    setEditando((prev) => {
+      const nuevasCuotas = val === '' ? 0 : Number(val);
+      const costo = Number(prev.params?.costoDepto) || 0;
+      const cuotaCalculada = (costo > 0 && nuevasCuotas > 0) ? Math.round(costo / nuevasCuotas) : 0;
+      return {
+        ...prev,
+        params: {
+          ...prev.params!,
+          cantidadCuotas: val as unknown as number,
+          valorCuotaBase: cuotaCalculada > 0 ? cuotaCalculada : (prev.params?.valorCuotaBase || 0)
+        }
+      };
+    });
+  };
 
   const setGasto = (key: string, value: unknown) =>
     setEditando((prev) => ({
@@ -479,8 +529,22 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
   };
 
   const abrirEditar = (p: FondoGuardado) => {
+    const costoInit = Number(p.params?.costoDepto) || 0;
+    const cuotasInit = Number(p.params?.cantidadCuotas) || 0;
+    const cuotaBaseInit = Number(p.params?.valorCuotaBase) || 0;
+    const cuotaCalculada = (costoInit > 0 && cuotasInit > 0) ? Math.round(costoInit / cuotasInit) : 0;
+
     setEditando({
       ...p,
+      params: {
+        ...p.params!,
+        costoDepto: p.params?.costoDepto !== undefined ? p.params.costoDepto : 75000,
+        cantidadDeptos: Number(p.params?.cantidadDeptos) || 10,
+        cantidadCuotas: Number(p.params?.cantidadCuotas) || 36,
+        valorCuotaBase: cuotaBaseInit > 0 ? cuotaBaseInit : cuotaCalculada,
+        fechaInicio: p.params?.fechaInicio || '2027-01',
+        modalidadAnticipo: p.params?.modalidadAnticipo || 'reducir_cuota'
+      },
       gastos: {
         formaPagoGastos: p.gastos?.formaPagoGastos || 'final',
         comisionGestion: p.gastos?.comisionGestion ?? 7,
@@ -639,6 +703,11 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
       return;
     }
 
+    const cantidadCuotasNum = Number(editando.params!.cantidadCuotas) || 36;
+    const valorCuotaBaseNum = Number(editando.params!.valorCuotaBase) > 0
+      ? Number(editando.params!.valorCuotaBase)
+      : Math.round(costoDeptoNum / cantidadCuotasNum);
+
     setGuardando(true);
     setFeedback(null);
 
@@ -647,8 +716,8 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
         ...editando.params!,
         costoDepto: costoDeptoNum,
         cantidadDeptos: Number(editando.params!.cantidadDeptos) || 10,
-        cantidadCuotas: Number(editando.params!.cantidadCuotas) || 48,
-        valorCuotaBase: Number(editando.params!.valorCuotaBase) || Math.round(costoDeptoNum / (Number(editando.params!.cantidadCuotas) || 48)),
+        cantidadCuotas: cantidadCuotasNum,
+        valorCuotaBase: valorCuotaBaseNum,
         fechaInicio: editando.params!.fechaInicio || '2027-01',
         modalidadAnticipo: editando.params!.modalidadAnticipo || 'reducir_cuota'
       };
@@ -1056,15 +1125,13 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
             <Campo label="Costo por Unidad (USD)">
               <FormInput
                 type="number"
-                min={5000}
-                max={500000}
+                min={1000}
+                max={1000000}
                 step={1000}
                 disabled={!isAdmin}
                 value={p.costoDepto !== undefined && p.costoDepto !== null ? p.costoDepto : ''}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setParam('costoDepto', val === '' ? '' : Number(val));
-                }}
+                onChange={(e) => handleCostoDeptoChange(e.target.value)}
+                placeholder="Ej: 75000"
               />
             </Campo>
             <Campo label="Cantidad de Unidades">
@@ -1083,21 +1150,19 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
             <Campo label="Cuotas Totales">
               <FormInput
                 type="number"
-                min={12}
+                min={6}
                 max={120}
                 disabled={!isAdmin}
                 value={p.cantidadCuotas !== undefined && p.cantidadCuotas !== null ? p.cantidadCuotas : ''}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setParam('cantidadCuotas', val === '' ? '' : Number(val));
-                }}
+                onChange={(e) => handleCantidadCuotasChange(e.target.value)}
+                placeholder="Ej: 36"
               />
             </Campo>
-            <Campo label="Cuota Base Pura (USD)">
+            <Campo label="Cuota Base Pura (USD)" sublabel="Cálculo automático">
               <FormInput
                 type="number"
-                min={100}
-                max={20000}
+                min={1}
+                max={50000}
                 step={10}
                 disabled={!isAdmin}
                 value={p.valorCuotaBase !== undefined && p.valorCuotaBase !== null ? p.valorCuotaBase : ''}
@@ -1106,10 +1171,10 @@ export const ObrasAdminModal: React.FC<ObrasAdminModalProps> = ({
                   setParam('valorCuotaBase', val === '' ? '' : Number(val));
                 }}
               />
-              <span className="text-[10px] text-slate-500">
-                Calculada: {Number(p.costoDepto) > 0 && Number(p.cantidadCuotas) > 0
-                  ? `≈ USD ${Math.round(Number(p.costoDepto) / Number(p.cantidadCuotas)).toLocaleString('es-AR')}/mes`
-                  : '-'}
+              <span className="text-[10px] text-emerald-400 font-mono block">
+                {Number(p.costoDepto) > 0 && Number(p.cantidadCuotas) > 0
+                  ? `Cuota pura: USD ${Math.round(Number(p.costoDepto) / Number(p.cantidadCuotas)).toLocaleString('es-AR')}/mes (Costo ÷ Cuotas)`
+                  : 'Ingresá costo y cuotas'}
               </span>
             </Campo>
             <Campo label="Fecha de Inicio (YYYY-MM)">

@@ -50,10 +50,12 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
     >
       {/* Listado en renglón único: cada obra figura en solo una línea con datos básicos */}
       {listaObras.map((proyecto) => {
-        const cantidadDeptos = proyecto.params.cantidadDeptos || 10;
-        const cantidadCuotas = proyecto.params.cantidadCuotas || 36;
-        const costoDepto = proyecto.params.costoDepto || 70000;
-        const cuotaEstimada = cantidadCuotas > 0 ? Math.round(costoDepto / cantidadCuotas) : 0;
+        const cantidadDeptos = Number(proyecto.params?.cantidadDeptos) || 10;
+        const cantidadCuotas = Number(proyecto.params?.cantidadCuotas) || 36;
+        const costoDepto = Number(proyecto.params?.costoDepto) > 0 ? Number(proyecto.params.costoDepto) : 70000;
+        const cuotaEstimada = (Number(proyecto.params?.valorCuotaBase) > 0)
+          ? Number(proyecto.params.valorCuotaBase)
+          : (cantidadCuotas > 0 ? Math.round(costoDepto / cantidadCuotas) : 0);
 
         // Adjudicaciones y unidades disponibles
         const adjudicacionesObj = proyecto.adjudicacionFijada || {};

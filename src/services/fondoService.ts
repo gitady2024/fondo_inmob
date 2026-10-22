@@ -295,11 +295,13 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
             const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
             if (raw) {
               const localList: FondoGuardado[] = JSON.parse(raw);
-              return supabaseFondos.map((sf) => {
+              const merged = supabaseFondos.map((sf) => {
                 const local = localList.find((l) => l.id === sf.id);
                 if (local) {
                   return {
                     ...sf,
+                    nombre: local.nombre || sf.nombre,
+                    descripcion: local.descripcion || sf.descripcion,
                     estadoPlan: local.estadoPlan || sf.estadoPlan || 'activo',
                     params: local.params || sf.params,
                     gastos: local.gastos || sf.gastos,
@@ -313,6 +315,10 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
                 }
                 return sf;
               });
+
+              // Incluir también los fondos locales que no existan en Supabase
+              const localOnly = localList.filter((lf) => !supabaseFondos.some((sf) => sf.id === lf.id));
+              return [...merged, ...localOnly];
             }
           } catch {}
           return supabaseFondos;
@@ -345,20 +351,6 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
               anticipos: f.anticipos && f.anticipos[0] === 6500 ? [7500, ...f.anticipos.slice(1)] : f.anticipos,
               ajustes: f.ajustes || []
             };
-          }
-          if (f.nombre === 'Nueva Simulación de Plan' || (f.estadoPlan === 'simulacion' && (!f.params.costoDepto || f.params.costoDepto === 0))) {
-            if (f.params.cantidadCuotas !== 0) {
-              changed = true;
-              return {
-                ...f,
-                params: {
-                  ...f.params,
-                  costoDepto: 0,
-                  cantidadCuotas: 0,
-                  valorCuotaBase: 0
-                }
-              };
-            }
           }
           return {
             ...f,
@@ -494,7 +486,9 @@ export const saveFondo = async (
     cesion,
     adelanto,
     ajustes: ajustes !== undefined ? ajustes : (existingAjustes || []),
-    datosTecnicos: datosTecnicos || existingTecnicos || DATOS_TECNICOS_DEFAULT,
+    datosTecnicos: datosTecnicos
+      ? { ...(existingTecnicos || DATOS_TECNICOS_DEFAULT), ...datosTecnicos }
+      : (existingTecnicos || DATOS_TECNICOS_DEFAULT),
     contratoPersonalizado: contratoPersonalizado !== undefined ? contratoPersonalizado : existingContrato,
     fotos: fotos !== undefined ? fotos : (existingFotos || FOTOS_OBRA_PREDETERMINADAS)
   };
