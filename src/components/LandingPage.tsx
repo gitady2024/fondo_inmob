@@ -45,6 +45,8 @@ interface LandingPageProps {
   onOpenObraDetalle?: (obraId?: string) => void;
   /** Callback para cerrar sesión y salir de la cuenta */
   onSignOut?: () => void;
+  /** Callback para eliminar una obra en marcha (Perfil Admin) */
+  onDeleteObra?: (obraId: string, nombre: string) => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
@@ -61,7 +63,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onEditObra,
   onVerDetallesPlan,
   onOpenObraDetalle,
-  onSignOut
+  onSignOut,
+  onDeleteObra
 }) => {
   const [modalPreinscripcionOpen, setModalPreinscripcionOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -540,6 +543,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           }}
           onEditObra={onEditObra}
           isAdmin={user?.role === 'admin'}
+          onDeleteObra={onDeleteObra}
         />
       </section>
 

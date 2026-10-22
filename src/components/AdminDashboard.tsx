@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { UserProfile } from '../types/auth';
-import type { FondoGuardado } from '../services/fondoService';
+import { saveFondo, type FondoGuardado } from '../services/fondoService';
 import {
   fetchFondoParticipacionesYCuotas,
   togglePagoCuotaEnSupabase,
@@ -58,7 +58,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   fondosList,
   onSelectFondo,
   onOpenNewModal,
-  onFondoCreated: _onFondoCreated,
+  onFondoCreated,
   onShowToast,
   onSignOut,
   onEditCurrentObra,
@@ -171,10 +171,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  // 3. Puente: Crear y Guardar Fondo Completo en Supabase
+  // 3. Guardar y Crear Nueva Obra en Marcha activa (Local + Supabase)
   const handleCrearYGuardarFondoReal = async () => {
     setIsPublishing(true);
     try {
+      // 1. Guardar y registrar como Obra en Marcha Activa (estadoPlan: 'activo')
+      await saveFondo(
+        currentFondo.nombre,
+        currentFondo.params,
+        currentFondo.gastos,
+        currentFondo.anticipos,
+        currentFondo.adjudicacionFijada,
+        currentFondo.cesion,
+        currentFondo.adelanto,
+        currentFondo.id,
+        currentFondo.descripcion,
+        currentFondo.datosTecnicos,
+        currentFondo.contratoPersonalizado,
+        currentFondo.ajustes,
+        'activo', // Asegurar que sea una Obra en Marcha Activa
+        currentFondo.fotos
+      );
+
+      // 2. Crear las cuotas y estructura en Supabase (si está configurado)
       const res = await crearYGuardarFondoEnSupabase(
         currentFondo.nombre,
         currentFondo.params,
@@ -187,15 +206,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         currentUser.id
       );
 
-      if (res.success) {
-        onShowToast(`🎉 ¡Fondo "${currentFondo.nombre}" creado y publicado en Supabase con éxito!`);
-        // Recargar datos
-        loadFondoData();
-      } else {
-        onShowToast(`⚠️ Advertencia al publicar: ${res.error || 'Guardado local completado'}`);
+      // 3. Notificar al sistema para actualizar listas de fondos y obras en marcha
+      if (onFondoCreated) {
+        onFondoCreated({
+          ...currentFondo,
+          estadoPlan: 'activo',
+          updated_at: new Date().toISOString()
+        });
+      } else if (onTransformarEnObraActiva) {
+        onTransformarEnObraActiva();
       }
+
+      if (res.success) {
+        onShowToast(`🎉 ¡Nueva Obra en Marcha "${currentFondo.nombre}" guardada y activada con éxito!`);
+      } else {
+        onShowToast(`🎉 ¡Obra en Marcha "${currentFondo.nombre}" activada con éxito! (${res.error || 'Guardado local completado'})`);
+      }
+
+      // Recargar datos
+      loadFondoData();
     } catch (err: any) {
-      onShowToast(`❌ Error al publicar fondo: ${err.message}`);
+      onShowToast(`❌ Error al guardar obra en marcha: ${err.message}`);
     } finally {
       setIsPublishing(false);
     }
@@ -291,16 +322,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
-            {/* Botón: Crear y Guardar Fondo en Supabase (Tarea 4) */}
+            {/* Botón: Guardar y Crear nueva Obra en Marcha */}
             <div className="self-end">
               <button
                 onClick={handleCrearYGuardarFondoReal}
                 disabled={isPublishing}
-                title="Publicar todos los parámetros y generar cuotas en Supabase"
-                className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-indigo-600/20 cursor-pointer active:scale-95 disabled:opacity-50"
+                title="Guardar este plan y crear una nueva Obra en Marcha activa en el sistema"
+                className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-emerald-600/20 cursor-pointer active:scale-95 disabled:opacity-50"
               >
                 <CloudUpload className={`w-4 h-4 ${isPublishing ? 'animate-bounce' : ''}`} />
-                <span>{isPublishing ? 'Publicando en Supabase...' : 'Crear y Guardar Fondo'}</span>
+                <span>{isPublishing ? 'Guardando Obra en Marcha...' : 'Guardar y crear nueva Obra en Marcha'}</span>
               </button>
             </div>
 

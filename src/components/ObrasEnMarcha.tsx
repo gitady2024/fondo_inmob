@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { FondoGuardado } from '../services/fondoService';
 import { fmtMoneda } from '../utils/calculations';
 import {
   HardHat,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 
 interface ObrasEnMarchaProps {
@@ -16,6 +18,7 @@ interface ObrasEnMarchaProps {
   onEditObra?: (obraId: string) => void;
   onOpenObraDetalle?: (obraId: string) => void;
   isAdmin?: boolean;
+  onDeleteObra?: (obraId: string, nombre: string) => void;
 }
 
 export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
@@ -26,8 +29,10 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
   className = '',
   onEditObra: _onEditObra,
   onOpenObraDetalle,
-  isAdmin: _isAdmin = false
+  isAdmin = false,
+  onDeleteObra
 }) => {
+  const [obraAEliminar, setObraAEliminar] = useState<{ id: string; nombre: string } | null>(null);
   // Proyectos activos (obras en marcha)
   const proyectosActivos = proyectos.filter((p) => p.estadoPlan !== 'simulacion');
   const listaObras = proyectosActivos.length > 0 ? proyectosActivos : proyectos.slice(0, 1);
@@ -142,16 +147,85 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
               </div>
             </div>
 
-            {/* Lado derecho: Botón de apertura a detalle completo */}
+            {/* Lado derecho: Botón de apertura a detalle completo + Tacho de basura (Admin) */}
             <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 group-hover:bg-amber-400 text-amber-300 group-hover:text-slate-950 text-xs font-black border border-amber-500/30 group-hover:border-amber-400 transition-all shadow-sm">
                 <span>Ver Detalle (Financiero & Técnico)</span>
                 <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
               </span>
+
+              {/* Tacho de basura para Perfil Admin */}
+              {isAdmin && onDeleteObra && (
+                <button
+                  type="button"
+                  id={`btn-eliminar-obra-${proyecto.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setObraAEliminar({ id: proyecto.id, nombre: proyecto.nombre });
+                  }}
+                  title="Eliminar esta obra en marcha (Perfil Admin)"
+                  className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/20 border border-slate-700/80 hover:border-rose-500/50 transition-all cursor-pointer shadow-sm active:scale-95 shrink-0 z-10"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-400" />
+                </button>
+              )}
             </div>
           </div>
         );
       })}
+
+      {/* Modal de Confirmación para Eliminar Obra */}
+      {obraAEliminar && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in"
+          onClick={() => setObraAEliminar(null)}
+        >
+          <div
+            className="bg-slate-900 border border-rose-500/40 rounded-3xl p-6 max-w-md w-full shadow-2xl shadow-rose-950/40 space-y-4 animate-in zoom-in-95"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-white">¿Eliminar Obra en Marcha?</h3>
+                <p className="text-xs text-rose-300 font-medium">Acción irreversible para Administradores</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
+              ¿Confirmás que querés eliminar definitivamente la obra{' '}
+              <strong className="text-white font-bold font-mono">"{obraAEliminar.nombre}"</strong>?
+              Se eliminarán sus cronogramas y parámetros activos asociados.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setObraAEliminar(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                id="btn-confirmar-eliminar-obra"
+                onClick={() => {
+                  if (onDeleteObra && obraAEliminar) {
+                    onDeleteObra(obraAEliminar.id, obraAEliminar.nombre);
+                  }
+                  setObraAEliminar(null);
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-black text-white bg-rose-600 hover:bg-rose-500 shadow-lg shadow-rose-600/30 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Sí, eliminar obra</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

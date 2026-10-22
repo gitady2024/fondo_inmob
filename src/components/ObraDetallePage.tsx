@@ -23,7 +23,8 @@ import {
   Briefcase,
   FolderCheck,
   Percent,
-  ArrowRight
+  ArrowRight,
+  Trash2
 } from 'lucide-react';
 
 interface ObraDetallePageProps {
@@ -35,6 +36,7 @@ interface ObraDetallePageProps {
   onPreinscribirObra: (obra: FondoGuardado, cuotaEstimada: number) => void;
   onEditarObra?: (obraId: string) => void;
   isAdmin?: boolean;
+  onDeleteObra?: (obraId: string, nombre: string) => void;
 }
 
 export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
@@ -45,7 +47,8 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
   onSimularObra,
   onPreinscribirObra,
   onEditarObra,
-  isAdmin = false
+  isAdmin = false,
+  onDeleteObra
 }) => {
   const [tabActiva, setTabActiva] = useState<'financiero' | 'tecnico' | 'resumen'>('financiero');
   const [fotoActivaIndex, setFotoActivaIndex] = useState<number>(0);
@@ -263,10 +266,28 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
             {onEditarObra && isAdmin && (
               <button
                 type="button"
+                id="btn-detalle-editar-obra"
                 onClick={() => onEditarObra(obra.id)}
-                className="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                className="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
               >
                 <span>Editar Obra</span>
+              </button>
+            )}
+
+            {onDeleteObra && isAdmin && (
+              <button
+                type="button"
+                id="btn-detalle-eliminar-obra"
+                onClick={() => {
+                  if (window.confirm(`¿Estás seguro de que deseas eliminar la obra "${obra.nombre}"? Esta acción no se puede deshacer.`)) {
+                    onDeleteObra(obra.id, obra.nombre);
+                  }
+                }}
+                className="px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                title="Eliminar esta obra en marcha"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                <span className="hidden sm:inline">Eliminar Obra</span>
               </button>
             )}
 

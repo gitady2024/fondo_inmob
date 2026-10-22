@@ -526,6 +526,23 @@ export const App: React.FC = () => {
     setSocioSeleccionado(1);
   };
 
+  const handleDeleteObra = async (id: string, nombre: string) => {
+    if (currentUser?.role !== 'admin') {
+      setToastMessage('❌ Solo el Administrador tiene permisos para eliminar obras.');
+      return;
+    }
+    try {
+      await deleteFondo(id);
+      await recargarFondos();
+      if (currentRoute === 'obra-detalle' && (obraDetalleId === id || currentFondoId === id)) {
+        navigateTo('landing');
+      }
+      setToastMessage(`🗑️ Obra en marcha "${nombre}" eliminada exitosamente.`);
+    } catch {
+      setToastMessage('❌ Error al eliminar la obra.');
+    }
+  };
+
   const handleResetCurrent = () => {
     updateCurrentFondo((prev) => ({
       ...prev,
@@ -736,6 +753,7 @@ export const App: React.FC = () => {
                   : undefined
               }
               isAdmin={currentUser?.role === 'admin'}
+              onDeleteObra={currentUser?.role === 'admin' ? handleDeleteObra : undefined}
             />
 
             {/* Modal de Preinscripción Oficial para la Obra */}
@@ -792,6 +810,7 @@ export const App: React.FC = () => {
                 : undefined
             }
             onSignOut={currentUser ? handleSignOutAll : undefined}
+            onDeleteObra={currentUser?.role === 'admin' ? handleDeleteObra : undefined}
           />
         ) : (
           /* ------------------------------------------------------------------ */
@@ -888,6 +907,9 @@ export const App: React.FC = () => {
             }}
             onTransformarEnObraActiva={() => {
               handleToggleEstadoPlan(currentFondo.id, 'activo');
+            }}
+            onFondoCreated={async () => {
+              await recargarFondos();
             }}
             unreadCount={unreadCount}
             initialModule={goToSimulador ? 'simulador' : 'cobranzas'}

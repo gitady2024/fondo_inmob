@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { FlujoSocioCalculado, FormaPagoGastos, ParametrosFondoState, GastosConfigState } from '../types/fondo';
 import { fmtMoneda, formatFecha } from '../utils/calculations';
 import { exportarFichaSocioPDF, exportarFichaSocioExcel } from '../utils/exportReports';
@@ -57,6 +57,34 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
   const mesesTotales = flujoSocio.mesesTotales;
   const fechaPosesion = formatFecha(fechaInicio, mPos);
   const fechaCancelacion = formatFecha(fechaInicio, mesesTotales);
+
+  // Estado local para permitir ingreso fluido de 2 dígitos sin pestañeo ni reseteos
+  const [cuotaLocal, setCuotaLocal] = useState<string>(String(mPos));
+
+  useEffect(() => {
+    setCuotaLocal(String(mPos));
+  }, [mPos, socioSeleccionado]);
+
+  const handleCuotaInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val === '' || /^\d+$/.test(val)) {
+      setCuotaLocal(val);
+    }
+  };
+
+  const handleCommitCuota = () => {
+    const parsed = parseInt(cuotaLocal, 10);
+    if (isNaN(parsed) || parsed < 1) {
+      setCuotaLocal('1');
+      if (mPos !== 1) onAdjudicacionChange(socioSeleccionado, 1);
+    } else if (parsed > mesesTotales) {
+      setCuotaLocal(String(mesesTotales));
+      if (mPos !== mesesTotales) onAdjudicacionChange(socioSeleccionado, mesesTotales);
+    } else {
+      setCuotaLocal(String(parsed));
+      if (mPos !== parsed) onAdjudicacionChange(socioSeleccionado, parsed);
+    }
+  };
 
   // Calcular acumulado a la cuota simulada
   let abonadoSimulado = flujoSocio.anticipoMes0;
@@ -214,12 +242,19 @@ export const CuentaIndividual: React.FC<CuentaIndividualProps> = ({
             <KeyRound className="w-3.5 h-3.5 text-amber-400" />
             <span className="text-slate-400">Adjudica Cuota:</span>
             <input
-              type="number"
-              min="1"
-              max={mesesTotales}
-              value={mPos}
-              onChange={(e) => onAdjudicacionChange(socioSeleccionado, parseInt(e.target.value, 10) || 1)}
-              className="w-12 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 font-mono text-center font-bold text-amber-300 outline-none"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={cuotaLocal}
+              onChange={handleCuotaInputChange}
+              onBlur={handleCommitCuota}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  (e.target as HTMLInputElement).blur();
+                }
+              }}
+              className="w-14 sm:w-16 bg-slate-950 border border-slate-700 hover:border-amber-400 focus:border-amber-400 rounded px-2 py-0.5 font-mono text-center font-bold text-amber-300 outline-none transition-colors"
+              title={`Ingresa la cuota de adjudicación (1 a ${mesesTotales}). Presiona Enter o sal del campo para aplicar.`}
             />
           </div>
 
