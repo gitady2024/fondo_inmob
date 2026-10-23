@@ -192,10 +192,8 @@ export const App: React.FC = () => {
         if (currentUser?.role === 'tecnico') {
           navigateTo('app');
         } else {
-          setDevUserOverride(TECNICO_USER);
-          setDevUser(TECNICO_USER);
-          navigateTo('app');
-          setToastMessage('👷 Bienvenido al Módulo Técnico y de Obras');
+          setLoginInitialRole('tecnico');
+          setIsLoginOpen(true);
         }
       }
     },
@@ -911,9 +909,8 @@ export const App: React.FC = () => {
                     setToastMessage(`👋 Bienvenido al Portal del Socio (Unidad D${socioId})`);
                   }}
                   onSelectTecnico={() => {
-                    setDevUserOverride(TECNICO_USER);
-                    setDevUser(TECNICO_USER);
-                    setToastMessage('👷 Bienvenido al Módulo Técnico y de Obras');
+                    setLoginInitialRole('tecnico');
+                    setIsLoginOpen(true);
                   }}
                   onSelectAdmin={() => {
                     setLoginInitialRole('admin');

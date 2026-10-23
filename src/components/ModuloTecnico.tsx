@@ -5,7 +5,8 @@ import type {
   DocumentoTecnico,
   CategoriaOrganismo,
   EstadoTramite,
-  ProfesionalTecnico
+  ProfesionalTecnico,
+  EtapaObra
 } from '../types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from '../types/tecnico';
 import type { UserProfile } from '../types/auth';
@@ -58,20 +59,56 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'tramites' | 'avance' | 'planos' | 'memoria' | 'mensajes'>('tramites');
 
-  // Modal / Form para nuevo trámite
-  const [isNewTramiteOpen, setIsNewTramiteOpen] = useState(false);
-  const [nuevoOrganismo, setNuevoOrganismo] = useState<CategoriaOrganismo>('Municipalidad');
-  const [nuevoTitulo, setNuevoTitulo] = useState('');
-  const [nuevoExpediente, setNuevoExpediente] = useState('');
-  const [nuevoEstado, setNuevoEstado] = useState<EstadoTramite>('en_tramite');
-  const [nuevaObservacion, setNuevaObservacion] = useState('');
+  // Modal / Form para Trámite (Crear y Editar)
+  const [isTramiteModalOpen, setIsTramiteModalOpen] = useState(false);
+  const [editingTramiteId, setEditingTramiteId] = useState<string | null>(null);
+  const [tramiteForm, setTramiteForm] = useState<{
+    organismo: CategoriaOrganismo;
+    titulo: string;
+    numeroExpediente: string;
+    estado: EstadoTramite;
+    fechaInicio: string;
+    observaciones: string;
+  }>({
+    organismo: 'Municipalidad',
+    titulo: '',
+    numeroExpediente: '',
+    estado: 'en_tramite',
+    fechaInicio: new Date().toISOString().slice(0, 10),
+    observaciones: ''
+  });
 
-  // Modal / Form para nuevo documento/plano
-  const [isNewDocOpen, setIsNewDocOpen] = useState(false);
-  const [nuevoDocCat, setNuevoDocCat] = useState<'Plano Arquitectura' | 'Estructura H°A°' | 'Instalaciones' | 'Permiso / Resolución' | 'Memoria Descriptiva'>('Plano Arquitectura');
-  const [nuevoDocNombre, setNuevoDocNombre] = useState('');
-  const [nuevoDocResolucion, setNuevoDocResolucion] = useState('');
-  const [nuevoDocFirmante, setNuevoDocFirmante] = useState('');
+  // Modal / Form para Etapa de Obra (Crear y Editar)
+  const [isEtapaModalOpen, setIsEtapaModalOpen] = useState(false);
+  const [editingEtapaId, setEditingEtapaId] = useState<string | null>(null);
+  const [etapaForm, setEtapaForm] = useState<{
+    nombre: string;
+    pesoPonderado: number;
+    porcentajeReal: number;
+    fechaInicioEstimada: string;
+    fechaFinEstimada: string;
+  }>({
+    nombre: '',
+    pesoPonderado: 10,
+    porcentajeReal: 0,
+    fechaInicioEstimada: 'Mes 1',
+    fechaFinEstimada: 'Mes 3'
+  });
+
+  // Modal / Form para Documento / Plano (Crear y Editar)
+  const [isDocModalOpen, setIsDocModalOpen] = useState(false);
+  const [editingDocId, setEditingDocId] = useState<string | null>(null);
+  const [docForm, setDocForm] = useState<{
+    categoria: DocumentoTecnico['categoria'];
+    nombre: string;
+    numeroPlanoResolucion: string;
+    profesionalFirmante: string;
+  }>({
+    categoria: 'Plano Arquitectura',
+    nombre: '',
+    numeroPlanoResolucion: '',
+    profesionalFirmante: ''
+  });
 
   // Modal / Form para Editar Ficha Técnica
   const [isEditFichaOpen, setIsEditFichaOpen] = useState(false);
@@ -256,32 +293,75 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
   };
 
   // ------------------------------------------------------------------
-  // Handlers para trámites
   // ------------------------------------------------------------------
-  const handleAddTramite = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nuevoTitulo.trim()) return;
-
-    const nuevo: TramiteOrganismo = {
-      id: `t-${Date.now()}`,
-      organismo: nuevoOrganismo,
-      titulo: nuevoTitulo.trim(),
-      numeroExpediente: nuevoExpediente.trim() || `EXP-${Math.floor(10000 + Math.random() * 90000)}`,
-      estado: nuevoEstado,
+  // Handlers para trámites (Crear y Editar)
+  // ------------------------------------------------------------------
+  const handleOpenNewTramite = () => {
+    setEditingTramiteId(null);
+    setTramiteForm({
+      organismo: 'Municipalidad',
+      titulo: '',
+      numeroExpediente: '',
+      estado: 'en_tramite',
       fechaInicio: new Date().toISOString().slice(0, 10),
-      fechaAprobacion: nuevoEstado === 'aprobado' ? new Date().toISOString().slice(0, 10) : undefined,
-      observaciones: nuevaObservacion.trim()
-    };
-
-    onUpdateDatosTecnicos({
-      ...datosTecnicos,
-      tramites: [nuevo, ...datosTecnicos.tramites]
+      observaciones: ''
     });
+    setIsTramiteModalOpen(true);
+  };
 
-    setNuevoTitulo('');
-    setNuevoExpediente('');
-    setNuevaObservacion('');
-    setIsNewTramiteOpen(false);
+  const handleOpenEditTramite = (t: TramiteOrganismo) => {
+    setEditingTramiteId(t.id);
+    setTramiteForm({
+      organismo: t.organismo,
+      titulo: t.titulo,
+      numeroExpediente: t.numeroExpediente,
+      estado: t.estado,
+      fechaInicio: t.fechaInicio || new Date().toISOString().slice(0, 10),
+      observaciones: t.observaciones || ''
+    });
+    setIsTramiteModalOpen(true);
+  };
+
+  const handleSaveTramite = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tramiteForm.titulo.trim()) return;
+
+    if (editingTramiteId) {
+      const updated = datosTecnicos.tramites.map((t) =>
+        t.id === editingTramiteId
+          ? {
+              ...t,
+              ...tramiteForm,
+              titulo: tramiteForm.titulo.trim(),
+              numeroExpediente: tramiteForm.numeroExpediente.trim() || t.numeroExpediente,
+              fechaAprobacion:
+                tramiteForm.estado === 'aprobado'
+                  ? t.fechaAprobacion || new Date().toISOString().slice(0, 10)
+                  : undefined
+            }
+          : t
+      );
+      onUpdateDatosTecnicos({ ...datosTecnicos, tramites: updated });
+    } else {
+      const nuevo: TramiteOrganismo = {
+        id: `t-${Date.now()}`,
+        organismo: tramiteForm.organismo,
+        titulo: tramiteForm.titulo.trim(),
+        numeroExpediente:
+          tramiteForm.numeroExpediente.trim() || `EXP-${Math.floor(10000 + Math.random() * 90000)}`,
+        estado: tramiteForm.estado,
+        fechaInicio: tramiteForm.fechaInicio || new Date().toISOString().slice(0, 10),
+        fechaAprobacion:
+          tramiteForm.estado === 'aprobado' ? new Date().toISOString().slice(0, 10) : undefined,
+        observaciones: tramiteForm.observaciones.trim()
+      };
+      onUpdateDatosTecnicos({
+        ...datosTecnicos,
+        tramites: [nuevo, ...datosTecnicos.tramites]
+      });
+    }
+
+    setIsTramiteModalOpen(false);
   };
 
   const handleUpdateEstadoTramite = (id: string, estado: EstadoTramite) => {
@@ -298,15 +378,91 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
   };
 
   const handleDeleteTramite = (id: string) => {
-    onUpdateDatosTecnicos({
-      ...datosTecnicos,
-      tramites: datosTecnicos.tramites.filter((t) => t.id !== id)
-    });
+    if (confirm('¿Confirma que desea eliminar este trámite de la lista?')) {
+      onUpdateDatosTecnicos({
+        ...datosTecnicos,
+        tramites: datosTecnicos.tramites.filter((t) => t.id !== id)
+      });
+    }
   };
 
   // ------------------------------------------------------------------
-  // Handlers para etapas de obra
+  // Handlers para etapas de obra (Crear, Editar y Eliminar)
   // ------------------------------------------------------------------
+  const handleOpenNewEtapa = () => {
+    setEditingEtapaId(null);
+    setEtapaForm({
+      nombre: '',
+      pesoPonderado: 10,
+      porcentajeReal: 0,
+      fechaInicioEstimada: `Mes ${datosTecnicos.etapas.length * 2 + 1}`,
+      fechaFinEstimada: `Mes ${datosTecnicos.etapas.length * 2 + 4}`
+    });
+    setIsEtapaModalOpen(true);
+  };
+
+  const handleOpenEditEtapa = (et: EtapaObra) => {
+    setEditingEtapaId(et.id);
+    setEtapaForm({
+      nombre: et.nombre,
+      pesoPonderado: et.pesoPonderado,
+      porcentajeReal: et.porcentajeReal,
+      fechaInicioEstimada: et.fechaInicioEstimada,
+      fechaFinEstimada: et.fechaFinEstimada
+    });
+    setIsEtapaModalOpen(true);
+  };
+
+  const handleSaveEtapa = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!etapaForm.nombre.trim()) return;
+
+    const p = Math.max(0, Math.min(100, Number(etapaForm.porcentajeReal) || 0));
+    const peso = Math.max(0, Math.min(100, Number(etapaForm.pesoPonderado) || 0));
+    const estado: 'pendiente' | 'en_progreso' | 'completada' =
+      p === 100 ? 'completada' : p > 0 ? 'en_progreso' : 'pendiente';
+
+    if (editingEtapaId) {
+      const updated = datosTecnicos.etapas.map((et) =>
+        et.id === editingEtapaId
+          ? {
+              ...et,
+              nombre: etapaForm.nombre.trim(),
+              pesoPonderado: peso,
+              porcentajeReal: p,
+              fechaInicioEstimada: etapaForm.fechaInicioEstimada.trim(),
+              fechaFinEstimada: etapaForm.fechaFinEstimada.trim(),
+              estado
+            }
+          : et
+      );
+      onUpdateDatosTecnicos({ ...datosTecnicos, etapas: updated });
+    } else {
+      const nueva: EtapaObra = {
+        id: `etapa-${Date.now()}`,
+        nombre: etapaForm.nombre.trim(),
+        pesoPonderado: peso,
+        porcentajeReal: p,
+        fechaInicioEstimada: etapaForm.fechaInicioEstimada.trim() || 'Inicio',
+        fechaFinEstimada: etapaForm.fechaFinEstimada.trim() || 'Fin',
+        estado
+      };
+      onUpdateDatosTecnicos({
+        ...datosTecnicos,
+        etapas: [...datosTecnicos.etapas, nueva]
+      });
+    }
+
+    setIsEtapaModalOpen(false);
+  };
+
+  const handleDeleteEtapa = (id: string) => {
+    if (confirm('¿Confirma que desea eliminar esta etapa del cronograma de obra?')) {
+      const updated = datosTecnicos.etapas.filter((et) => et.id !== id);
+      onUpdateDatosTecnicos({ ...datosTecnicos, etapas: updated });
+    }
+  };
+
   const handleUpdatePorcentajeEtapa = (id: string, porcentaje: number) => {
     const updated = datosTecnicos.etapas.map((et) => {
       if (et.id === id) {
@@ -321,38 +477,73 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
   };
 
   // ------------------------------------------------------------------
-  // Handlers para documentos
+  // Handlers para documentos (Crear, Editar y Eliminar)
   // ------------------------------------------------------------------
-  const handleAddDocumento = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nuevoDocNombre.trim()) return;
-
-    const nuevo: DocumentoTecnico = {
-      id: `d-${Date.now()}`,
-      categoria: nuevoDocCat,
-      nombre: nuevoDocNombre.trim(),
-      numeroPlanoResolucion: nuevoDocResolucion.trim() || 'PL-REV-01',
-      fechaCarga: new Date().toISOString().slice(0, 10),
-      profesionalFirmante: nuevoDocFirmante.trim() || datosTecnicos.directorObra,
-      tamanio: '3.5 MB'
-    };
-
-    onUpdateDatosTecnicos({
-      ...datosTecnicos,
-      documentos: [nuevo, ...datosTecnicos.documentos]
+  const handleOpenNewDoc = () => {
+    setEditingDocId(null);
+    setDocForm({
+      categoria: 'Plano Arquitectura',
+      nombre: '',
+      numeroPlanoResolucion: '',
+      profesionalFirmante: datosTecnicos.directorObra || ''
     });
+    setIsDocModalOpen(true);
+  };
 
-    setNuevoDocNombre('');
-    setNuevoDocResolucion('');
-    setNuevoDocFirmante('');
-    setIsNewDocOpen(false);
+  const handleOpenEditDoc = (doc: DocumentoTecnico) => {
+    setEditingDocId(doc.id);
+    setDocForm({
+      categoria: doc.categoria,
+      nombre: doc.nombre,
+      numeroPlanoResolucion: doc.numeroPlanoResolucion || '',
+      profesionalFirmante: doc.profesionalFirmante || ''
+    });
+    setIsDocModalOpen(true);
+  };
+
+  const handleSaveDoc = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!docForm.nombre.trim()) return;
+
+    if (editingDocId) {
+      const updated = datosTecnicos.documentos.map((d) =>
+        d.id === editingDocId
+          ? {
+              ...d,
+              categoria: docForm.categoria,
+              nombre: docForm.nombre.trim(),
+              numeroPlanoResolucion: docForm.numeroPlanoResolucion.trim() || '-',
+              profesionalFirmante: docForm.profesionalFirmante.trim() || datosTecnicos.directorObra
+            }
+          : d
+      );
+      onUpdateDatosTecnicos({ ...datosTecnicos, documentos: updated });
+    } else {
+      const nuevo: DocumentoTecnico = {
+        id: `d-${Date.now()}`,
+        categoria: docForm.categoria,
+        nombre: docForm.nombre.trim(),
+        numeroPlanoResolucion: docForm.numeroPlanoResolucion.trim() || 'PL-REV-01',
+        fechaCarga: new Date().toISOString().slice(0, 10),
+        profesionalFirmante: docForm.profesionalFirmante.trim() || datosTecnicos.directorObra,
+        tamanio: '3.5 MB'
+      };
+      onUpdateDatosTecnicos({
+        ...datosTecnicos,
+        documentos: [nuevo, ...datosTecnicos.documentos]
+      });
+    }
+
+    setIsDocModalOpen(false);
   };
 
   const handleDeleteDocumento = (id: string) => {
-    onUpdateDatosTecnicos({
-      ...datosTecnicos,
-      documentos: datosTecnicos.documentos.filter((d) => d.id !== id)
-    });
+    if (confirm('¿Confirma que desea eliminar este documento / plano?')) {
+      onUpdateDatosTecnicos({
+        ...datosTecnicos,
+        documentos: datosTecnicos.documentos.filter((d) => d.id !== id)
+      });
+    }
   };
 
   // Helper de badges de estado
@@ -520,7 +711,7 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
 
             {!isReadOnly && (
               <button
-                onClick={() => setIsNewTramiteOpen(true)}
+                onClick={handleOpenNewTramite}
                 className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all hover:scale-[1.02]"
               >
                 <Plus className="w-4 h-4" />
@@ -583,13 +774,22 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
                       </td>
                       {!isReadOnly && (
                         <td className="py-3 px-3 text-right">
-                          <button
-                            onClick={() => handleDeleteTramite(t.id)}
-                            className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors rounded hover:bg-slate-800"
-                            title="Eliminar trámite"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => handleOpenEditTramite(t)}
+                              className="p-1.5 text-slate-400 hover:text-amber-400 transition-colors rounded hover:bg-slate-800"
+                              title="Editar trámite"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTramite(t.id)}
+                              className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors rounded hover:bg-slate-800"
+                              title="Eliminar trámite"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -616,8 +816,19 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
                 Ponderación por rubro constructivo y porcentaje certificado por la dirección de obra
               </p>
             </div>
-            <div className="text-xs bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-slate-300 font-mono">
-              Total ponderado: <strong>100%</strong> • Ejecutado: <strong className="text-amber-400">{avanceGlobal}%</strong>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="text-xs bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-slate-300 font-mono">
+                Total: <strong>{datosTecnicos.etapas.reduce((acc, e) => acc + e.pesoPonderado, 0)}%</strong> • Ejecutado: <strong className="text-amber-400">{avanceGlobal}%</strong>
+              </div>
+              {!isReadOnly && (
+                <button
+                  onClick={handleOpenNewEtapa}
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all hover:scale-[1.02]"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Agregar Etapa</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -663,18 +874,37 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
                   </div>
                 </div>
 
-                {/* Control interactivo de porcentaje (si no es de solo lectura) */}
+                {/* Control interactivo de porcentaje y acciones de etapa */}
                 {!isReadOnly ? (
                   <div className="flex items-center gap-2 self-end sm:self-center">
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={etapa.porcentajeReal}
-                      onChange={(e) => handleUpdatePorcentajeEtapa(etapa.id, parseInt(e.target.value) || 0)}
-                      className="w-16 bg-slate-900 border border-slate-700 text-amber-300 font-mono text-xs font-bold px-2 py-1.5 rounded-lg text-center focus:border-amber-500 outline-none"
-                    />
-                    <span className="text-xs text-slate-400 font-mono">%</span>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={etapa.porcentajeReal}
+                        onChange={(e) => handleUpdatePorcentajeEtapa(etapa.id, parseInt(e.target.value) || 0)}
+                        className="w-16 bg-slate-900 border border-slate-700 text-amber-300 font-mono text-xs font-bold px-2 py-1.5 rounded-lg text-center focus:border-amber-500 outline-none"
+                        title="Porcentaje de avance ejecutado"
+                      />
+                      <span className="text-xs text-slate-400 font-mono">%</span>
+                    </div>
+                    <div className="flex items-center gap-1 border-l border-slate-800 pl-2">
+                      <button
+                        onClick={() => handleOpenEditEtapa(etapa)}
+                        className="p-1.5 text-slate-400 hover:text-amber-400 transition-colors rounded hover:bg-slate-800"
+                        title="Editar datos de la etapa"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteEtapa(etapa.id)}
+                        className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors rounded hover:bg-slate-800"
+                        title="Eliminar etapa"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="font-mono text-xs font-bold text-amber-300 px-2 py-1 rounded bg-slate-900 border border-slate-800">
@@ -705,7 +935,7 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
 
             {!isReadOnly && (
               <button
-                onClick={() => setIsNewDocOpen(true)}
+                onClick={handleOpenNewDoc}
                 className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all hover:scale-[1.02]"
               >
                 <FolderPlus className="w-4 h-4" />
@@ -742,12 +972,22 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
                   </button>
 
                   {!isReadOnly && (
-                    <button
-                      onClick={() => handleDeleteDocumento(doc.id)}
-                      className="p-1 text-slate-500 hover:text-rose-400 transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleOpenEditDoc(doc)}
+                        className="p-1 text-slate-400 hover:text-amber-400 transition-colors rounded hover:bg-slate-800"
+                        title="Editar datos del plano o documento"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteDocumento(doc.id)}
+                        className="p-1 text-slate-500 hover:text-rose-400 transition-colors rounded hover:bg-slate-800"
+                        title="Eliminar documento"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1297,27 +1537,27 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
       )}
 
       {/* ------------------------------------------------------------------ */}
-      {/* MODAL PARA NUEVO TRÁMITE                                           */}
+      {/* MODAL: REGISTRAR / EDITAR TRÁMITE                                    */}
       {/* ------------------------------------------------------------------ */}
-      {isNewTramiteOpen && (
+      {isTramiteModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
           <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
             <div className="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/60 shrink-0">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Landmark className="w-4 h-4 text-amber-400" />
-                <span>Registrar Nuevo Trámite / Permiso Oficial</span>
+                <span>{editingTramiteId ? 'Editar Trámite Oficial' : 'Registrar Nuevo Trámite / Permiso Oficial'}</span>
               </h3>
-              <button onClick={() => setIsNewTramiteOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
+              <button onClick={() => setIsTramiteModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleAddTramite} className="p-5 space-y-4 text-xs overflow-y-auto flex-1 overscroll-contain">
+            <form onSubmit={handleSaveTramite} className="p-5 space-y-4 text-xs overflow-y-auto flex-1 overscroll-contain">
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">Organismo Público</label>
                 <select
-                  value={nuevoOrganismo}
-                  onChange={(e) => setNuevoOrganismo(e.target.value as CategoriaOrganismo)}
+                  value={tramiteForm.organismo}
+                  onChange={(e) => setTramiteForm({ ...tramiteForm, organismo: e.target.value as CategoriaOrganismo })}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500"
                 >
                   <option value="Municipalidad">Municipalidad (Dirección de Obras)</option>
@@ -1330,12 +1570,12 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Título del Trámite / Permiso</label>
+                <label className="block text-slate-300 font-semibold mb-1">Título del Trámite / Asunto</label>
                 <input
                   type="text"
                   required
-                  value={nuevoTitulo}
-                  onChange={(e) => setNuevoTitulo(e.target.value)}
+                  value={tramiteForm.titulo}
+                  onChange={(e) => setTramiteForm({ ...tramiteForm, titulo: e.target.value })}
                   placeholder="Ej: Factibilidad de Gas Natural / Conexión de Red..."
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500"
                 />
@@ -1343,38 +1583,48 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">N° de Expediente / Resolución</label>
+                  <label className="block text-slate-300 font-semibold mb-1">N° de Expediente</label>
                   <input
                     type="text"
-                    value={nuevoExpediente}
-                    onChange={(e) => setNuevoExpediente(e.target.value)}
+                    value={tramiteForm.numeroExpediente}
+                    onChange={(e) => setTramiteForm({ ...tramiteForm, numeroExpediente: e.target.value })}
                     placeholder="Ej: EXP-2027-4891"
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Estado Inicial</label>
-                  <select
-                    value={nuevoEstado}
-                    onChange={(e) => setNuevoEstado(e.target.value as EstadoTramite)}
+                  <label className="block text-slate-300 font-semibold mb-1">Fecha de Inicio</label>
+                  <input
+                    type="date"
+                    value={tramiteForm.fechaInicio}
+                    onChange={(e) => setTramiteForm({ ...tramiteForm, fechaInicio: e.target.value })}
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500"
-                  >
-                    <option value="iniciado">Iniciado</option>
-                    <option value="en_tramite">En Trámite</option>
-                    <option value="aprobado">Aprobado</option>
-                    <option value="observado">Observado</option>
-                  </select>
+                  />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Estado del Trámite</label>
+                <select
+                  value={tramiteForm.estado}
+                  onChange={(e) => setTramiteForm({ ...tramiteForm, estado: e.target.value as EstadoTramite })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500"
+                >
+                  <option value="iniciado">Iniciado</option>
+                  <option value="en_tramite">En Trámite</option>
+                  <option value="aprobado">Aprobado</option>
+                  <option value="observado">Observado</option>
+                </select>
               </div>
 
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">Observaciones / Dictamen</label>
                 <textarea
                   rows={2}
-                  value={nuevaObservacion}
-                  onChange={(e) => setNuevaObservacion(e.target.value)}
-                  placeholder="Detalles sobre requisitos cumplimentados o estado del trámite..."
+                  value={tramiteForm.observaciones}
+                  onChange={(e) => setTramiteForm({ ...tramiteForm, observaciones: e.target.value })}
+                  placeholder="Detalles sobre dictámenes, requisitos cumplimentados o próximos pasos..."
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none resize-none focus:border-amber-500"
                 />
               </div>
@@ -1382,16 +1632,17 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
                 <button
                   type="button"
-                  onClick={() => setIsNewTramiteOpen(false)}
+                  onClick={() => setIsTramiteModalOpen(false)}
                   className="px-3.5 py-2 text-slate-400 hover:text-white rounded-xl"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md transition-all"
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md transition-all flex items-center gap-1.5"
                 >
-                  Guardar Trámite
+                  <Save className="w-4 h-4" />
+                  <span>{editingTramiteId ? 'Guardar Cambios' : 'Registrar Trámite'}</span>
                 </button>
               </div>
             </form>
@@ -1400,27 +1651,131 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
       )}
 
       {/* ------------------------------------------------------------------ */}
-      {/* MODAL PARA NUEVO DOCUMENTO / PLANO                                 */}
+      {/* MODAL: REGISTRAR / EDITAR ETAPA DE OBRA                             */}
       {/* ------------------------------------------------------------------ */}
-      {isNewDocOpen && (
+      {isEtapaModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/60 shrink-0">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <HardHat className="w-4 h-4 text-amber-400" />
+                <span>{editingEtapaId ? 'Editar Etapa de Obra' : 'Registrar Nueva Etapa de Obra'}</span>
+              </h3>
+              <button onClick={() => setIsEtapaModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEtapa} className="p-5 space-y-4 text-xs overflow-y-auto flex-1 overscroll-contain">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Nombre del Rubro o Etapa</label>
+                <input
+                  type="text"
+                  required
+                  value={etapaForm.nombre}
+                  onChange={(e) => setEtapaForm({ ...etapaForm, nombre: e.target.value })}
+                  placeholder="Ej: Fundaciones y Submuración / Mampostería..."
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Peso Ponderado (%)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    required
+                    value={etapaForm.pesoPonderado}
+                    onChange={(e) => setEtapaForm({ ...etapaForm, pesoPonderado: Number(e.target.value) || 0 })}
+                    placeholder="Ej: 15"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Avance Certificado Actual (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    required
+                    value={etapaForm.porcentajeReal}
+                    onChange={(e) => setEtapaForm({ ...etapaForm, porcentajeReal: Number(e.target.value) || 0 })}
+                    placeholder="Ej: 45"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Estimación Inicio</label>
+                  <input
+                    type="text"
+                    value={etapaForm.fechaInicioEstimada}
+                    onChange={(e) => setEtapaForm({ ...etapaForm, fechaInicioEstimada: e.target.value })}
+                    placeholder="Ej: Mes 1 / Marzo 2026"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Estimación Fin</label>
+                  <input
+                    type="text"
+                    value={etapaForm.fechaFinEstimada}
+                    onChange={(e) => setEtapaForm({ ...etapaForm, fechaFinEstimada: e.target.value })}
+                    placeholder="Ej: Mes 4 / Junio 2026"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsEtapaModalOpen(false)}
+                  className="px-3.5 py-2 text-slate-400 hover:text-white rounded-xl"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{editingEtapaId ? 'Guardar Cambios' : 'Registrar Etapa'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------ */}
+      {/* MODAL: REGISTRAR / EDITAR DOCUMENTO O PLANO                         */}
+      {/* ------------------------------------------------------------------ */}
+      {isDocModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
           <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
             <div className="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/60 shrink-0">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <FolderPlus className="w-4 h-4 text-amber-400" />
-                <span>Agregar Plano o Documentación Técnica</span>
+                <span>{editingDocId ? 'Editar Documento / Plano Técnico' : 'Agregar Documento / Plano Técnico'}</span>
               </h3>
-              <button onClick={() => setIsNewDocOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
+              <button onClick={() => setIsDocModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleAddDocumento} className="p-5 space-y-4 text-xs overflow-y-auto flex-1 overscroll-contain">
+            <form onSubmit={handleSaveDoc} className="p-5 space-y-4 text-xs overflow-y-auto flex-1 overscroll-contain">
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">Categoría del Archivo</label>
                 <select
-                  value={nuevoDocCat}
-                  onChange={(e) => setNuevoDocCat(e.target.value as any)}
+                  value={docForm.categoria}
+                  onChange={(e) => setDocForm({ ...docForm, categoria: e.target.value as any })}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500"
                 >
                   <option value="Plano Arquitectura">Plano de Arquitectura</option>
@@ -1436,8 +1791,8 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
                 <input
                   type="text"
                   required
-                  value={nuevoDocNombre}
-                  onChange={(e) => setNuevoDocNombre(e.target.value)}
+                  value={docForm.nombre}
+                  onChange={(e) => setDocForm({ ...docForm, nombre: e.target.value })}
                   placeholder="Ej: Plano de Instalación contra Incendios..."
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500"
                 />
@@ -1448,8 +1803,8 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
                   <label className="block text-slate-300 font-semibold mb-1">Identificador / N° Plano</label>
                   <input
                     type="text"
-                    value={nuevoDocResolucion}
-                    onChange={(e) => setNuevoDocResolucion(e.target.value)}
+                    value={docForm.numeroPlanoResolucion}
+                    onChange={(e) => setDocForm({ ...docForm, numeroPlanoResolucion: e.target.value })}
                     placeholder="Ej: PL-INC-01"
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono outline-none focus:border-amber-500"
                   />
@@ -1459,9 +1814,9 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
                   <label className="block text-slate-300 font-semibold mb-1">Profesional Firmante</label>
                   <input
                     type="text"
-                    value={nuevoDocFirmante}
-                    onChange={(e) => setNuevoDocFirmante(e.target.value)}
-                    placeholder="Ej: Ing. Especialista..."
+                    value={docForm.profesionalFirmante}
+                    onChange={(e) => setDocForm({ ...docForm, profesionalFirmante: e.target.value })}
+                    placeholder="Ej: Arq. María Soler..."
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500"
                   />
                 </div>
@@ -1470,16 +1825,17 @@ export const ModuloTecnico: React.FC<ModuloTecnicoProps> = ({
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
                 <button
                   type="button"
-                  onClick={() => setIsNewDocOpen(false)}
+                  onClick={() => setIsDocModalOpen(false)}
                   className="px-3.5 py-2 text-slate-400 hover:text-white rounded-xl"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md transition-all"
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-md transition-all flex items-center gap-1.5"
                 >
-                  Guardar Documento
+                  <Save className="w-4 h-4" />
+                  <span>{editingDocId ? 'Guardar Cambios' : 'Guardar Documento'}</span>
                 </button>
               </div>
             </form>
