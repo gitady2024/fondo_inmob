@@ -171,6 +171,37 @@ export const App: React.FC = () => {
     [devUser, setDevUser]
   );
 
+  // Manejo de selección de portales desde el menú de la cabecera
+  const handleSelectPortal = useCallback(
+    (portal: 'admin' | 'socio' | 'tecnico') => {
+      if (portal === 'admin') {
+        if (currentUser?.role === 'admin') {
+          navigateTo('app');
+        } else {
+          setLoginInitialRole('admin');
+          setIsLoginOpen(true);
+        }
+      } else if (portal === 'socio') {
+        if (currentUser?.role === 'socio') {
+          navigateTo('app');
+        } else {
+          setLoginInitialRole('socio');
+          setIsLoginOpen(true);
+        }
+      } else if (portal === 'tecnico') {
+        if (currentUser?.role === 'tecnico') {
+          navigateTo('app');
+        } else {
+          setDevUserOverride(TECNICO_USER);
+          setDevUser(TECNICO_USER);
+          navigateTo('app');
+          setToastMessage('👷 Bienvenido al Módulo Técnico y de Obras');
+        }
+      }
+    },
+    [currentUser, navigateTo, setDevUser]
+  );
+
   // Sincronizar navegación atrás/adelante del navegador
   useEffect(() => {
     const handleLocationChange = () => {
@@ -777,6 +808,7 @@ export const App: React.FC = () => {
               setLoginInitialRole('socio');
               setIsLoginOpen(true);
             }}
+            onSelectPortal={handleSelectPortal}
             onOpenObraDetalle={(obraId) => {
               const targetId = obraId || currentFondoId;
               navigateTo('obra-detalle', { obraId: targetId });
