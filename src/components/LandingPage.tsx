@@ -201,18 +201,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* ==================================================================== */}
       <nav className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-md mb-8 px-3 sm:px-6 py-3 transition-all sticky top-2 z-30 shadow-lg shadow-black/20">
         <div className="flex justify-between items-center gap-2">
-          {/* Logo Fondin con isotipo y tipografía integrada */}
+          {/* Logo Fondin: Isologo oficial + Marca y Eslogan perfectamente legibles */}
           <div
-            className="flex items-center cursor-pointer select-none shrink-0"
+            className="flex items-center gap-2.5 sm:gap-3 cursor-pointer select-none shrink-0 group"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             title="Fondin - Inversión Fiduciaria Inmobiliaria"
           >
             <img
-              src="/nuevo-logo.png"
-              alt="Fondin - Inversión Fiduciaria Inmobiliaria"
-              className="h-8 sm:h-9 md:h-10 w-auto max-w-[140px] sm:max-w-[170px] md:max-w-[200px] object-contain transition-transform duration-200 hover:scale-[1.02]"
+              src="/isologo-fondin.png"
+              alt="Fondin"
+              className="h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 object-contain shrink-0 transition-transform duration-200 group-hover:scale-105"
               loading="eager"
             />
+            <div className="flex flex-col justify-center min-w-0">
+              <span className="text-base sm:text-lg md:text-xl font-extrabold text-white tracking-tight leading-none">
+                Fondin
+              </span>
+              <span className="text-[10px] sm:text-[11px] md:text-xs font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate max-w-[155px] sm:max-w-none">
+                Inversión Fiduciaria Inmobiliaria
+              </span>
+            </div>
           </div>
 
           {/* Enlaces Desktop (ocultos en pantallas móviles/tablets para no saturar) */}

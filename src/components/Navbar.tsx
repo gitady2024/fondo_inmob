@@ -74,15 +74,23 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-3">
           <div 
             onClick={onNavigateLanding}
-            className="cursor-pointer hover:scale-[1.02] transition-transform flex items-center shrink-0"
+            className="cursor-pointer hover:scale-[1.02] transition-transform flex items-center gap-2.5 shrink-0"
             title="Ir a la portada de Fondin"
           >
             <img
-              src="/nuevo-logo.png"
-              alt="Fondin - Inversión Fiduciaria Inmobiliaria"
-              className="h-8 sm:h-9 md:h-10 w-auto max-w-[140px] sm:max-w-[170px] md:max-w-[200px] object-contain"
+              src="/isologo-fondin.png"
+              alt="Fondin"
+              className="h-9 w-9 sm:h-10 sm:w-10 object-contain"
               loading="eager"
             />
+            <div className="flex flex-col justify-center min-w-0">
+              <span className="text-base sm:text-lg font-extrabold text-white tracking-tight leading-none">
+                Fondin
+              </span>
+              <span className="text-[10px] sm:text-[11px] font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate max-w-[155px] sm:max-w-none">
+                Inversión Fiduciaria Inmobiliaria
+              </span>
+            </div>
           </div>
           <span className="hidden md:inline-flex text-[11px] font-semibold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-0.5 rounded-full items-center gap-1">
             <Sparkles className="w-3 h-3 text-indigo-400" /> Ahorro Mutuo

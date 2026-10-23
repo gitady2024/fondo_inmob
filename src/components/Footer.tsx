@@ -18,13 +18,17 @@ export const Footer: React.FC<FooterProps> = ({
         
         {/* Top Badges & Security Seals */}
         <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-800/60">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <img
-              src="/nuevo-logo.png"
-              alt="Fondin - Inversión Fiduciaria Inmobiliaria"
-              className="h-8 w-auto object-contain"
+              src="/isologo-fondin.png"
+              alt="Fondin"
+              className="h-8 w-8 object-contain"
             />
-            <span className="text-xs text-indigo-400 font-mono hidden sm:inline ml-1">v1.4 • Círculos de Ahorro Mutuo</span>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-white tracking-tight leading-none">Fondin</span>
+              <span className="text-[10px] text-slate-400 leading-tight mt-0.5">Inversión Fiduciaria Inmobiliaria</span>
+            </div>
+            <span className="text-xs text-indigo-400 font-mono hidden sm:inline ml-2">• v1.4 • Círculos de Ahorro Mutuo</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 text-xs">
