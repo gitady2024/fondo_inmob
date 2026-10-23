@@ -320,7 +320,9 @@ export const App: React.FC = () => {
         updated.datosTecnicos,
         updated.contratoPersonalizado,
         updated.ajustes,
-        updated.estadoPlan
+        updated.estadoPlan,
+        updated.fotos,
+        updated.datosNegocio
       );
 
       return newList;
@@ -910,6 +912,13 @@ export const App: React.FC = () => {
             }}
             onFondoCreated={async () => {
               await recargarFondos();
+            }}
+            onUpdateDatosNegocio={(nuevosDatos) => {
+              updateCurrentFondo((prev) => ({
+                ...prev,
+                datosNegocio: nuevosDatos,
+                updated_at: new Date().toISOString()
+              }));
             }}
             unreadCount={unreadCount}
             initialModule={goToSimulador ? 'simulador' : 'cobranzas'}

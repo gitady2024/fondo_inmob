@@ -114,3 +114,32 @@ export interface FotoAvance {
   descripcion: string;
   fecha: string;
 }
+
+export interface PartidaNegocio {
+  id: string;
+  concepto: string;
+  categoria: 'ingreso' | 'gasto';
+  subcategoria: string;
+  montoPresupuestado: number;
+  montoRealEjecutado: number;
+  fecha?: string;
+  notas?: string;
+}
+
+export interface ValoresPartida {
+  presupuestado: number;
+  ejecutado: number;
+}
+
+export interface DatosNegocioProyecto {
+  compraLote?: ValoresPartida;
+  tasasMunicipales?: ValoresPartida;
+  equipoTecnico?: ValoresPartida;
+  gastosAdministrativos?: ValoresPartida;
+  pagosEscribania?: ValoresPartida;
+  costoConstruccionDirecto?: ValoresPartida;
+  otrosGastos?: ValoresPartida;
+  otrosIngresos?: ValoresPartida;
+  partidasPersonalizadas?: PartidaNegocio[];
+}
+

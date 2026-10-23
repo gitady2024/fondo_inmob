@@ -6,7 +6,8 @@ import type {
   AdelantoConfigState,
   AjusteCuota,
   EstadoPlanFondo,
-  FotoAvance
+  FotoAvance,
+  DatosNegocioProyecto
 } from '../types/fondo';
 
 import type { DatosTecnicosProyecto } from '../types/tecnico';
@@ -57,6 +58,7 @@ export interface FondoGuardado {
   datosTecnicos?: DatosTecnicosProyecto;
   contratoPersonalizado?: string;
   fotos?: FotoAvance[];
+  datosNegocio?: DatosNegocioProyecto;
 }
 
 
@@ -310,7 +312,8 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
                     datosTecnicos: local.datosTecnicos || sf.datosTecnicos,
                     fotos: local.fotos && local.fotos.length > 0 ? local.fotos : sf.fotos,
                     ajustes: local.ajustes && local.ajustes.length > 0 ? local.ajustes : sf.ajustes,
-                    contratoPersonalizado: local.contratoPersonalizado || sf.contratoPersonalizado
+                    contratoPersonalizado: local.contratoPersonalizado || sf.contratoPersonalizado,
+                    datosNegocio: local.datosNegocio || sf.datosNegocio
                   };
                 }
                 return sf;
@@ -406,7 +409,8 @@ export const saveFondo = async (
   contratoPersonalizado?: string,
   ajustes?: AjusteCuota[],
   estadoPlan?: EstadoPlanFondo,
-  fotos?: FotoAvance[]
+  fotos?: FotoAvance[],
+  datosNegocio?: DatosNegocioProyecto
 ): Promise<{ id: string; guardadoEn: 'supabase' | 'local' }> => {
   const client = getSupabaseClient();
   const id = existenteId || (typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Date.now()));
@@ -455,6 +459,7 @@ export const saveFondo = async (
   let existingAjustes: AjusteCuota[] | undefined = undefined;
   let existingEstadoPlan: EstadoPlanFondo | undefined = undefined;
   let existingFotos: FotoAvance[] | undefined = undefined;
+  let existingNegocio: DatosNegocioProyecto | undefined = undefined;
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
     if (raw) {
@@ -465,6 +470,7 @@ export const saveFondo = async (
       if (match?.ajustes) existingAjustes = match.ajustes;
       if (match?.estadoPlan) existingEstadoPlan = match.estadoPlan;
       if (match?.fotos) existingFotos = match.fotos;
+      if (match?.datosNegocio) existingNegocio = match.datosNegocio;
     }
   } catch {}
 
@@ -490,7 +496,8 @@ export const saveFondo = async (
       ? { ...(existingTecnicos || DATOS_TECNICOS_DEFAULT), ...datosTecnicos }
       : (existingTecnicos || DATOS_TECNICOS_DEFAULT),
     contratoPersonalizado: contratoPersonalizado !== undefined ? contratoPersonalizado : existingContrato,
-    fotos: fotos !== undefined ? fotos : (existingFotos || FOTOS_OBRA_PREDETERMINADAS)
+    fotos: fotos !== undefined ? fotos : (existingFotos || FOTOS_OBRA_PREDETERMINADAS),
+    datosNegocio: datosNegocio !== undefined ? datosNegocio : existingNegocio
   };
 
   try {

@@ -9,6 +9,8 @@ import {
   type AdminFondoHealth
 } from '../services/adminService';
 import { formatMonedaARS } from './SocioPortal';
+import { GestionNegocioProyecto } from './GestionNegocioProyecto';
+import type { DatosNegocioProyecto } from '../types/fondo';
 import {
   Shield,
   Building2,
@@ -29,7 +31,8 @@ import {
   LogOut,
   Pencil,
   Sparkles,
-  Rocket
+  Rocket,
+  TrendingUp
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -40,6 +43,7 @@ interface AdminDashboardProps {
   onOpenNewModal: () => void;
   onSaveCurrentFondo?: () => void;
   onFondoCreated?: (nuevoFondo: FondoGuardado) => void;
+  onUpdateDatosNegocio?: (datos: DatosNegocioProyecto) => void;
   onShowToast: (msg: string) => void;
   onSignOut?: () => void;
   onEditCurrentObra?: () => void;
@@ -49,7 +53,7 @@ interface AdminDashboardProps {
   childrenMensajeria?: React.ReactNode;
   unreadCount?: number;
   /** Módulo inicial al montar (para ir directo al simulador sin cambiar sesión) */
-  initialModule?: 'cobranzas' | 'simulador' | 'tecnico' | 'mensajeria';
+  initialModule?: 'cobranzas' | 'simulador' | 'tecnico' | 'mensajeria' | 'negocio';
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -59,6 +63,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onSelectFondo,
   onOpenNewModal,
   onFondoCreated,
+  onUpdateDatosNegocio,
   onShowToast,
   onSignOut,
   onEditCurrentObra,
@@ -69,7 +74,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   unreadCount = 0,
   initialModule = 'cobranzas'
 }) => {
-  const [activeModule, setActiveModule] = useState<'cobranzas' | 'simulador' | 'tecnico' | 'mensajeria'>(initialModule);
+  const [activeModule, setActiveModule] = useState<'cobranzas' | 'simulador' | 'tecnico' | 'mensajeria' | 'negocio'>(initialModule);
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'mes_actual' | 'morosos' | 'pagados'>('mes_actual');
   const [busquedaSocio, setBusquedaSocio] = useState<string>('');
   const [isLoadingCuotas, setIsLoadingCuotas] = useState<boolean>(true);
@@ -495,6 +500,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveModule('negocio')}
+          className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            activeModule === 'negocio'
+              ? 'bg-teal-600 text-white shadow-md shadow-teal-600/30'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4" />
+          <span>Gestión del Negocio (P&L)</span>
+        </button>
+
+        <button
           onClick={() => setActiveModule('tecnico')}
           className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
             activeModule === 'tecnico'
@@ -821,6 +838,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="space-y-6 animate-fade-in">
           {childrenMensajeria}
         </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* 8. MÓDULO: GESTIÓN DEL NEGOCIO TOTAL (ESTADO DE RESULTADOS & P&L)   */}
+      {/* ==================================================================== */}
+      {activeModule === 'negocio' && (
+        <GestionNegocioProyecto
+          currentFondo={currentFondo}
+          cuotasList={cuotasList}
+          healthData={healthData}
+          onUpdateDatosNegocio={onUpdateDatosNegocio || (() => {})}
+          onShowToast={onShowToast}
+        />
       )}
 
     </div>
