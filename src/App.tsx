@@ -813,6 +813,7 @@ export const App: React.FC = () => {
             }
             onSignOut={currentUser ? handleSignOutAll : undefined}
             onDeleteObra={currentUser?.role === 'admin' ? handleDeleteObra : undefined}
+            onNavigateApp={() => navigateTo('app')}
           />
         ) : (
           /* ------------------------------------------------------------------ */

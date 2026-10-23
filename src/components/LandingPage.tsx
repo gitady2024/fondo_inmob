@@ -47,6 +47,8 @@ interface LandingPageProps {
   onSignOut?: () => void;
   /** Callback para eliminar una obra en marcha (Perfil Admin) */
   onDeleteObra?: (obraId: string, nombre: string) => void;
+  /** Callback para navegar a la plataforma / backoffice (/app) */
+  onNavigateApp?: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
@@ -64,7 +66,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onVerDetallesPlan,
   onOpenObraDetalle,
   onSignOut,
-  onDeleteObra
+  onDeleteObra,
+  onNavigateApp
 }) => {
   const [modalPreinscripcionOpen, setModalPreinscripcionOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -190,9 +193,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </button>
           </div>
 
-          {/* Zona de Acción: Obras en Marcha (Botón Amarillo) + Iniciar Sesión + Simular + Menú (⋮) */}
+          {/* Zona de Acción Simplificada y Sin Sobrecarga */}
           <div className="flex items-center gap-2 sm:gap-2.5">
-            {/* BOTÓN AMARILLO DESTACADO SOLICITADO: OBRAS EN MARCHA */}
+            {/* Obras en Marcha: Estilo sutil y armónico */}
             <button
               type="button"
               id="btn-obras-en-marcha-nav"
@@ -205,79 +208,91 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   scrollToSection('obras-activas');
                 }
               }}
-              className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl shadow-md shadow-amber-400/25 transition transform hover:scale-[1.02] cursor-pointer flex items-center gap-1.5"
+              className="bg-slate-800/80 hover:bg-slate-700/80 text-amber-300 hover:text-amber-200 border border-amber-500/40 text-xs sm:text-sm font-bold px-3 sm:px-3.5 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-sm"
               title="Ver Obras en Marcha con detalles financieros y técnicos completos"
             >
-              <HardHat className="w-4 h-4 text-slate-950 shrink-0" />
+              <HardHat className="w-4 h-4 text-amber-400 shrink-0" />
               <span>Obras en Marcha</span>
             </button>
 
-            {/* BOTÓN INICIAR SESIÓN / INGRESAR A MI CUENTA */}
-            {onOpenLogin && (
-              user ? (
-                <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Acceso a Cuenta / BackOffice del Administrador */}
+            {user ? (
+              <div className="flex items-center gap-1.5">
+                {/* Botón Claro y Directo al BackOffice o Portal */}
+                <button
+                  type="button"
+                  id="landing-btn-mi-cuenta"
+                  onClick={() => {
+                    if (onNavigateApp) {
+                      onNavigateApp();
+                    } else if (onOpenLogin) {
+                      onOpenLogin();
+                    }
+                  }}
+                  className={`px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold flex items-center gap-1.5 transition transform hover:scale-[1.02] cursor-pointer shadow-md ${
+                    user.role === 'admin'
+                      ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30'
+                      : user.role === 'tecnico'
+                      ? 'bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/50 text-amber-300'
+                      : 'bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/50 text-emerald-300'
+                  }`}
+                  title={
+                    user.role === 'admin'
+                      ? 'Ir al BackOffice del Administrador'
+                      : `Conectado como ${user.nombre}. Ir a mi panel.`
+                  }
+                >
+                  {user.role === 'admin' ? (
+                    <>
+                      <Shield className="w-4 h-4 text-indigo-200 shrink-0" />
+                      <span>BackOffice Admin</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-indigo-200 shrink-0 hidden sm:inline" />
+                    </>
+                  ) : user.role === 'tecnico' ? (
+                    <>
+                      <HardHat className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>Panel Técnico</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-amber-400 shrink-0 hidden sm:inline" />
+                    </>
+                  ) : (
+                    <>
+                      <User className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Mi Cuenta</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-emerald-400 shrink-0 hidden sm:inline" />
+                    </>
+                  )}
+                </button>
+
+                {/* Salir de la cuenta: Botón de ícono compacto */}
+                {onSignOut && (
                   <button
                     type="button"
-                    id="landing-btn-mi-cuenta"
-                    onClick={onOpenLogin}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
-                      user.role === 'admin'
-                        ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/30'
-                        : user.role === 'tecnico'
-                        ? 'bg-amber-600/20 border-amber-500/50 text-amber-300 hover:bg-amber-600/30'
-                        : 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/30'
-                    }`}
-                    title={`Conectado como ${user.nombre} (${user.role}). Clic para ver perfil.`}
+                    id="landing-btn-logout"
+                    onClick={onSignOut}
+                    className="p-2 sm:p-2.5 rounded-xl bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-700/80 hover:border-rose-500/40 transition flex items-center justify-center cursor-pointer shadow-sm"
+                    title="Cerrar sesión de la cuenta actual"
+                    aria-label="Cerrar sesión"
                   >
-                    {user.role === 'admin' ? (
-                      <>
-                        <Shield className="w-3.5 h-3.5 text-indigo-400" />
-                        <span className="hidden sm:inline">Admin</span>
-                      </>
-                    ) : user.role === 'tecnico' ? (
-                      <>
-                        <HardHat className="w-3.5 h-3.5 text-amber-400" />
-                        <span className="hidden sm:inline">Técnico</span>
-                      </>
-                    ) : (
-                      <>
-                        <User className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Mi Cuenta</span>
-                      </>
-                    )}
+                    <LogOut className="w-4 h-4 text-rose-400" />
                   </button>
-
-                  {/* BOTÓN DIRECTO Y VISIBLE: SALIR DE LA CUENTA */}
-                  {onSignOut && (
-                    <button
-                      type="button"
-                      id="landing-btn-logout"
-                      onClick={onSignOut}
-                      className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
-                      title="Cerrar sesión y salir de la cuenta actual"
-                    >
-                      <LogOut className="w-3.5 h-3.5 text-rose-400" />
-                      <span className="hidden sm:inline">Salir de la cuenta</span>
-                      <span className="sm:hidden">Salir</span>
-                    </button>
-                  )}
-                </div>
-              ) : (
+                )}
+              </div>
+            ) : (
+              onOpenLogin && (
                 <button
                   type="button"
                   id="landing-btn-iniciar-sesion"
                   onClick={onOpenLogin}
-                  className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl border border-slate-700/80 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-sm hover:border-slate-600"
+                  className="px-3 sm:px-3.5 py-2 rounded-xl border border-slate-700/80 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-sm hover:border-slate-600"
                   title="Iniciar sesión en tu cuenta"
                 >
                   <User className="w-4 h-4 text-indigo-400 shrink-0" />
-                  <span className="hidden sm:inline">Ingresar a mi cuenta</span>
-                  <span className="sm:hidden">Ingresar</span>
+                  <span>Ingresar</span>
                 </button>
               )
             )}
 
-            {/* ÚNICO CALL TO ACTION PRINCIPAL: SIMULAR */}
+            {/* Único CTA Comercial Principal: Simular Plan */}
             <button
               type="button"
               id="landing-cta-simular"
@@ -285,10 +300,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 trackSimuladorInicio({ label: 'navbar' });
                 onStartSimulation();
               }}
-              className="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs sm:text-sm font-extrabold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transition transform hover:scale-[1.02] cursor-pointer flex items-center gap-1.5"
+              className="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs sm:text-sm font-extrabold px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transition transform hover:scale-[1.02] cursor-pointer flex items-center gap-1.5"
             >
               <Calculator className="w-4 h-4 text-emerald-100" />
-              <span>Simular Plan</span>
+              <span className="hidden sm:inline">Simular Plan</span>
+              <span className="sm:hidden">Simular</span>
             </button>
 
             {/* MENÚ DESPLEGABLE (⋮) PARA ACCIONES SECUNDARIAS */}
@@ -425,20 +441,47 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         id="btn-menu-cuenta"
                         onClick={() => {
                           setIsMenuOpen(false);
-                          onOpenLogin();
+                          if (user && onNavigateApp) {
+                            onNavigateApp();
+                          } else if (onOpenLogin) {
+                            onOpenLogin();
+                          }
                         }}
                         className="w-full text-left px-3.5 py-2.5 text-xs text-slate-200 hover:text-white hover:bg-indigo-600/20 flex items-center gap-2.5 transition cursor-pointer"
                       >
-                        <User className="w-4 h-4 text-indigo-400 shrink-0" />
+                        {user?.role === 'admin' ? (
+                          <Shield className="w-4 h-4 text-indigo-400 shrink-0" />
+                        ) : (
+                          <User className="w-4 h-4 text-indigo-400 shrink-0" />
+                        )}
                         <div className="flex flex-col">
                           <span className="font-semibold text-indigo-200">
-                            {user ? 'Mi Cuenta / Perfil' : 'Ingresar a mi cuenta'}
+                            {user?.role === 'admin'
+                              ? 'Ir al BackOffice Administrador'
+                              : user
+                              ? 'Mi Portal de Usuario'
+                              : 'Ingresar a mi cuenta'}
                           </span>
                           <span className="text-[10px] text-slate-400">
                             {user ? `${user.nombre} (${user.role})` : 'Acceso para socios y administradores'}
                           </span>
                         </div>
                       </button>
+
+                      {user && onSignOut && (
+                        <button
+                          type="button"
+                          id="btn-menu-logout"
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            onSignOut();
+                          }}
+                          className="w-full text-left px-3.5 py-2 text-xs text-rose-300 hover:text-white hover:bg-rose-500/20 flex items-center gap-2.5 transition cursor-pointer"
+                        >
+                          <LogOut className="w-4 h-4 text-rose-400 shrink-0" />
+                          <span className="font-semibold">Cerrar sesión</span>
+                        </button>
+                      )}
                     </>
                   )}
                 </div>
