@@ -364,9 +364,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 ) : (
                   <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-200 shrink-0" />
                 )}
-                <span>Ingresar</span>
-                {user && (
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-slate-900 shrink-0" />
+                {user ? (
+                  <span className="truncate max-w-[85px] sm:max-w-[120px] md:max-w-[150px]">
+                    {user.nombre}
+                  </span>
+                ) : (
+                  <span>Ingresar</span>
                 )}
                 <ChevronDown
                   className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
