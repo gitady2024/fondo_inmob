@@ -61,6 +61,7 @@ import { LandingPage } from './components/LandingPage';
 import { trackSimuladorInicio, trackSimulacionCompartida } from './services/analyticsService';
 import { ObrasAdminModal } from './components/ObrasAdminModal';
 import { ObraDetallePage } from './components/ObraDetallePage';
+import { ObrasEnMarchaPage } from './components/ObrasEnMarchaPage';
 import { PreinscripcionModal } from './components/PreinscripcionModal';
 
 export const App: React.FC = () => {
@@ -85,11 +86,14 @@ export const App: React.FC = () => {
     setToastMessage('👋 Sesión cerrada correctamente.');
   }, [handleSupabaseSignOut, setDevUser]);
 
-  // Detección de ruta inicial: Separación de entornos (/ vs /app vs /obra o /obra-detalle)
-  const getInitialRoute = (): 'landing' | 'app' | 'obra-detalle' => {
+  // Detección de ruta inicial: Separación de entornos (/ vs /obras vs /app vs /obra o /obra-detalle)
+  const getInitialRoute = (): 'landing' | 'app' | 'obra-detalle' | 'obras' => {
     if (typeof window === 'undefined') return 'landing';
     const path = window.location.pathname.toLowerCase();
     const hash = window.location.hash.toLowerCase();
+    if (path.includes('/obras') || hash.includes('/obras') || hash.includes('obras-en-marcha')) {
+      return 'obras';
+    }
     if (path.includes('/obra') || hash.includes('/obra') || hash.includes('obra-detalle')) {
       return 'obra-detalle';
     }
@@ -104,7 +108,7 @@ export const App: React.FC = () => {
     return 'landing';
   };
 
-  const [currentRoute, setCurrentRoute] = useState<'landing' | 'app' | 'obra-detalle'>(getInitialRoute);
+  const [currentRoute, setCurrentRoute] = useState<'landing' | 'app' | 'obra-detalle' | 'obras'>(getInitialRoute);
   const [obraDetalleId, setObraDetalleId] = useState<string | undefined>(() => {
     if (typeof window === 'undefined') return undefined;
     try {
@@ -116,10 +120,10 @@ export const App: React.FC = () => {
     }
   });
 
-  // Navegación fluida entre la landing pública (/), el detalle de obra (/obra) y el entorno de gestión (/app)
+  // Navegación fluida entre la landing pública (/), la página de obras (/obras), el detalle de obra (/obra) y el entorno de gestión (/app)
   const navigateTo = useCallback(
     (
-      route: 'landing' | 'app' | 'obra-detalle',
+      route: 'landing' | 'app' | 'obra-detalle' | 'obras',
       options?: { openLoginRole?: UserRole; guestSim?: boolean; obraId?: string }
     ) => {
       setCurrentRoute(route);
@@ -131,6 +135,8 @@ export const App: React.FC = () => {
           ? '/'
           : route === 'app'
           ? '/app'
+          : route === 'obras'
+          ? '/obras'
           : options?.obraId
           ? `/obra?id=${encodeURIComponent(options.obraId)}`
           : '/obra';
@@ -140,6 +146,8 @@ export const App: React.FC = () => {
           ? '#/'
           : route === 'app'
           ? '#/app'
+          : route === 'obras'
+          ? '#/obras'
           : `#/obra${options?.obraId ? `?id=${encodeURIComponent(options.obraId)}` : ''}`;
 
       try {
@@ -152,7 +160,7 @@ export const App: React.FC = () => {
         window.location.hash = hashTarget;
       }
 
-      if (route === 'landing') {
+      if (route === 'landing' || route === 'obras') {
         if (devUser?.isGuest || devUser?.id === 'invitado') {
           setDevUserOverride(null);
           setDevUser(null);
@@ -749,9 +757,61 @@ export const App: React.FC = () => {
         {/* ENTORNO 1: LANDING COMERCIAL AISLADA EN LA RUTA RAÍZ (/)           */}
         {/* ------------------------------------------------------------------ */}
         {/* ------------------------------------------------------------------ */}
-        {/* ENTORNO: DETALLE COMPLETO DE LA OBRA ACTIVA (/obra)                 */}
+        {/* ENTORNO: LISTADO DE OBRAS EN MARCHA EN PÁGINA APARTE (/obras)      */}
         {/* ------------------------------------------------------------------ */}
-        {currentRoute === 'obra-detalle' ? (
+        {currentRoute === 'obras' ? (
+          <>
+            <ObrasEnMarchaPage
+              proyectos={fondosList}
+              currentUser={currentUser}
+              onSelectObra={(id) => {
+                setObraDetalleId(id);
+                setCurrentFondoId(id);
+                setStoredCurrentFondoId(id);
+                navigateTo('obra-detalle', { obraId: id });
+              }}
+              onVolverInicio={() => navigateTo('landing')}
+              onSimularObra={(obraTarget) => {
+                handleIniciarNuevaSimulacion({ obraBase: obraTarget });
+              }}
+              onPreinscribirObra={(obraTarget, cuota) => {
+                setPreinscripcionTarget({
+                  nombre: obraTarget.nombre,
+                  id: obraTarget.id,
+                  cuota: cuota,
+                  anticipo: obraTarget.params.costoDepto * 0.2
+                });
+                setModalPreinscripcionOpen(true);
+              }}
+              onOpenLogin={(role) => {
+                setLoginInitialRole(role || 'socio');
+                setIsLoginOpen(true);
+              }}
+              onSelectPortal={handleSelectPortal}
+              onSignOut={currentUser ? handleSignOutAll : undefined}
+              isAdmin={currentUser?.role === 'admin'}
+              onEditObra={
+                currentUser?.role === 'admin'
+                  ? (id) => {
+                      setEditObraId(id);
+                      setIsObrasAdminOpen(true);
+                    }
+                  : undefined
+              }
+              onDeleteObra={currentUser?.role === 'admin' ? handleDeleteObra : undefined}
+            />
+
+            {/* Modal de Preinscripción Oficial para la Obra */}
+            <PreinscripcionModal
+              isOpen={modalPreinscripcionOpen}
+              onClose={() => setModalPreinscripcionOpen(false)}
+              proyectoNombre={preinscripcionTarget.nombre}
+              proyectoId={preinscripcionTarget.id}
+              cuotaEstimada={preinscripcionTarget.cuota}
+              anticipoEstimado={preinscripcionTarget.anticipo}
+            />
+          </>
+        ) : currentRoute === 'obra-detalle' ? (
           <>
             <ObraDetallePage
               obra={fondosList.find((f) => f.id === (obraDetalleId || currentFondoId)) || currentFondo}
@@ -763,6 +823,7 @@ export const App: React.FC = () => {
                 navigateTo('obra-detalle', { obraId: id });
               }}
               onVolverInicio={() => navigateTo('landing')}
+              onVolverObras={() => navigateTo('obras')}
               onSimularObra={(obraTarget) => {
                 handleIniciarNuevaSimulacion({ obraBase: obraTarget });
               }}
@@ -807,6 +868,7 @@ export const App: React.FC = () => {
               setIsLoginOpen(true);
             }}
             onSelectPortal={handleSelectPortal}
+            onNavigateObras={() => navigateTo('obras')}
             onOpenObraDetalle={(obraId) => {
               const targetId = obraId || currentFondoId;
               navigateTo('obra-detalle', { obraId: targetId });

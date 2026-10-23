@@ -32,6 +32,7 @@ interface ObraDetallePageProps {
   proyectosActivos?: FondoGuardado[];
   onSelectObra?: (obraId: string) => void;
   onVolverInicio: () => void;
+  onVolverObras?: () => void;
   onSimularObra: (obra: FondoGuardado) => void;
   onPreinscribirObra: (obra: FondoGuardado, cuotaEstimada: number) => void;
   onEditarObra?: (obraId: string) => void;
@@ -44,6 +45,7 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
   proyectosActivos = [],
   onSelectObra,
   onVolverInicio,
+  onVolverObras,
   onSimularObra,
   onPreinscribirObra,
   onEditarObra,
@@ -229,16 +231,40 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              id="btn-volver-inicio"
-              onClick={onVolverInicio}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
-              title="Volver a la página principal"
-            >
-              <ArrowLeft className="w-4 h-4 text-slate-400" />
-              <span>Volver a Inicio</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {onVolverObras ? (
+                <button
+                  type="button"
+                  id="btn-volver-obras"
+                  onClick={onVolverObras}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                  title="Volver a las Obras en Marcha"
+                >
+                  <ArrowLeft className="w-4 h-4 text-amber-400" />
+                  <span>Volver a Obras en Marcha</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  id="btn-volver-inicio"
+                  onClick={onVolverInicio}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                  title="Volver a la página principal"
+                >
+                  <ArrowLeft className="w-4 h-4 text-slate-400" />
+                  <span>Volver a Inicio</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={onVolverInicio}
+                className="text-xs text-slate-400 hover:text-white px-2.5 py-2 rounded-xl hover:bg-slate-800/60 transition hidden sm:inline"
+                title="Ir a la portada inicial"
+              >
+                Inicio
+              </button>
+            </div>
 
             {/* Selector de otra obra activa si hay varias */}
             {proyectosActivos.length > 1 && onSelectObra && (

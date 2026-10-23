@@ -16,6 +16,7 @@ import {
   Shield,
   LogOut,
   ChevronDown,
+  ChevronRight,
   Layers
 } from 'lucide-react';
 import type { FondoGuardado } from '../services/fondoService';
@@ -51,6 +52,8 @@ interface LandingPageProps {
   onSignOut?: () => void;
   /** Callback para eliminar una obra en marcha (Perfil Admin) */
   onDeleteObra?: (obraId: string, nombre: string) => void;
+  /** Callback para navegar a la página completa de Obras en Marcha (/obras) */
+  onNavigateObras?: () => void;
   /** Callback para navegar a la plataforma / backoffice (/app) */
   onNavigateApp?: () => void;
 }
@@ -72,6 +75,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onOpenObraDetalle,
   onSignOut,
   onDeleteObra,
+  onNavigateObras,
   onNavigateApp
 }) => {
   const [modalPreinscripcionOpen, setModalPreinscripcionOpen] = useState(false);
@@ -173,7 +177,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   };
 
   const handleInvertiAhora = () => {
-    scrollToSection('obras-activas');
+    if (onNavigateObras) {
+      onNavigateObras();
+    } else {
+      scrollToSection('obras-activas');
+    }
   };
 
   return (
@@ -290,7 +298,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     id="btn-opt-obras-en-marcha"
                     onClick={() => {
                       setIsPlanesOpen(false);
-                      if (onOpenObraDetalle) {
+                      if (onNavigateObras) {
+                        onNavigateObras();
+                      } else if (onOpenObraDetalle) {
                         onOpenObraDetalle(proyectoActivoId);
                       } else if (onVerDetallesPlan) {
                         onVerDetallesPlan(proyectoActivoId || '');
@@ -796,9 +806,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               Obras en Marcha Activas
             </h2>
           </div>
-          <span className="text-xs text-slate-400 hidden sm:inline">
-            Clic en el renglón para abrir la totalidad de datos financieros y técnicos
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-400 hidden sm:inline">
+              Clic en el renglón para abrir la totalidad de datos financieros y técnicos
+            </span>
+            {onNavigateObras && (
+              <button
+                type="button"
+                id="btn-ver-todas-obras-landing"
+                onClick={onNavigateObras}
+                className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition cursor-pointer bg-slate-900 border border-slate-800 hover:border-amber-500/40 px-2.5 py-1 rounded-lg"
+              >
+                <span>Ver página de Obras</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         <ObrasEnMarcha
