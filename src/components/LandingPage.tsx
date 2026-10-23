@@ -201,20 +201,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* ==================================================================== */}
       <nav className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-md mb-8 px-3 sm:px-6 py-3 transition-all sticky top-2 z-30 shadow-lg shadow-black/20">
         <div className="flex justify-between items-center gap-2">
-          {/* Logo con optimización para móviles (no desborda en 360px) */}
+          {/* Logo Fondin con isotipo y tipografía integrada */}
           <div
-            className="flex items-center gap-2 sm:gap-3 cursor-pointer select-none min-w-0 shrink"
+            className="flex items-center cursor-pointer select-none shrink-0"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            title="Fondin - Inversión Fiduciaria Inmobiliaria"
           >
-            <div className="bg-indigo-600 text-white p-2 sm:p-2.5 rounded-xl shadow-md shadow-indigo-600/30 shrink-0">
-              <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-sm sm:text-lg md:text-xl font-extrabold text-white tracking-tight truncate block">
-                Fondo Inmobiliario <span className="text-indigo-400">1</span>
-              </span>
-              <span className="hidden sm:block text-[10px] text-slate-400 font-medium">Inversión Fiduciaria al Costo</span>
-            </div>
+            <img
+              src="/nuevo-logo.png"
+              alt="Fondin - Inversión Fiduciaria Inmobiliaria"
+              className="h-8 sm:h-9 md:h-10 w-auto max-w-[140px] sm:max-w-[170px] md:max-w-[200px] object-contain transition-transform duration-200 hover:scale-[1.02]"
+              loading="eager"
+            />
           </div>
 
           {/* Enlaces Desktop (ocultos en pantallas móviles/tablets para no saturar) */}
@@ -224,7 +222,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               onClick={() => scrollToSection('comparativa')}
               className="text-slate-300 hover:text-white transition cursor-pointer"
             >
-              Fondo vs UVA
+              Fondin vs UVA
             </button>
             <button
               type="button"
@@ -275,7 +273,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 >
                   <div className="px-3.5 py-1.5 border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
                     <span>Planes y Proyectos</span>
-                    <span className="text-amber-400 font-mono text-[9px]">Fondo 1</span>
+                    <span className="text-amber-400 font-mono text-[9px]">Fondin</span>
                   </div>
 
                   {/* Opción 1: Obras en Marcha */}
@@ -838,7 +836,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <tr className="border-b border-slate-800 text-slate-400 text-[11px] uppercase tracking-wider">
                   <th className="py-3 px-4">Concepto</th>
                   <th className="py-3 px-4 text-emerald-400 font-bold bg-emerald-950/20 rounded-t-xl">
-                    Fondo Inmobiliario (Al Costo)
+                    Fondin (Inversión Fiduciaria Inmobiliaria)
                   </th>
                   <th className="py-3 px-4 text-rose-400 font-bold">Crédito Hipotecario UVA</th>
                 </tr>

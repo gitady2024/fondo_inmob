@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { UserProfile } from '../types/auth';
 import {
-  Building2,
   Sparkles,
   RefreshCw,
   Printer,
@@ -71,31 +70,23 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 py-3.5 px-4 sm:px-6 rounded-2xl mb-6 shadow-lg shadow-black/20 no-print">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         
-        {/* Identidad de Marca */}
+        {/* Identidad de Marca Fondin */}
         <div className="flex items-center gap-3">
           <div 
             onClick={onNavigateLanding}
-            className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white cursor-pointer hover:scale-105 transition-transform"
-            title="Ir a la portada"
+            className="cursor-pointer hover:scale-[1.02] transition-transform flex items-center shrink-0"
+            title="Ir a la portada de Fondin"
           >
-            <Building2 className="w-6 h-6" />
+            <img
+              src="/nuevo-logo.png"
+              alt="Fondin - Inversión Fiduciaria Inmobiliaria"
+              className="h-8 sm:h-9 md:h-10 w-auto max-w-[140px] sm:max-w-[170px] md:max-w-[200px] object-contain"
+              loading="eager"
+            />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 
-                onClick={onNavigateLanding}
-                className="text-xl sm:text-2xl font-extrabold text-white tracking-tight cursor-pointer hover:text-indigo-200 transition-colors"
-              >
-                FONDO INMOBIL
-              </h1>
-              <span className="text-[11px] font-semibold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-indigo-400" /> Ahorro Mutuo
-              </span>
-            </div>
-            <p className="text-slate-400 text-xs mt-0.5 hidden sm:block">
-              Fideicomiso al Costo Real • Adjudicación por Cuota y Licitación
-            </p>
-          </div>
+          <span className="hidden md:inline-flex text-[11px] font-semibold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-0.5 rounded-full items-center gap-1">
+            <Sparkles className="w-3 h-3 text-indigo-400" /> Ahorro Mutuo
+          </span>
         </div>
 
         {/* Zona de Acciones: Único CTA Principal + Menú Desplegable (⋮) */}

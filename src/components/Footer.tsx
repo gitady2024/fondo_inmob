@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Building2, Scale, FileText, ExternalLink, Lock } from 'lucide-react';
+import { ShieldCheck, Scale, FileText, ExternalLink, Lock } from 'lucide-react';
 
 interface FooterProps {
   onOpenContrato?: () => void;
@@ -18,14 +18,13 @@ export const Footer: React.FC<FooterProps> = ({
         
         {/* Top Badges & Security Seals */}
         <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-800/60">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-              <Building2 className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-sm font-bold text-white tracking-wide">Fondo Inmobiliario</span>
-              <span className="text-xs text-indigo-400 block sm:inline sm:ml-2 font-mono">v1.4 • Círculos de Ahorro Mutuo</span>
-            </div>
+          <div className="flex items-center gap-3">
+            <img
+              src="/nuevo-logo.png"
+              alt="Fondin - Inversión Fiduciaria Inmobiliaria"
+              className="h-8 w-auto object-contain"
+            />
+            <span className="text-xs text-indigo-400 font-mono hidden sm:inline ml-1">v1.4 • Círculos de Ahorro Mutuo</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 text-xs">
