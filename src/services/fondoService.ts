@@ -223,6 +223,36 @@ export const setStoredCurrentFondoId = (id: string) => {
   }
 };
 
+/**
+ * Carga sincrónica e instantánea desde LocalStorage (0 ms de espera)
+ * Permite inicializar el estado de React en el primer fotograma sin pantallas grises ni demoras
+ */
+export const getStoredFondosSync = (): FondoGuardado[] => {
+  if (typeof window === 'undefined') {
+    return [
+      {
+        id: 'default',
+        updated_at: new Date().toISOString(),
+        ...PLANTILLAS_PREDEFINIDAS[0]
+      }
+    ];
+  }
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
+    if (raw) {
+      const parsed: FondoGuardado[] = JSON.parse(raw);
+      if (parsed && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return [
+    {
+      id: 'default',
+      updated_at: new Date().toISOString(),
+      ...PLANTILLAS_PREDEFINIDAS[0]
+    }
+  ];
+};
+
 export const getAllFondos = async (): Promise<FondoGuardado[]> => {
   const client = getSupabaseClient();
   let supabaseFondos: FondoGuardado[] = [];
@@ -236,18 +266,27 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
 
       if (error) throw error;
       if (fondos && fondos.length > 0) {
-        // Cargar socios para cada fondo
-        for (const f of fondos) {
-          const { data: socios } = await client
-            .from('socios')
-            .select('*')
-            .eq('fondo_id', f.id)
-            .order('numero_socio', { ascending: true });
+        // Optimización masiva: Consultar todos los socios en una sola llamada O(1) en vez de N consultas secuenciales
+        const fondoIds = fondos.map((f) => f.id);
+        const { data: allSocios } = await client
+          .from('socios')
+          .select('*')
+          .in('fondo_id', fondoIds)
+          .order('numero_socio', { ascending: true });
 
+        const sociosByFondo = new Map<string, any[]>();
+        allSocios?.forEach((s) => {
+          const list = sociosByFondo.get(s.fondo_id) || [];
+          list.push(s);
+          sociosByFondo.set(s.fondo_id, list);
+        });
+
+        for (const f of fondos) {
+          const socios = sociosByFondo.get(f.id) || [];
           const anticipos: number[] = [];
           const adjudicacionFijada: Record<number, number> = {};
 
-          socios?.forEach((s) => {
+          socios.forEach((s) => {
             anticipos[s.numero_socio - 1] = Number(s.anticipo_mes0);
             if (s.cuota_posesion_fijada) {
               adjudicacionFijada[s.numero_socio] = s.cuota_posesion_fijada;
@@ -391,6 +430,15 @@ export const listFondos = async (): Promise<{ id: string; nombre: string; update
 };
 
 export const loadFondoById = async (id: string): Promise<FondoGuardado | null> => {
+  // Primero buscar en almacenamiento local (0 ms de latencia)
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
+    if (raw) {
+      const list: FondoGuardado[] = JSON.parse(raw);
+      const match = list.find((f) => f.id === id);
+      if (match) return match;
+    }
+  } catch {}
   const all = await getAllFondos();
   return all.find((f) => f.id === id) || null;
 };
@@ -535,9 +583,13 @@ export const crearSimulacionDesdeCero = async (
   const valorCuotaBase = cantidadCuotas > 0 && costoDepto > 0 ? Math.round(costoDepto / cantidadCuotas) : 0;
   const nombre = nombreCustom || (costoDepto > 0 && cantidadCuotas > 0 ? `Simulación de Plan (${cantidadDeptos} Deptos • ${cantidadCuotas} Meses)` : 'Nueva Simulación de Plan');
 
-  const res = await saveFondo(
+  const nuevaSimulacion: FondoGuardado = {
+    id,
     nombre,
-    {
+    descripcion: 'Nueva simulación interactiva iniciada desde cero.',
+    updated_at: new Date().toISOString(),
+    estadoPlan: 'simulacion',
+    params: {
       costoDepto,
       cantidadDeptos,
       cantidadCuotas,
@@ -545,38 +597,62 @@ export const crearSimulacionDesdeCero = async (
       fechaInicio: baseParams?.fechaInicio || fechaActual,
       modalidadAnticipo: 'reducir_cuota'
     },
-    {
+    gastos: {
       formaPagoGastos: 'final',
       comisionGestion: 0,
       comisionEscribania: 0,
       otrosGastos: 0
     },
-    new Array(cantidadDeptos).fill(0), // Anticipos estrictamente en 0
-    {}, // Sin adjudicaciones predeterminadas
-    {
+    anticipos: new Array(cantidadDeptos).fill(0), // Anticipos estrictamente en 0
+    adjudicacionFijada: {},
+    cesion: {
       activo: false,
       socioCedente: 1,
       cuotaSalida: 12,
       primaCesion: 0,
       mecanismoSalida: 'tercero'
     },
-    {
+    adelanto: {
       activo: false,
       socioAdelanta: 1,
-      monto: 0, // Adelanto inactivo y en 0
+      monto: 0,
       cuota: 12,
       estrategia: 'reducir_cuota'
     },
+    ajustes: [],
+    datosTecnicos: DATOS_TECNICOS_DEFAULT,
+    fotos: FOTOS_OBRA_PREDETERMINADAS
+  };
+
+  // Guardado sincrónico en LocalStorage (disponible inmediatamente en 0 ms)
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
+    let list: FondoGuardado[] = raw ? JSON.parse(raw) : [];
+    list = [nuevaSimulacion, ...list.filter((f) => f.id !== id)];
+    localStorage.setItem(LOCAL_STORAGE_FONDOS_KEY, JSON.stringify(list));
+    setStoredCurrentFondoId(id);
+  } catch (e) {
+    console.warn('Error al guardar simulación en LocalStorage:', e);
+  }
+
+  // Sincronización en segundo plano con Supabase si está disponible (no bloquea la UI ni la navegación)
+  saveFondo(
+    nombre,
+    nuevaSimulacion.params,
+    nuevaSimulacion.gastos,
+    nuevaSimulacion.anticipos,
+    nuevaSimulacion.adjudicacionFijada,
+    nuevaSimulacion.cesion,
+    nuevaSimulacion.adelanto,
     id,
-    'Nueva simulación interactiva iniciada desde cero.',
-    DATOS_TECNICOS_DEFAULT,
+    nuevaSimulacion.descripcion,
+    nuevaSimulacion.datosTecnicos,
     undefined,
     [],
     'simulacion'
-  );
+  ).catch((err) => console.warn('Sync en segundo plano de simulación:', err));
 
-  const created = await loadFondoById(res.id);
-  return created!;
+  return nuevaSimulacion;
 };
 
 export const createFondoFromTemplate = async (

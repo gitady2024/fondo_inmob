@@ -20,6 +20,7 @@ import {
   deleteFondo,
   getStoredCurrentFondoId,
   setStoredCurrentFondoId,
+  getStoredFondosSync,
   PLANTILLAS_PREDEFINIDAS
 } from './services/fondoService';
 import type { FondoGuardado } from './services/fondoService';
@@ -232,8 +233,13 @@ export const App: React.FC = () => {
   }, []);
   const [isContratoOpen, setIsContratoOpen] = useState<boolean>(false);
   const [isMensajesOpen, setIsMensajesOpen] = useState<boolean>(false);
-  const [fondosList, setFondosList] = useState<FondoGuardado[]>([]);
-  const [currentFondoId, setCurrentFondoId] = useState<string>('');
+  const [fondosList, setFondosList] = useState<FondoGuardado[]>(getStoredFondosSync);
+  const [currentFondoId, setCurrentFondoId] = useState<string>(() => {
+    const list = getStoredFondosSync();
+    const storedId = getStoredCurrentFondoId();
+    const initial = list.find((f) => f.id === storedId) || list[0];
+    return initial ? initial.id : '';
+  });
   const [socioSeleccionado, setSocioSeleccionado] = useState<number>(1);
   const [isPersistenciaOpen, setIsPersistenciaOpen] = useState<boolean>(false);
   const [isNewModalOpen, setIsNewModalOpen] = useState<boolean>(false);
@@ -251,10 +257,12 @@ export const App: React.FC = () => {
   /** Cuando es true, al renderizar el portal del usuario se abre directo en la vista de simulación */
   const [goToSimulador, setGoToSimulador] = useState<boolean>(false);
 
-  // Inicializar fondos al montar
+  // Sincronizar fondos con Supabase en segundo plano al montar sin bloquear el primer render
   useEffect(() => {
+    let isMounted = true;
     const initFondos = async () => {
       const list = await getAllFondos();
+      if (!isMounted || !list || list.length === 0) return;
       setFondosList(list);
       const storedId = getStoredCurrentFondoId();
       const initial = list.find((f) => f.id === storedId) || list[0];
@@ -264,6 +272,9 @@ export const App: React.FC = () => {
       }
     };
     initFondos();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Recarga la lista de fondos (usada por ObrasAdminModal tras crear/editar/borrar)
@@ -314,12 +325,12 @@ export const App: React.FC = () => {
     refreshUnreadCount();
   }, [refreshUnreadCount]);
 
-  // Feedback visual de recálculo (microinteracción con debounce)
+  // Feedback visual de recálculo ultrarápido (microinteracción sin congelamiento)
   useEffect(() => {
     setIsCalculating(true);
     const timer = setTimeout(() => {
       setIsCalculating(false);
-    }, 350);
+    }, 100);
     return () => clearTimeout(timer);
   }, [
     currentFondo.params,
@@ -486,8 +497,8 @@ export const App: React.FC = () => {
 
   /**
    * INICIAR SIMULACIÓN DESDE CERO (Unificada para todo el sistema)
-   * Garantiza que cualquier ingreso a la simulación comience con un nuevo plan
-   * limpio, con todos los anticipos en 0, adelantos inactivos y sin arrastrar datos anteriores.
+   * Garantiza apertura instantánea (0 ms) mediante navegación optimista
+   * y persistencia local inmediata sin bloqueos de red.
    */
   const handleIniciarNuevaSimulacion = async (opciones?: { obraBase?: FondoGuardado }) => {
     trackSimuladorInicio({ label: opciones?.obraBase ? 'obra-base' : 'nueva-desde-cero' });
@@ -503,24 +514,24 @@ export const App: React.FC = () => {
       ? `Simulación en ${opciones.obraBase.nombre}`
       : 'Nueva Simulación de Plan';
 
+    // 1. Navegación INMEDIATA y asignación de perfil (cero latencia de respuesta al clic)
+    if (!currentUser) {
+      setDevUserOverride(GUEST_SOCIO_USER);
+      setDevUser(GUEST_SOCIO_USER);
+    }
+    setGoToSimulador(true);
+    navigateTo('app');
+
+    // 2. Creación instantánea en memoria / LocalStorage
     const nuevaSim = await crearSimulacionDesdeCero(nombreSim, baseParams);
 
-    // Incorporar al listado y activar
+    // 3. Incorporar al listado y activar
     setFondosList((prev) => [nuevaSim, ...prev.filter((f) => f.id !== nuevaSim.id)]);
     setCurrentFondoId(nuevaSim.id);
     setStoredCurrentFondoId(nuevaSim.id);
     setSocioSeleccionado(1);
 
-    // Si el usuario no tiene sesión activa, ingresa como invitado libre al simulador
-    if (!currentUser) {
-      setDevUserOverride(GUEST_SOCIO_USER);
-      setDevUser(GUEST_SOCIO_USER);
-    }
-
-    setGoToSimulador(true);
-    navigateTo('app');
-    setTimeout(() => setGoToSimulador(false), 500);
-
+    setTimeout(() => setGoToSimulador(false), 250);
     setToastMessage('✨ Nueva simulación iniciada desde cero. Todos los datos están listos para configurar.');
   };
 
