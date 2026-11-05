@@ -100,16 +100,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Zona de Acciones: Único CTA Principal + Menú Desplegable (⋮) */}
         <div className="flex items-center gap-2.5 self-end md:self-auto">
           
-          {/* Volver a la portada comercial si estamos en el entorno app */}
+          {/* Volver a Inicio si estamos en el entorno app */}
           {onNavigateLanding && (
             <button
               type="button"
               onClick={onNavigateLanding}
-              className="text-xs text-slate-400 hover:text-white px-2.5 py-2 rounded-xl hover:bg-slate-800 transition flex items-center gap-1.5 cursor-pointer"
-              title="Volver a la portada comercial pública"
+              className="text-xs text-slate-400 hover:text-white px-2.5 py-2 rounded-xl hover:bg-slate-800 transition flex items-center gap-1.5 cursor-pointer font-medium"
+              title="Volver a Inicio"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Web Comercial</span>
+              <span className="hidden sm:inline">Volver a Inicio</span>
+              <span className="sm:hidden">Inicio</span>
             </button>
           )}
 

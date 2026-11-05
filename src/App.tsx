@@ -960,7 +960,7 @@ export const App: React.FC = () => {
                   onClick={() => navigateTo('landing')}
                   className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg cursor-pointer"
                 >
-                  ← Volver a la Portada Comercial
+                  ← Volver a Inicio
                 </button>
                 <PortalAccesoPerfiles
                   currentFondoNombre={currentFondo.nombre}
