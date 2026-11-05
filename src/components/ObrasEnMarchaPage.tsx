@@ -37,6 +37,82 @@ interface ObrasEnMarchaPageProps {
   onDeleteObra?: (obraId: string, nombre: string) => void;
 }
 
+/**
+ * Cabecera fotográfica resiliente para tarjetas de obra.
+ * Si la foto falla o no existe, muestra un placeholder arquitectónico elegante y moderno
+ * sin romper nunca la maquetación ni mostrar íconos rotos del navegador.
+ */
+const ObraCardHeader: React.FC<{
+  fotoUrl?: string;
+  nombre: string;
+  porcentajeAvanceObra: number;
+  direccionObra: string;
+  idx: number;
+}> = ({ fotoUrl, porcentajeAvanceObra, direccionObra }) => {
+  const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  const isValidUrl = Boolean(fotoUrl && fotoUrl.trim().length > 7 && !imgError);
+
+  return (
+    <div className="relative h-48 sm:h-56 md:h-60 w-full overflow-hidden bg-slate-950">
+      {isValidUrl && (
+        <img
+          src={fotoUrl}
+          alt=""
+          onError={() => setImgError(true)}
+          onLoad={() => setImgLoaded(true)}
+          className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${
+            imgLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+      )}
+
+      {/* Fallback arquitectónico moderno cuando la imagen no carga o no existe */}
+      {(!isValidUrl || !imgLoaded) && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center select-none bg-gradient-to-br from-slate-900 via-slate-900/95 to-indigo-950/40">
+          <div className="relative mb-2.5">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-inner">
+              <Building2 className="w-7 h-7" />
+            </div>
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-ping" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full" />
+          </div>
+          <span className="text-xs font-black text-slate-200 tracking-wider uppercase">
+            Proyecto Fiduciario
+          </span>
+          <span className="text-[11px] text-amber-400/90 font-mono mt-0.5">
+            Estructura & Avance Físico Certificado
+          </span>
+        </div>
+      )}
+
+      {/* Gradiente de contraste para legibilidad perfecta */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent pointer-events-none" />
+
+      {/* Badges superiores sobre la imagen (Responsive y con z-10) */}
+      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 flex items-center justify-between gap-2 z-10">
+        <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-amber-400 text-slate-950 font-black text-[11px] sm:text-xs flex items-center gap-1.5 shadow-lg shadow-black/50 shrink-0">
+          <HardHat className="w-3.5 h-3.5 text-slate-950 shrink-0" />
+          <span>Obra en Marcha</span>
+        </span>
+
+        <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-slate-950/90 backdrop-blur-md text-emerald-400 border border-emerald-500/40 font-mono text-[11px] sm:text-xs font-bold shadow-lg shrink-0">
+          {porcentajeAvanceObra}% Avance Certificado
+        </span>
+      </div>
+
+      {/* Dirección y Ubicación al pie de la foto */}
+      <div className="absolute bottom-2.5 sm:bottom-3 left-3 sm:left-4 right-3 sm:right-4 flex items-center gap-1.5 text-xs text-slate-300 z-10">
+        <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+        <span className="truncate text-[11px] sm:text-xs font-medium text-slate-200">
+          {direccionObra}
+        </span>
+      </div>
+    </div>
+  );
+};
+
 export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
   proyectos,
   currentUser,
@@ -350,17 +426,18 @@ export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
       {/* ==================================================================== */}
       {/* LISTADO DE LAS OBRAS EN MARCHA PARA ELEGIR EN CUÁL ENTRAR             */}
       {/* ==================================================================== */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
         
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
-            <h2 className="text-base sm:text-lg font-extrabold text-white tracking-wide uppercase">
+        {/* Cabecera de la sección: Título e indicación clara (Responsive) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 pb-1 border-b border-slate-800/60">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+            <h2 className="text-sm sm:text-base md:text-lg font-black text-white tracking-wide uppercase">
               Seleccioná la Obra a Consultar
             </h2>
           </div>
-          <span className="text-xs text-slate-400 hidden sm:inline">
-            Hacé clic en cualquier obra para abrir la totalidad de datos financieros y técnicos
+          <span className="text-xs text-slate-400 font-medium">
+            Hacé clic en cualquier obra para auditar datos financieros y técnicos
           </span>
         </div>
 
@@ -391,9 +468,9 @@ export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
               if (totalPonderado > 0) porcentajeAvanceObra = Math.round(totalPonderado);
             }
 
-            // Foto de la obra
-            const fotoObra = (proyecto.fotos && proyecto.fotos.length > 0)
-              ? proyecto.fotos[0].url
+            // Foto de la obra con validación estricta
+            const fotoObraCandidata = (proyecto.fotos && proyecto.fotos.length > 0 && proyecto.fotos[0]?.url)
+              ? proyecto.fotos[0].url.trim()
               : (FOTOS_OBRA_PREDETERMINADAS[idx % FOTOS_OBRA_PREDETERMINADAS.length]?.url || FOTOS_OBRA_PREDETERMINADAS[0].url);
 
             const direccionObra = proyecto.datosTecnicos?.direccionObra || 'Av. Libertador 1450, Zona Céntrica';
@@ -404,41 +481,29 @@ export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
                 id={`tarjeta-obra-en-marcha-${proyecto.id}`}
                 className="bg-slate-900/90 border border-slate-800 hover:border-amber-500/60 rounded-3xl overflow-hidden shadow-2xl transition-all duration-300 hover:shadow-amber-500/10 flex flex-col group"
               >
-                {/* Cabecera con Imagen / Render y Badges */}
-                <div className="relative h-56 sm:h-64 w-full overflow-hidden bg-slate-950">
-                  <img
-                    src={fotoObra}
-                    alt={proyecto.nombre}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
-
-                  {/* Badges superiores sobre la imagen */}
-                  <div className="absolute top-4 left-4 right-4 flex items-center justify-between gap-2">
-                    <span className="px-3 py-1.5 rounded-xl bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg shadow-black/50">
-                      <HardHat className="w-3.5 h-3.5 text-slate-950" />
-                      <span>Obra en Marcha</span>
-                    </span>
-
-                    <span className="px-3 py-1.5 rounded-xl bg-slate-950/85 backdrop-blur-md text-emerald-400 border border-emerald-500/40 font-mono text-xs font-bold shadow-lg">
-                      {porcentajeAvanceObra}% Avance Certificado
-                    </span>
-                  </div>
-
-                  {/* Dirección y Ubicación al pie de la foto */}
-                  <div className="absolute bottom-3 left-4 right-4 flex items-center gap-1.5 text-xs text-slate-300">
-                    <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span className="truncate">{direccionObra}</span>
-                  </div>
-                </div>
+                {/* Cabecera con Imagen / Render y Badges (UX Fail-Safe y Totalmente Responsive) */}
+                <ObraCardHeader
+                  fotoUrl={fotoObraCandidata}
+                  nombre={proyecto.nombre}
+                  porcentajeAvanceObra={porcentajeAvanceObra}
+                  direccionObra={direccionObra}
+                  idx={idx}
+                />
 
                 {/* Contenido de la Tarjeta */}
-                <div className="p-5 sm:p-7 flex-1 flex flex-col justify-between space-y-6">
+                <div className="p-4 sm:p-6 md:p-7 flex-1 flex flex-col justify-between space-y-5 sm:space-y-6">
                   
-                  <div className="space-y-3">
-                    <h3 className="text-xl sm:text-2xl font-black text-white group-hover:text-amber-300 transition-colors">
-                      {proyecto.nombre}
-                    </h3>
+                  <div className="space-y-3 sm:space-y-4">
+                    <div>
+                      <h3 className="text-lg sm:text-xl md:text-2xl font-black text-white group-hover:text-amber-300 transition-colors line-clamp-2">
+                        {proyecto.nombre}
+                      </h3>
+                      {proyecto.descripcion && (
+                        <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                          {proyecto.descripcion}
+                        </p>
+                      )}
+                    </div>
                     
                     {/* Barra de Progreso del Avance */}
                     <div className="space-y-1.5">
@@ -446,7 +511,7 @@ export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
                         <span className="text-slate-400">Certificación Física de Obra</span>
                         <strong className="text-amber-400 font-bold">{porcentajeAvanceObra}%</strong>
                       </div>
-                      <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                      <div className="w-full bg-slate-800 h-2 sm:h-2.5 rounded-full overflow-hidden">
                         <div
                           className="bg-gradient-to-r from-amber-400 to-emerald-400 h-full rounded-full transition-all duration-500"
                           style={{ width: `${porcentajeAvanceObra}%` }}
@@ -454,43 +519,43 @@ export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
                       </div>
                     </div>
 
-                    {/* Matriz de Parámetros Clave */}
-                    <div className="grid grid-cols-2 gap-3 pt-2">
-                      <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3">
-                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">
+                    {/* Matriz de Parámetros Clave (2x2 Grid Adaptativa) */}
+                    <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-1">
+                      <div className="bg-slate-950/80 border border-slate-800/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block truncate">
                           Cuota Pura Base
                         </span>
-                        <strong className="text-lg font-black text-amber-300 font-mono">
+                        <strong className="text-base sm:text-lg font-black text-amber-300 font-mono block mt-0.5">
                           {fmtMoneda(cuotaEstimada)}
                         </strong>
                         <span className="text-[10px] text-slate-500 block">Sin interés bancario</span>
                       </div>
 
-                      <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3">
-                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">
+                      <div className="bg-slate-950/80 border border-slate-800/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block truncate">
                           Plazo Fiduciario
                         </span>
-                        <strong className="text-lg font-black text-white font-mono">
+                        <strong className="text-base sm:text-lg font-black text-white font-mono block mt-0.5">
                           {cantidadCuotas} Cuotas
                         </strong>
                         <span className="text-[10px] text-slate-500 block">Meses corridos</span>
                       </div>
 
-                      <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3">
-                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">
+                      <div className="bg-slate-950/80 border border-slate-800/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block truncate">
                           Costo Departamento
                         </span>
-                        <strong className="text-sm sm:text-base font-extrabold text-white font-mono">
+                        <strong className="text-sm sm:text-base font-extrabold text-white font-mono block mt-0.5">
                           {fmtMoneda(costoDepto)}
                         </strong>
                         <span className="text-[10px] text-slate-500 block">Al costo de obra</span>
                       </div>
 
-                      <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3">
-                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">
+                      <div className="bg-slate-950/80 border border-slate-800/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block truncate">
                           Disponibilidad
                         </span>
-                        <strong className="text-sm sm:text-base font-extrabold text-emerald-400 font-mono">
+                        <strong className="text-sm sm:text-base font-extrabold text-emerald-400 font-mono block mt-0.5">
                           Quedan {unidadesDisponibles} de {cantidadDeptos}
                         </strong>
                         <span className="text-[10px] text-slate-500 block">
@@ -501,18 +566,19 @@ export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
                   </div>
 
                   {/* Acciones principales: Entrar a la Obra, Simular o Preinscribirse */}
-                  <div className="space-y-3 pt-2 border-t border-slate-800/80">
+                  <div className="space-y-2.5 sm:space-y-3 pt-2 border-t border-slate-800/80">
                     
                     {/* BOTÓN PRINCIPAL: ENTRAR A LA OBRA */}
                     <button
                       type="button"
                       id={`btn-entrar-obra-${proyecto.id}`}
                       onClick={() => onSelectObra(proyecto.id)}
-                      className="w-full bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-sm sm:text-base py-3.5 px-5 rounded-2xl shadow-xl shadow-amber-500/20 hover:shadow-amber-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer group/btn active:scale-[0.99]"
+                      className="w-full bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs sm:text-sm md:text-base py-3 sm:py-3.5 px-4 rounded-xl sm:rounded-2xl shadow-xl shadow-amber-500/20 hover:shadow-amber-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer group/btn active:scale-[0.99]"
                     >
-                      <HardHat className="w-5 h-5 text-slate-950" />
-                      <span>Entrar a la Obra (Aspecto Financiero & Técnico)</span>
-                      <ChevronRight className="w-5 h-5 transition-transform group-hover/btn:translate-x-1" />
+                      <HardHat className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950 shrink-0" />
+                      <span className="hidden sm:inline">Entrar a la Obra (Aspecto Financiero & Técnico)</span>
+                      <span className="sm:hidden">Ver Obra Completa y Datos</span>
+                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover/btn:translate-x-1 shrink-0" />
                     </button>
 
                     {/* Botones secundarios: Simular y Preinscribirse */}
@@ -521,20 +587,20 @@ export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
                         type="button"
                         id={`btn-simular-obra-${proyecto.id}`}
                         onClick={() => onSimularObra(proyecto)}
-                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs py-2.5 px-3 rounded-xl border border-slate-700 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs py-2.5 px-2.5 sm:px-3 rounded-xl border border-slate-700 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
                       >
-                        <Calculator className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Simular este plan</span>
+                        <Calculator className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span className="truncate">Simular este plan</span>
                       </button>
 
                       <button
                         type="button"
                         id={`btn-preinscribir-obra-${proyecto.id}`}
                         onClick={() => onPreinscribirObra(proyecto, cuotaEstimada)}
-                        className="flex-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/40 font-bold text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                        className="flex-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/40 font-bold text-xs py-2.5 px-2.5 sm:px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
                       >
-                        <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-                        <span>Preinscribirme</span>
+                        <Calendar className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                        <span className="truncate">Preinscribirme</span>
                       </button>
 
                       {/* Herramientas de Administrador */}
@@ -542,7 +608,7 @@ export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
                         <button
                           type="button"
                           onClick={() => onEditObra(proyecto.id)}
-                          className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 transition cursor-pointer"
+                          className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 transition cursor-pointer shrink-0"
                           title="Editar parámetros de esta obra (Admin)"
                         >
                           <Building2 className="w-4 h-4" />
@@ -553,7 +619,7 @@ export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
                         <button
                           type="button"
                           onClick={() => setObraAEliminar({ id: proyecto.id, nombre: proyecto.nombre })}
-                          className="p-2.5 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-rose-400 border border-slate-700 hover:border-rose-500/40 transition cursor-pointer"
+                          className="p-2.5 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-rose-400 border border-slate-700 hover:border-rose-500/40 transition cursor-pointer shrink-0"
                           title="Eliminar esta obra (Admin)"
                         >
                           <Trash2 className="w-4 h-4" />

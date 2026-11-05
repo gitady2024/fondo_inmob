@@ -328,7 +328,8 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
               cuota: 10,
               estrategia: 'reducir_cuota'
             },
-            ajustes: []
+            ajustes: [],
+            fotos: FOTOS_OBRA_PREDETERMINADAS
           });
         }
         if (supabaseFondos.length > 0) {
@@ -349,7 +350,7 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
                     anticipos: (local.anticipos && local.anticipos.length > 0) ? local.anticipos : sf.anticipos,
                     adjudicacionFijada: local.adjudicacionFijada || sf.adjudicacionFijada,
                     datosTecnicos: local.datosTecnicos || sf.datosTecnicos,
-                    fotos: local.fotos && local.fotos.length > 0 ? local.fotos : sf.fotos,
+                    fotos: local.fotos && local.fotos.length > 0 ? local.fotos : (sf.fotos || FOTOS_OBRA_PREDETERMINADAS),
                     ajustes: local.ajustes && local.ajustes.length > 0 ? local.ajustes : sf.ajustes,
                     contratoPersonalizado: local.contratoPersonalizado || sf.contratoPersonalizado,
                     datosNegocio: local.datosNegocio || sf.datosNegocio

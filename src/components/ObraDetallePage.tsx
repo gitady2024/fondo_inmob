@@ -963,7 +963,10 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
                 <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full bg-slate-950 overflow-hidden group">
                   <img
                     src={fotoActual.url}
-                    alt={fotoActual.etapa}
+                    alt=""
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                    }}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
@@ -1021,7 +1024,14 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
                             : 'border-slate-800 opacity-60 hover:opacity-100'
                         }`}
                       >
-                        <img src={f.url} alt={f.etapa} className="w-full h-full object-cover" />
+                        <img
+                          src={f.url}
+                          alt=""
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          }}
+                          className="w-full h-full object-cover"
+                        />
                       </button>
                     ))}
                   </div>
