@@ -161,6 +161,13 @@ export const App: React.FC = () => {
         window.location.hash = hashTarget;
       }
 
+      // Reiniciar scroll al tope absoluto de la ventana (header) al cambiar de ruta
+      try {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      } catch {
+        window.scrollTo(0, 0);
+      }
+
       if (route === 'landing' || route === 'obras') {
         if (devUser?.isGuest || devUser?.id === 'invitado') {
           setDevUserOverride(null);
@@ -208,6 +215,32 @@ export const App: React.FC = () => {
     },
     [currentUser, navigateTo, setDevUser]
   );
+
+  // Desactivar la restauración automática de scroll del navegador para evitar saltos a secciones previas
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+  }, []);
+
+  // Asegurar que al cambiar de ruta siempre se vuelva al header superior
+  useEffect(() => {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    } catch {
+      window.scrollTo(0, 0);
+    }
+    const timer = setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 50);
+    const raf = requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+    });
+    return () => {
+      clearTimeout(timer);
+      cancelAnimationFrame(raf);
+    };
+  }, [currentRoute]);
 
   // Sincronizar navegación atrás/adelante del navegador
   useEffect(() => {

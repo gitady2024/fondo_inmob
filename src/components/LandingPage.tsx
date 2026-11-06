@@ -87,6 +87,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const planesMenuRef = useRef<HTMLDivElement>(null);
   const ingresarMenuRef = useRef<HTMLDivElement>(null);
 
+  // Al montar la portada de Inicio, garantizar que siempre inicie en el header superior (0, 0)
+  useEffect(() => {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    } catch {
+      window.scrollTo(0, 0);
+    }
+    const timer = setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 50);
+    const raf = requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+    });
+    return () => {
+      clearTimeout(timer);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
   // Mostrar el FAB solo cuando el usuario haya hecho scroll más del 50% de la altura de la página
   useEffect(() => {
     const handleScroll = () => {

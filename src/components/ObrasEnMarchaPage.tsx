@@ -135,6 +135,19 @@ export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
   const planesMenuRef = useRef<HTMLDivElement>(null);
   const ingresarMenuRef = useRef<HTMLDivElement>(null);
 
+  // Al montar Obras en Marcha, asegurar scroll al header superior
+  useEffect(() => {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    } catch {
+      window.scrollTo(0, 0);
+    }
+    const timer = setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Cerrar dropdowns al hacer clic afuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
