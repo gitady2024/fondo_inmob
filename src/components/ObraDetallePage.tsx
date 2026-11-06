@@ -230,40 +230,49 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
       <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 py-3.5 transition-all shadow-xl shadow-black/30">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              {onVolverObras ? (
-                <button
-                  type="button"
-                  id="btn-volver-obras"
-                  onClick={onVolverObras}
-                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
-                  title="Volver a las Obras en Marcha"
-                >
-                  <ArrowLeft className="w-4 h-4 text-amber-400" />
-                  <span>Volver a Obras en Marcha</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  id="btn-volver-inicio"
-                  onClick={onVolverInicio}
-                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
-                  title="Volver a la página principal"
-                >
-                  <ArrowLeft className="w-4 h-4 text-slate-400" />
-                  <span>Volver a Inicio</span>
-                </button>
-              )}
+          <div className="flex items-center gap-3 sm:gap-4">
+            <button
+              type="button"
+              id="btn-volver-inicio"
+              onClick={onVolverInicio}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black shadow-md shadow-amber-500/25 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+              title="Volver a Inicio"
+            >
+              <ArrowLeft className="w-4 h-4 text-slate-950 stroke-[2.5]" />
+              <span>Volver a Inicio</span>
+            </button>
 
+            {onVolverObras && (
               <button
                 type="button"
-                onClick={onVolverInicio}
-                className="text-xs text-slate-400 hover:text-white px-2.5 py-2 rounded-xl hover:bg-slate-800/60 transition hidden sm:inline"
-                title="Ir a la portada inicial"
+                id="btn-volver-obras"
+                onClick={onVolverObras}
+                className="hidden md:flex px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-bold items-center gap-1.5 transition cursor-pointer shadow-sm active:scale-95"
+                title="Volver a Obras en Marcha"
               >
-                Inicio
+                <span>Obras en Marcha</span>
               </button>
+            )}
+
+            <div
+              onClick={onVolverInicio}
+              className="flex items-center gap-2.5 cursor-pointer group select-none shrink-0"
+              title="Ir a la portada de Fondin"
+            >
+              <img
+                src="/isologo-fondin.png"
+                alt="Fondin"
+                className="h-9 w-9 sm:h-10 sm:w-10 object-contain transition-transform duration-300 group-hover:scale-105"
+                loading="eager"
+              />
+              <div className="hidden sm:flex flex-col justify-center min-w-0">
+                <span className="font-extrabold text-white text-base sm:text-lg tracking-tight leading-none">
+                  Fondin
+                </span>
+                <span className="text-[10px] sm:text-[11px] font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate max-w-[155px]">
+                  Inversión Fiduciaria Inmobiliaria
+                </span>
+              </div>
             </div>
 
             {/* Selector de otra obra activa si hay varias */}

@@ -218,14 +218,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <img
               src="/isologo-fondin.png"
               alt="Fondin"
-              className="h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 object-contain shrink-0 transition-transform duration-200 group-hover:scale-105"
+              className="h-9 w-9 sm:h-10 sm:w-10 object-contain shrink-0 transition-transform duration-200 group-hover:scale-105"
               loading="eager"
             />
             <div className="flex flex-col justify-center min-w-0">
-              <span className="text-base sm:text-lg md:text-xl font-extrabold text-white tracking-tight leading-none">
+              <span className="text-base sm:text-lg font-extrabold text-white tracking-tight leading-none">
                 Fondin
               </span>
-              <span className="text-[10px] sm:text-[11px] md:text-xs font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate max-w-[155px] sm:max-w-none">
+              <span className="text-[10px] sm:text-[11px] font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate max-w-[155px] sm:max-w-none">
                 Inversión Fiduciaria Inmobiliaria
               </span>
             </div>

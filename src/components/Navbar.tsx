@@ -105,10 +105,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={onNavigateLanding}
-              className="text-xs text-slate-400 hover:text-white px-2.5 py-2 rounded-xl hover:bg-slate-800 transition flex items-center gap-1.5 cursor-pointer font-medium"
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black shadow-md shadow-amber-500/25 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
               title="Volver a Inicio"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
+              <ArrowLeft className="w-4 h-4 text-slate-950 stroke-[2.5]" />
               <span className="hidden sm:inline">Volver a Inicio</span>
               <span className="sm:hidden">Inicio</span>
             </button>

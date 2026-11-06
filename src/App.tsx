@@ -56,7 +56,7 @@ import { exportarCuadroMarchaCSV } from './utils/exportToCSV';
 import { getUnreadCount } from './services/mensajeService';
 import type { DatosTecnicosProyecto } from './types/tecnico';
 import { DATOS_TECNICOS_DEFAULT } from './types/tecnico';
-import { HardHat, LogOut } from 'lucide-react';
+import { HardHat, LogOut, ArrowLeft } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { LandingPage } from './components/LandingPage';
 import { trackSimuladorInicio, trackSimulacionCompartida } from './services/analyticsService';
@@ -958,9 +958,10 @@ export const App: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => navigateTo('landing')}
-                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg cursor-pointer"
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black shadow-md shadow-amber-500/25 transition-all inline-flex items-center gap-1.5 cursor-pointer active:scale-95"
                 >
-                  ← Volver a Inicio
+                  <ArrowLeft className="w-4 h-4 text-slate-950 stroke-[2.5]" />
+                  <span>Volver a Inicio</span>
                 </button>
                 <PortalAccesoPerfiles
                   currentFondoNombre={currentFondo.nombre}

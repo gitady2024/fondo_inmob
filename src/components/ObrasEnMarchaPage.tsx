@@ -172,29 +172,30 @@ export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
               type="button"
               id="btn-volver-landing-desde-obras"
               onClick={onVolverInicio}
-              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm active:scale-95"
-              title="Volver a la portada principal"
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black shadow-md shadow-amber-500/25 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+              title="Volver a Inicio"
             >
-              <ArrowLeft className="w-4 h-4 text-amber-400" />
+              <ArrowLeft className="w-4 h-4 text-slate-950 stroke-[2.5]" />
               <span className="hidden sm:inline">Volver a Inicio</span>
               <span className="sm:hidden">Inicio</span>
             </button>
 
             <div
               onClick={onVolverInicio}
-              className="flex items-center gap-2.5 cursor-pointer group select-none"
+              className="flex items-center gap-2.5 cursor-pointer group select-none shrink-0"
               title="Ir al inicio"
             >
               <img
-                src="/nuevo-logo.png"
-                alt="Fondin Logo"
-                className="w-8 h-8 sm:w-9 sm:h-9 object-contain drop-shadow-[0_2px_10px_rgba(245,158,11,0.25)] transition-transform duration-300 group-hover:scale-105"
+                src="/isologo-fondin.png"
+                alt="Fondin"
+                className="h-9 w-9 sm:h-10 sm:w-10 object-contain transition-transform duration-300 group-hover:scale-105"
+                loading="eager"
               />
-              <div className="flex flex-col">
-                <span className="font-black text-white text-base sm:text-lg tracking-tight leading-none">
+              <div className="flex flex-col justify-center min-w-0">
+                <span className="font-extrabold text-white text-base sm:text-lg tracking-tight leading-none">
                   Fondin
                 </span>
-                <span className="text-[10px] text-slate-400 font-medium tracking-wide">
+                <span className="text-[10px] sm:text-[11px] font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate max-w-[155px] sm:max-w-none">
                   Inversión Fiduciaria Inmobiliaria
                 </span>
               </div>
