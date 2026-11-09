@@ -10,6 +10,7 @@ import {
 } from '../services/adminService';
 import { formatMonedaARS } from './SocioPortal';
 import { GestionNegocioProyecto } from './GestionNegocioProyecto';
+import { GestionSociosAdmin } from './GestionSociosAdmin';
 import type { DatosNegocioProyecto } from '../types/fondo';
 import {
   Shield,
@@ -32,7 +33,8 @@ import {
   Pencil,
   Sparkles,
   Rocket,
-  TrendingUp
+  TrendingUp,
+  Users
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -74,7 +76,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   unreadCount = 0,
   initialModule = 'cobranzas'
 }) => {
-  const [activeModule, setActiveModule] = useState<'cobranzas' | 'simulador' | 'tecnico' | 'mensajeria' | 'negocio'>(initialModule);
+  const [activeModule, setActiveModule] = useState<'cobranzas' | 'socios' | 'simulador' | 'tecnico' | 'mensajeria' | 'negocio'>(initialModule);
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'mes_actual' | 'morosos' | 'pagados'>('mes_actual');
   const [busquedaSocio, setBusquedaSocio] = useState<string>('');
   const [isLoadingCuotas, setIsLoadingCuotas] = useState<boolean>(true);
@@ -493,6 +495,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveModule('socios')}
+          className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            activeModule === 'socios'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>Gestión de Socios</span>
+        </button>
+
+        <button
           onClick={() => setActiveModule('simulador')}
           className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
             activeModule === 'simulador'
@@ -754,6 +768,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
         </section>
+      )}
+
+      {/* ==================================================================== */}
+      {/* 4.1. MÓDULO: GESTIÓN DE SOCIOS Y CONTRATOS FIRMADAS                  */}
+      {/* ==================================================================== */}
+      {activeModule === 'socios' && (
+        <GestionSociosAdmin
+          currentFondo={currentFondo}
+          onShowToast={onShowToast}
+        />
       )}
 
       {/* ==================================================================== */}
