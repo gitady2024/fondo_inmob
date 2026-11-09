@@ -81,6 +81,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [updatingCuotaId, setUpdatingCuotaId] = useState<string | null>(null);
 
+  // Dejar como vigentes únicamente las Obras en Marcha (y la simulación activa si se está visualizando ahora)
+  const fondosVigentes = useMemo(() => {
+    return fondosList.filter((f) => f.estadoPlan !== 'simulacion' || f.id === currentFondo.id);
+  }, [fondosList, currentFondo.id]);
+
   // Cuando el padre pide ir al simulador (ej. botón "Simular Plan"), actualizar el módulo activo
   useEffect(() => {
     if (initialModule && initialModule !== 'cobranzas') {
@@ -315,9 +320,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onChange={(e) => onSelectFondo(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-700 hover:border-indigo-500 rounded-xl px-3.5 py-2 text-xs font-bold text-white outline-none cursor-pointer pr-8"
                 >
-                  {fondosList.map((f) => (
+                  {fondosVigentes.map((f) => (
                     <option key={f.id} value={f.id}>
-                      {f.nombre}
+                      {f.estadoPlan === 'simulacion' ? `🧪 ${f.nombre} (Simulación en curso)` : `🏢 ${f.nombre}`}
                     </option>
                   ))}
                 </select>

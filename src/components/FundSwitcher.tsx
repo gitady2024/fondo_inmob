@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import type { FondoGuardado } from '../services/fondoService';
 import type { EstadoPlanFondo } from '../types/fondo';
 import { fmtMoneda } from '../utils/calculations';
@@ -39,6 +39,11 @@ export const FundSwitcher: React.FC<FundSwitcherProps> = ({
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(currentFondo.nombre);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Dejar como vigentes únicamente las Obras en Marcha (y la simulación activa si se está visualizando en este momento)
+  const obrasVigentes = useMemo(() => {
+    return fondosList.filter((f) => f.estadoPlan !== 'simulacion' || f.id === currentFondo.id);
+  }, [fondosList, currentFondo.id]);
 
   useEffect(() => {
     setTempName(currentFondo.nombre);
@@ -114,12 +119,12 @@ export const FundSwitcher: React.FC<FundSwitcherProps> = ({
               {isOpen && (
                 <div className="absolute top-full left-0 mt-2 w-80 sm:w-96 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 space-y-1 animate-in fade-in zoom-in-95 duration-150">
                   <div className="px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800 flex justify-between items-center">
-                    <span>Tus Fondos y Simulaciones ({fondosList.length})</span>
+                    <span>Obras en Marcha Vigentes ({obrasVigentes.length})</span>
                     <span className="text-[10px] text-indigo-400">Clic para cambiar</span>
                   </div>
 
                   <div className="max-h-64 overflow-y-auto py-1 space-y-1">
-                    {fondosList.map((f) => {
+                    {obrasVigentes.map((f) => {
                       const isCurrent = f.id === currentFondo.id;
                       return (
                         <div
@@ -235,7 +240,7 @@ export const FundSwitcher: React.FC<FundSwitcherProps> = ({
             <span>+ Nuevo Plan</span>
           </button>
 
-          {fondosList.length > 1 && (
+          {obrasVigentes.length > 1 && (
             <button
               onClick={() => {
                 if (window.confirm(`¿Estás seguro de eliminar el plan "${currentFondo.nombre}"?`)) {

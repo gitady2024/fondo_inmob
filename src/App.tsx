@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type {
   ParametrosFondoState,
   GastosConfigState,
@@ -18,6 +18,8 @@ import {
   crearSimulacionDesdeCero,
   duplicateFondo,
   deleteFondo,
+  eliminarSimulacionDeBase,
+  esSimulacion,
   getStoredCurrentFondoId,
   setStoredCurrentFondoId,
   getStoredFondosSync,
@@ -78,9 +80,15 @@ export const App: React.FC = () => {
   const currentUser: UserProfile | null = authProfile || devUser;
   const [loginInitialRole, setLoginInitialRole] = useState<UserRole>('admin');
   const [isLoginOpen, setIsLoginOpen] = useState<boolean>(false);
+  const currentFondoRef = useRef<FondoGuardado | null>(null);
 
   // Manejador centralizado para salir de la cuenta en cualquier perfil
   const handleSignOutAll = useCallback(async () => {
+    const activeFondo = currentFondoRef.current;
+    if (activeFondo && (activeFondo.estadoPlan === 'simulacion' || esSimulacion(activeFondo))) {
+      await eliminarSimulacionDeBase(activeFondo.id);
+      setFondosList((prev) => prev.filter((f) => f.id !== activeFondo.id));
+    }
     await handleSupabaseSignOut();
     setDevUserOverride(null);
     setDevUser(null);
@@ -166,6 +174,15 @@ export const App: React.FC = () => {
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       } catch {
         window.scrollTo(0, 0);
+      }
+
+      // Si salimos de la app hacia otra ruta (landing, obras, obra-detalle) y el fondo activo es una simulación temporal, eliminarla de la base
+      if (route !== 'app') {
+        const activeFondo = currentFondoRef.current;
+        if (activeFondo && (activeFondo.estadoPlan === 'simulacion' || esSimulacion(activeFondo))) {
+          eliminarSimulacionDeBase(activeFondo.id);
+          setFondosList((prev) => prev.filter((f) => f.id !== activeFondo.id));
+        }
       }
 
       if (route === 'landing' || route === 'obras') {
@@ -345,6 +362,29 @@ export const App: React.FC = () => {
     );
   }, [fondosList, currentFondoId]);
 
+  useEffect(() => {
+    currentFondoRef.current = currentFondo;
+  }, [currentFondo]);
+
+  // Si el usuario cierra la pestaña o navega fuera del sitio mientras está en una simulación, purgarla de localStorage
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const active = currentFondoRef.current;
+      if (active && (active.estadoPlan === 'simulacion' || esSimulacion(active))) {
+        try {
+          const raw = localStorage.getItem('fondo_inmobil_saved_circles');
+          if (raw) {
+            let list = JSON.parse(raw);
+            list = list.filter((f: any) => f.id !== active.id && !esSimulacion(f));
+            localStorage.setItem('fondo_inmobil_saved_circles', JSON.stringify(list));
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   // Contador de mensajes no leídos
   const refreshUnreadCount = useCallback(() => {
     if (!currentUser) {
@@ -514,6 +554,11 @@ export const App: React.FC = () => {
 
   // Acciones de Gestión de Planes
   const handleSelectFondo = (id: string) => {
+    // Si el fondo activo actual es una simulación temporal y cambiamos a otro fondo, eliminarla de la base
+    if ((currentFondo.estadoPlan === 'simulacion' || esSimulacion(currentFondo)) && currentFondo.id !== id) {
+      eliminarSimulacionDeBase(currentFondo.id);
+      setFondosList((prev) => prev.filter((f) => f.id !== currentFondo.id));
+    }
     setCurrentFondoId(id);
     setStoredCurrentFondoId(id);
     setObraDetalleId(id);
@@ -1297,7 +1342,7 @@ export const App: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                {fondosList.length > 1 && (
+                {fondosList.filter((f) => f.estadoPlan !== 'simulacion' || f.id === currentFondo.id).length > 1 && (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-400 font-semibold hidden sm:inline">Cambiar Obra:</span>
                     <select
@@ -1305,11 +1350,13 @@ export const App: React.FC = () => {
                       onChange={(e) => handleSelectFondo(e.target.value)}
                       className="bg-slate-950 border border-slate-700 hover:border-amber-500/50 text-xs text-white rounded-xl px-3 py-2 outline-none font-bold cursor-pointer"
                     >
-                      {fondosList.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          🏗️ {f.nombre} {f.estadoPlan === 'simulacion' ? '(Estructuración)' : '(Activo)'}
-                        </option>
-                      ))}
+                      {fondosList
+                        .filter((f) => f.estadoPlan !== 'simulacion' || f.id === currentFondo.id)
+                        .map((f) => (
+                          <option key={f.id} value={f.id}>
+                            🏗️ {f.nombre} {f.estadoPlan === 'simulacion' ? '(Simulación en curso)' : '(Activo)'}
+                          </option>
+                        ))}
                     </select>
                   </div>
                 )}

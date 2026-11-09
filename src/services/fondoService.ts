@@ -103,25 +103,25 @@ export const PLANTILLAS_PREDEFINIDAS: Omit<FondoGuardado, 'id' | 'updated_at'>[]
     ajustes: []
   },
   {
-    nombre: 'Laboratorio de Simulación Abierta (Editable)',
-    descripcion: 'Espacio interactivo para que los socios jueguen libremente con todas las variables antes de cerrar el círculo.',
-    estadoPlan: 'simulacion',
+    nombre: 'Residencial Plaza Belgrano (8 Deptos • 24 Meses)',
+    descripcion: 'Edificio residencial de escala media con entrega pactada en 24 meses y cuotas de obra al costo.',
+    estadoPlan: 'activo',
     params: {
-      costoDepto: 0,
+      costoDepto: 60000,
       cantidadDeptos: 8,
-      cantidadCuotas: 0,
-      valorCuotaBase: 0,
+      cantidadCuotas: 24,
+      valorCuotaBase: 2500,
       fechaInicio: '2027-01',
       modalidadAnticipo: 'reducir_cuota'
     },
     gastos: {
       formaPagoGastos: 'final',
-      comisionGestion: 0,
-      comisionEscribania: 0,
-      otrosGastos: 0
+      comisionGestion: 6,
+      comisionEscribania: 3,
+      otrosGastos: 350
     },
-    anticipos: [0, 0, 0, 0, 0, 0, 0, 0],
-    adjudicacionFijada: { 1: 12 },
+    anticipos: [6000, 0, 0, 0, 0, 0, 0, 0],
+    adjudicacionFijada: { 1: 10 },
     cesion: {
       activo: false,
       socioCedente: 1,
@@ -132,8 +132,8 @@ export const PLANTILLAS_PREDEFINIDAS: Omit<FondoGuardado, 'id' | 'updated_at'>[]
     adelanto: {
       activo: false,
       socioAdelanta: 1,
-      monto: 10000,
-      cuota: 12,
+      monto: 5000,
+      cuota: 8,
       estrategia: 'reducir_cuota'
     },
     ajustes: []
@@ -212,6 +212,26 @@ export const PLANTILLAS_PREDEFINIDAS: Omit<FondoGuardado, 'id' | 'updated_at'>[]
   }
 ];
 
+export const esSimulacion = (fondo: {
+  nombre?: string;
+  estadoPlan?: EstadoPlanFondo;
+  params?: Partial<ParametrosFondoState>;
+}): boolean => {
+  if (fondo.estadoPlan === 'simulacion') return true;
+  const nombre = (fondo.nombre || '').trim().toLowerCase();
+  if (
+    nombre.startsWith('simulación') ||
+    nombre.startsWith('simulacion') ||
+    nombre.startsWith('nueva simulación') ||
+    nombre.startsWith('nueva simulacion') ||
+    nombre.includes('laboratorio de simulación') ||
+    nombre.includes('laboratorio de simulacion')
+  ) {
+    return true;
+  }
+  return false;
+};
+
 export const getStoredCurrentFondoId = (): string | null => {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(CURRENT_FONDO_ID_KEY);
@@ -226,6 +246,7 @@ export const setStoredCurrentFondoId = (id: string) => {
 /**
  * Carga sincrónica e instantánea desde LocalStorage (0 ms de espera)
  * Permite inicializar el estado de React en el primer fotograma sin pantallas grises ni demoras
+ * Filtra rigurosamente cualquier simulación huérfana para que solo las obras vigentes existan
  */
 export const getStoredFondosSync = (): FondoGuardado[] => {
   if (typeof window === 'undefined') {
@@ -241,7 +262,9 @@ export const getStoredFondosSync = (): FondoGuardado[] => {
     const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
     if (raw) {
       const parsed: FondoGuardado[] = JSON.parse(raw);
-      if (parsed && parsed.length > 0) return parsed;
+      // Purgar y retornar SOLO obras vigentes (no simulaciones viejas)
+      const soloObras = parsed.filter((f) => !esSimulacion(f));
+      if (soloObras && soloObras.length > 0) return soloObras;
     }
   } catch {}
   return [
@@ -266,85 +289,116 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
 
       if (error) throw error;
       if (fondos && fondos.length > 0) {
-        // Optimización masiva: Consultar todos los socios en una sola llamada O(1) en vez de N consultas secuenciales
-        const fondoIds = fondos.map((f) => f.id);
-        const { data: allSocios } = await client
-          .from('socios')
-          .select('*')
-          .in('fondo_id', fondoIds)
-          .order('numero_socio', { ascending: true });
+        // Purgar retroactivamente todas las simulaciones que se hayan guardado en Supabase en el pasado
+        const simFondoIds = fondos
+          .filter((f) => esSimulacion({ nombre: f.nombre, params: { costoDepto: Number(f.costo_depto), cantidadCuotas: f.cantidad_cuotas } }))
+          .map((f) => f.id);
 
-        const sociosByFondo = new Map<string, any[]>();
-        allSocios?.forEach((s) => {
-          const list = sociosByFondo.get(s.fondo_id) || [];
-          list.push(s);
-          sociosByFondo.set(s.fondo_id, list);
-        });
-
-        for (const f of fondos) {
-          const socios = sociosByFondo.get(f.id) || [];
-          const anticipos: number[] = [];
-          const adjudicacionFijada: Record<number, number> = {};
-
-          socios.forEach((s) => {
-            anticipos[s.numero_socio - 1] = Number(s.anticipo_mes0);
-            if (s.cuota_posesion_fijada) {
-              adjudicacionFijada[s.numero_socio] = s.cuota_posesion_fijada;
-            }
-          });
-
-          supabaseFondos.push({
-            id: f.id,
-            nombre: f.nombre,
-            descripcion: f.descripcion || '',
-            updated_at: f.updated_at,
-            params: {
-              costoDepto: Number(f.costo_depto),
-              cantidadDeptos: f.cantidad_deptos,
-              cantidadCuotas: f.cantidad_cuotas,
-              valorCuotaBase: Number(f.valor_cuota_base),
-              fechaInicio: f.fecha_inicio ? f.fecha_inicio.slice(0, 7) : '2027-01',
-              modalidadAnticipo: f.modalidad_anticipo
-            },
-            gastos: {
-              formaPagoGastos: f.forma_pago_gastos,
-              comisionGestion: Number(f.comision_gestion_pct),
-              comisionEscribania: Number(f.comision_escribania_pct),
-              otrosGastos: Number(f.otros_gastos)
-            },
-            anticipos,
-            adjudicacionFijada,
-            cesion: {
-              activo: false,
-              socioCedente: 3,
-              cuotaSalida: 15,
-              primaCesion: 10,
-              mecanismoSalida: 'tercero'
-            },
-            adelanto: {
-              activo: true,
-              socioAdelanta: 1,
-              monto: 10000,
-              cuota: 10,
-              estrategia: 'reducir_cuota'
-            },
-            ajustes: [],
-            fotos: FOTOS_OBRA_PREDETERMINADAS
-          });
+        if (simFondoIds.length > 0) {
+          try {
+            await client.from('socios').delete().in('fondo_id', simFondoIds);
+            await client.from('cuotas').delete().in('fondo_id', simFondoIds);
+            await client.from('participaciones').delete().in('fondo_id', simFondoIds);
+            await client.from('fondos').delete().in('id', simFondoIds);
+          } catch (err) {
+            console.warn('Purga de simulaciones viejas en Supabase:', err);
+          }
         }
+
+        // Quedarse únicamente con los fondos que son verdaderas Obras en Marcha
+        const fondosValidos = fondos.filter((f) => !simFondoIds.includes(f.id));
+
+        if (fondosValidos.length > 0) {
+          // Optimización masiva: Consultar todos los socios en una sola llamada O(1) en vez de N consultas secuenciales
+          const fondoIds = fondosValidos.map((f) => f.id);
+          const { data: allSocios } = await client
+            .from('socios')
+            .select('*')
+            .in('fondo_id', fondoIds)
+            .order('numero_socio', { ascending: true });
+
+          const sociosByFondo = new Map<string, any[]>();
+          allSocios?.forEach((s) => {
+            const list = sociosByFondo.get(s.fondo_id) || [];
+            list.push(s);
+            sociosByFondo.set(s.fondo_id, list);
+          });
+
+          for (const f of fondosValidos) {
+            const socios = sociosByFondo.get(f.id) || [];
+            const anticipos: number[] = [];
+            const adjudicacionFijada: Record<number, number> = {};
+
+            socios.forEach((s) => {
+              anticipos[s.numero_socio - 1] = Number(s.anticipo_mes0);
+              if (s.cuota_posesion_fijada) {
+                adjudicacionFijada[s.numero_socio] = s.cuota_posesion_fijada;
+              }
+            });
+
+            supabaseFondos.push({
+              id: f.id,
+              nombre: f.nombre,
+              descripcion: f.descripcion || '',
+              updated_at: f.updated_at,
+              estadoPlan: 'activo', // En Supabase solo persisten Obras Activas
+              params: {
+                costoDepto: Number(f.costo_depto),
+                cantidadDeptos: f.cantidad_deptos,
+                cantidadCuotas: f.cantidad_cuotas,
+                valorCuotaBase: Number(f.valor_cuota_base),
+                fechaInicio: f.fecha_inicio ? f.fecha_inicio.slice(0, 7) : '2027-01',
+                modalidadAnticipo: f.modalidad_anticipo
+              },
+              gastos: {
+                formaPagoGastos: f.forma_pago_gastos,
+                comisionGestion: Number(f.comision_gestion_pct),
+                comisionEscribania: Number(f.comision_escribania_pct),
+                otrosGastos: Number(f.otros_gastos)
+              },
+              anticipos,
+              adjudicacionFijada,
+              cesion: {
+                activo: false,
+                socioCedente: 3,
+                cuotaSalida: 15,
+                primaCesion: 10,
+                mecanismoSalida: 'tercero'
+              },
+              adelanto: {
+                activo: true,
+                socioAdelanta: 1,
+                monto: 10000,
+                cuota: 10,
+                estrategia: 'reducir_cuota'
+              },
+              ajustes: [],
+              fotos: FOTOS_OBRA_PREDETERMINADAS
+            });
+          }
+        }
+
         if (supabaseFondos.length > 0) {
           try {
             const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
             if (raw) {
               const localList: FondoGuardado[] = JSON.parse(raw);
+              // Purgar de localList cualquier simulación que haya quedado guardada
+              const localLimpio = localList.filter((lf) => !esSimulacion(lf));
+              if (localLimpio.length !== localList.length) {
+                try {
+                  localStorage.setItem(LOCAL_STORAGE_FONDOS_KEY, JSON.stringify(localLimpio));
+                } catch {}
+              }
+
               const merged = supabaseFondos.map((sf) => {
-                const local = localList.find((l) => l.id === sf.id);
+                const local = localLimpio.find((l) => l.id === sf.id);
                 if (local) {
                   return {
                     ...sf,
                     nombre: local.nombre || sf.nombre,
                     descripcion: local.descripcion || sf.descripcion,
-                    estadoPlan: local.estadoPlan || sf.estadoPlan || 'activo',
+                    estadoPlan: 'activo' as EstadoPlanFondo,
                     params: local.params || sf.params,
                     gastos: local.gastos || sf.gastos,
                     anticipos: (local.anticipos && local.anticipos.length > 0) ? local.anticipos : sf.anticipos,
@@ -359,8 +413,8 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
                 return sf;
               });
 
-              // Incluir también los fondos locales que no existan en Supabase
-              const localOnly = localList.filter((lf) => !supabaseFondos.some((sf) => sf.id === lf.id));
+              // Incluir también los fondos locales que no existan en Supabase y que sean Obras Activas
+              const localOnly = localLimpio.filter((lf) => !supabaseFondos.some((sf) => sf.id === lf.id));
               return [...merged, ...localOnly];
             }
           } catch {}
@@ -372,14 +426,20 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
     }
   }
 
-  // Carga desde LocalStorage
+  // Carga desde LocalStorage limpia
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
     if (raw) {
       const parsed: FondoGuardado[] = JSON.parse(raw);
-      if (parsed.length > 0) {
+      const soloObrasActivas = parsed.filter((f) => !esSimulacion(f));
+      if (soloObrasActivas.length > 0) {
+        if (soloObrasActivas.length !== parsed.length) {
+          try {
+            localStorage.setItem(LOCAL_STORAGE_FONDOS_KEY, JSON.stringify(soloObrasActivas));
+          } catch {}
+        }
         let changed = false;
-        const upgraded = parsed.map((f) => {
+        const upgraded = soloObrasActivas.map((f) => {
           if (f.nombre.includes('Torre Central') && (f.nombre.includes('48 Meses') || f.params.cantidadCuotas === 48)) {
             changed = true;
             return {
@@ -410,19 +470,19 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
     }
   } catch {}
 
-  // Si no hay fondos guardados, inicializar con la primera plantilla
-  const defaultFondo: FondoGuardado = {
-    id: typeof crypto !== 'undefined' ? crypto.randomUUID() : 'default-fondo-1',
-    ...PLANTILLAS_PREDEFINIDAS[0],
+  // Si no hay fondos guardados, inicializar con las obras predefinidas
+  const defaultFondos: FondoGuardado[] = PLANTILLAS_PREDEFINIDAS.map((tpl, i) => ({
+    id: typeof crypto !== 'undefined' ? crypto.randomUUID() : `default-fondo-${i + 1}`,
+    ...tpl,
     updated_at: new Date().toISOString()
-  };
+  }));
 
   try {
-    localStorage.setItem(LOCAL_STORAGE_FONDOS_KEY, JSON.stringify([defaultFondo]));
-    setStoredCurrentFondoId(defaultFondo.id);
+    localStorage.setItem(LOCAL_STORAGE_FONDOS_KEY, JSON.stringify(defaultFondos));
+    setStoredCurrentFondoId(defaultFondos[0].id);
   } catch {}
 
-  return [defaultFondo];
+  return defaultFondos;
 };
 
 export const listFondos = async (): Promise<{ id: string; nombre: string; updated_at: string }[]> => {
@@ -466,7 +526,10 @@ export const saveFondo = async (
   const fechaCompleta = `${params.fechaInicio}-01`;
   const updatedAt = new Date().toISOString();
 
-  if (client && isSupabaseConfigured()) {
+  const esSim = estadoPlan === 'simulacion' || esSimulacion({ nombre, estadoPlan, params });
+
+  // REGLA CRÍTICA: Las simulaciones NO se guardan en la base de datos Supabase
+  if (!esSim && client && isSupabaseConfigured()) {
     try {
       const { error: fondoError } = await client.from('fondos').upsert({
         id,
@@ -625,34 +688,19 @@ export const crearSimulacionDesdeCero = async (
     fotos: FOTOS_OBRA_PREDETERMINADAS
   };
 
-  // Guardado sincrónico en LocalStorage (disponible inmediatamente en 0 ms)
+  // Guardado SOLO temporal en LocalStorage para la sesión activa actual
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
     let list: FondoGuardado[] = raw ? JSON.parse(raw) : [];
-    list = [nuevaSimulacion, ...list.filter((f) => f.id !== id)];
+    // Mantener las obras activas más esta nueva simulación (reemplazando cualquier simulación previa)
+    list = [nuevaSimulacion, ...list.filter((f) => f.id !== id && !esSimulacion(f))];
     localStorage.setItem(LOCAL_STORAGE_FONDOS_KEY, JSON.stringify(list));
     setStoredCurrentFondoId(id);
   } catch (e) {
     console.warn('Error al guardar simulación en LocalStorage:', e);
   }
 
-  // Sincronización en segundo plano con Supabase si está disponible (no bloquea la UI ni la navegación)
-  saveFondo(
-    nombre,
-    nuevaSimulacion.params,
-    nuevaSimulacion.gastos,
-    nuevaSimulacion.anticipos,
-    nuevaSimulacion.adjudicacionFijada,
-    nuevaSimulacion.cesion,
-    nuevaSimulacion.adelanto,
-    id,
-    nuevaSimulacion.descripcion,
-    nuevaSimulacion.datosTecnicos,
-    undefined,
-    [],
-    'simulacion'
-  ).catch((err) => console.warn('Sync en segundo plano de simulación:', err));
-
+  // REGLA CRÍTICA: NO se sincroniza en Supabase. Las simulaciones no se guardan en la base de datos.
   return nuevaSimulacion;
 };
 
@@ -712,6 +760,9 @@ export const deleteFondo = async (id: string): Promise<boolean> => {
   const client = getSupabaseClient();
   if (client && isSupabaseConfigured()) {
     try {
+      await client.from('socios').delete().eq('fondo_id', id);
+      await client.from('cuotas').delete().eq('fondo_id', id);
+      await client.from('participaciones').delete().eq('fondo_id', id);
       await client.from('fondos').delete().eq('id', id);
     } catch (e) {
       console.warn('Error al borrar en Supabase:', e);
@@ -728,4 +779,11 @@ export const deleteFondo = async (id: string): Promise<boolean> => {
   } catch {
     return false;
   }
+};
+
+/**
+ * Elimina una simulación temporal de la base de datos (Supabase y LocalStorage) al salir de la misma
+ */
+export const eliminarSimulacionDeBase = async (id: string): Promise<void> => {
+  await deleteFondo(id);
 };
