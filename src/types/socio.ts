@@ -29,3 +29,4 @@ export interface ResumenSociosFondo {
   sociosPendientesPago: number;
   contratosCargados: number;
 }
+

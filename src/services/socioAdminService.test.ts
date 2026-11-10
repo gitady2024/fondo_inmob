@@ -167,3 +167,4 @@ describe('socioAdminService - Gestión y Padrón de Socios', () => {
     expect(resumen.contratosCargados).toBe(1);
   });
 });
+

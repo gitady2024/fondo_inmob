@@ -904,7 +904,7 @@ export const App: React.FC = () => {
           <>
             <ObraDetallePage
               obra={fondosList.find((f) => f.id === (obraDetalleId || currentFondoId)) || currentFondo}
-              proyectosActivos={fondosList.filter((f) => f.estadoPlan !== 'simulacion')}
+              proyectosActivos={fondosList.filter((f) => !esSimulacion(f))}
               onSelectObra={(id) => {
                 setObraDetalleId(id);
                 setCurrentFondoId(id);
@@ -1342,7 +1342,7 @@ export const App: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                {fondosList.filter((f) => f.estadoPlan !== 'simulacion' || f.id === currentFondo.id).length > 1 && (
+                {fondosList.filter((f) => !esSimulacion(f)).length > 1 && (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-400 font-semibold hidden sm:inline">Cambiar Obra:</span>
                     <select
@@ -1351,10 +1351,10 @@ export const App: React.FC = () => {
                       className="bg-slate-950 border border-slate-700 hover:border-amber-500/50 text-xs text-white rounded-xl px-3 py-2 outline-none font-bold cursor-pointer"
                     >
                       {fondosList
-                        .filter((f) => f.estadoPlan !== 'simulacion' || f.id === currentFondo.id)
+                        .filter((f) => !esSimulacion(f))
                         .map((f) => (
                           <option key={f.id} value={f.id}>
-                            🏗️ {f.nombre} {f.estadoPlan === 'simulacion' ? '(Simulación en curso)' : '(Activo)'}
+                            🏗️ {f.nombre}
                           </option>
                         ))}
                     </select>

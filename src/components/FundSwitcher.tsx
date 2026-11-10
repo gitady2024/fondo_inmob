@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import type { FondoGuardado } from '../services/fondoService';
+import { type FondoGuardado, esSimulacion } from '../services/fondoService';
 import type { EstadoPlanFondo } from '../types/fondo';
 import { fmtMoneda } from '../utils/calculations';
 import {
@@ -40,10 +40,11 @@ export const FundSwitcher: React.FC<FundSwitcherProps> = ({
   const [tempName, setTempName] = useState(currentFondo.nombre);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Dejar como vigentes únicamente las Obras en Marcha (y la simulación activa si se está visualizando en este momento)
+  // Dejar como vigentes únicamente las Obras en Marcha
   const obrasVigentes = useMemo(() => {
-    return fondosList.filter((f) => f.estadoPlan !== 'simulacion' || f.id === currentFondo.id);
-  }, [fondosList, currentFondo.id]);
+    const soloObras = fondosList.filter((f) => !esSimulacion(f));
+    return soloObras.length > 0 ? soloObras : [currentFondo];
+  }, [fondosList, currentFondo]);
 
   useEffect(() => {
     setTempName(currentFondo.nombre);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { UserProfile } from '../types/auth';
-import { saveFondo, type FondoGuardado } from '../services/fondoService';
+import { saveFondo, esSimulacion, type FondoGuardado } from '../services/fondoService';
 import {
   fetchFondoParticipacionesYCuotas,
   togglePagoCuotaEnSupabase,
@@ -83,10 +83,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [updatingCuotaId, setUpdatingCuotaId] = useState<string | null>(null);
 
-  // Dejar como vigentes únicamente las Obras en Marcha (y la simulación activa si se está visualizando ahora)
+  // Dejar como vigentes únicamente las Obras en Marcha reales (excluyendo cualquier simulación)
   const fondosVigentes = useMemo(() => {
-    return fondosList.filter((f) => f.estadoPlan !== 'simulacion' || f.id === currentFondo.id);
-  }, [fondosList, currentFondo.id]);
+    const soloObras = fondosList.filter((f) => !esSimulacion(f));
+    return soloObras.length > 0 ? soloObras : [currentFondo];
+  }, [fondosList, currentFondo]);
+
+  // Si el fondo activo es una simulación temporal, conmutar inmediatamente a la primera Obra en Marcha real
+  useEffect(() => {
+    if (esSimulacion(currentFondo) && fondosVigentes.length > 0 && !esSimulacion(fondosVigentes[0])) {
+      onSelectFondo(fondosVigentes[0].id);
+    }
+  }, [currentFondo, fondosVigentes, onSelectFondo]);
 
   // Cuando el padre pide ir al simulador (ej. botón "Simular Plan"), actualizar el módulo activo
   useEffect(() => {
