@@ -270,17 +270,17 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
             <div
               onClick={onVolverInicio}
               className="flex items-center gap-2.5 cursor-pointer group select-none shrink-0"
-              title="Ir a la portada de Fondin"
+              title="Ir a la portada de Inverfondo"
             >
               <img
                 src="/isologo-fondin.png"
-                alt="Fondin"
+                alt="Inverfondo"
                 className="h-9 w-9 sm:h-10 sm:w-10 object-contain transition-transform duration-300 group-hover:scale-105"
                 loading="eager"
               />
               <div className="hidden sm:flex flex-col justify-center min-w-0">
                 <span className="font-extrabold text-white text-base sm:text-lg tracking-tight leading-none">
-                  Fondin
+                  Inverfondo
                 </span>
                 <span className="text-[10px] sm:text-[11px] font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate max-w-[155px]">
                   Inversión Fiduciaria Inmobiliaria

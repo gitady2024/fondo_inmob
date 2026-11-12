@@ -70,22 +70,22 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 py-3.5 px-4 sm:px-6 rounded-2xl mb-6 shadow-lg shadow-black/20 no-print">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         
-        {/* Identidad de Marca Fondin */}
+        {/* Identidad de Marca Inverfondo */}
         <div className="flex items-center gap-3">
           <div 
             onClick={onNavigateLanding}
             className="cursor-pointer hover:scale-[1.02] transition-transform flex items-center gap-2.5 shrink-0"
-            title="Ir a la portada de Fondin"
+            title="Ir a la portada de Inverfondo"
           >
             <img
               src="/isologo-fondin.png"
-              alt="Fondin"
+              alt="Inverfondo"
               className="h-9 w-9 sm:h-10 sm:w-10 object-contain"
               loading="eager"
             />
             <div className="flex flex-col justify-center min-w-0">
               <span className="text-base sm:text-lg font-extrabold text-white tracking-tight leading-none">
-                Fondin
+                Inverfondo
               </span>
               <span className="text-[10px] sm:text-[11px] font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate max-w-[155px] sm:max-w-none">
                 Inversión Fiduciaria Inmobiliaria

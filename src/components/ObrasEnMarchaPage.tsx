@@ -200,13 +200,13 @@ export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
             >
               <img
                 src="/isologo-fondin.png"
-                alt="Fondin"
+                alt="Inverfondo"
                 className="h-9 w-9 sm:h-10 sm:w-10 object-contain transition-transform duration-300 group-hover:scale-105"
                 loading="eager"
               />
               <div className="flex flex-col justify-center min-w-0">
                 <span className="font-extrabold text-white text-base sm:text-lg tracking-tight leading-none">
-                  Fondin
+                  Inverfondo
                 </span>
                 <span className="text-[10px] sm:text-[11px] font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate max-w-[155px] sm:max-w-none">
                   Inversión Fiduciaria Inmobiliaria
@@ -238,7 +238,7 @@ export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
                 <div className="absolute right-0 mt-2 w-64 sm:w-72 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl py-2 z-50 animate-fade-in backdrop-blur-xl">
                   <div className="px-3.5 py-1.5 border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
                     <span>Planes y Proyectos</span>
-                    <span className="text-amber-400 font-mono text-[9px]">Fondin</span>
+                    <span className="text-amber-400 font-mono text-[9px]">Inverfondo</span>
                   </div>
 
                   <button

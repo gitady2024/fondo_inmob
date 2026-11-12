@@ -21,11 +21,11 @@ export const Footer: React.FC<FooterProps> = ({
           <div className="flex items-center gap-2.5">
             <img
               src="/isologo-fondin.png"
-              alt="Fondin"
+              alt="Inverfondo"
               className="h-8 w-8 object-contain"
             />
             <div className="flex flex-col">
-              <span className="text-sm font-bold text-white tracking-tight leading-none">Fondin</span>
+              <span className="text-sm font-bold text-white tracking-tight leading-none">Inverfondo</span>
               <span className="text-[10px] text-slate-400 leading-tight mt-0.5">Inversión Fiduciaria Inmobiliaria</span>
             </div>
             <span className="text-xs text-indigo-400 font-mono hidden sm:inline ml-2">• v1.4 • Círculos de Ahorro Mutuo</span>

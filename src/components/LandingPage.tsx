@@ -228,21 +228,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* ==================================================================== */}
       <nav className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-md mb-8 px-3 sm:px-6 py-3 transition-all sticky top-2 z-30 shadow-lg shadow-black/20">
         <div className="flex justify-between items-center gap-2">
-          {/* Logo Fondin: Isologo oficial + Marca y Eslogan perfectamente legibles */}
+          {/* Logo Inverfondo: Isologo oficial + Marca y Eslogan perfectamente legibles */}
           <div
             className="flex items-center gap-2.5 sm:gap-3 cursor-pointer select-none shrink-0 group"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            title="Fondin - Inversión Fiduciaria Inmobiliaria"
+            title="Inverfondo - Inversión Fiduciaria Inmobiliaria"
           >
             <img
               src="/isologo-fondin.png"
-              alt="Fondin"
+              alt="Inverfondo"
               className="h-9 w-9 sm:h-10 sm:w-10 object-contain shrink-0 transition-transform duration-200 group-hover:scale-105"
               loading="eager"
             />
             <div className="flex flex-col justify-center min-w-0">
               <span className="text-base sm:text-lg font-extrabold text-white tracking-tight leading-none">
-                Fondin
+                Inverfondo
               </span>
               <span className="text-[10px] sm:text-[11px] font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate max-w-[155px] sm:max-w-none">
                 Inversión Fiduciaria Inmobiliaria
@@ -257,7 +257,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               onClick={() => scrollToSection('comparativa')}
               className="text-slate-300 hover:text-white transition cursor-pointer"
             >
-              Fondin vs UVA
+              Inverfondo vs UVA
             </button>
             <button
               type="button"
@@ -308,7 +308,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 >
                   <div className="px-3.5 py-1.5 border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
                     <span>Planes y Proyectos</span>
-                    <span className="text-amber-400 font-mono text-[9px]">Fondin</span>
+                    <span className="text-amber-400 font-mono text-[9px]">Inverfondo</span>
                   </div>
 
                   {/* Opción 1: Obras en Marcha */}
@@ -889,7 +889,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <tr className="border-b border-slate-800 text-slate-400 text-[11px] uppercase tracking-wider">
                   <th className="py-3 px-4">Concepto</th>
                   <th className="py-3 px-4 text-emerald-400 font-bold bg-emerald-950/20 rounded-t-xl">
-                    Fondin (Inversión Fiduciaria Inmobiliaria)
+                    Inverfondo (Inversión Fiduciaria Inmobiliaria)
                   </th>
                   <th className="py-3 px-4 text-rose-400 font-bold">Crédito Hipotecario UVA</th>
                 </tr>
