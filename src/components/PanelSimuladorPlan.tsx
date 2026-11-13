@@ -125,9 +125,11 @@ export const FintechInput: React.FC<FintechInputProps> = ({
     : value.toLocaleString('es-AR');
 
   return (
-    <div className="relative w-full flex items-center">
+    <div
+      className={`relative w-full flex items-center bg-slate-900 border border-slate-700 ${borderColor} rounded-xl shadow-inner transition-colors focus-within:ring-1 focus-within:border-amber-400 overflow-hidden`}
+    >
       {prefix && (
-        <span className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs sm:text-sm select-none pointer-events-none z-10">
+        <span className="pl-3 pr-1 text-slate-400 font-bold text-xs sm:text-sm select-none pointer-events-none shrink-0 font-mono whitespace-nowrap">
           {prefix}
         </span>
       )}
@@ -139,12 +141,10 @@ export const FintechInput: React.FC<FintechInputProps> = ({
         onFocus={handleFocus}
         onBlur={handleBlur}
         placeholder={placeholder}
-        className={`w-full bg-slate-900 border border-slate-700 ${borderColor} rounded-xl ${
-          prefix ? 'pl-7 sm:pl-8' : 'pl-2.5 sm:pl-3.5'
-        } ${suffix ? 'pr-6 sm:pr-8' : 'pr-2.5 sm:pr-3.5'} py-2 sm:py-2.5 font-mono font-bold text-base sm:text-xs ${textColor} outline-none transition shadow-inner ${className}`}
+        className={`w-full flex-1 min-w-0 bg-transparent border-0 px-2 py-2 sm:py-2.5 font-mono font-bold text-base sm:text-xs ${textColor} outline-none shadow-none ${className}`}
       />
       {suffix && (
-        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs select-none pointer-events-none z-10">
+        <span className="pr-3 pl-1 text-slate-400 font-bold text-xs select-none pointer-events-none shrink-0 font-mono whitespace-nowrap">
           {suffix}
         </span>
       )}
