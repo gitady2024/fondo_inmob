@@ -46,6 +46,7 @@ import { ModuloTecnico } from './components/ModuloTecnico';
 import { ContratoModal } from './components/ContratoModal';
 import { CentroMensajes } from './components/CentroMensajes';
 import { Footer } from './components/Footer';
+import { ChatbotAsesor } from './components/ChatbotAsesor';
 import { StickyKPIs } from './components/StickyKPIs';
 import { CapitalFlowChart } from './components/CapitalFlowChart';
 import { PossessionTimeline } from './components/PossessionTimeline';
@@ -1460,6 +1461,14 @@ export const App: React.FC = () => {
           onOpenContrato={() => setIsContratoOpen(true)}
           onOpenPersistencia={() => setIsPersistenciaOpen(true)}
           onOpenAccesoPrivado={() => navigateTo('app', { openLoginRole: 'admin' })}
+        />
+
+        {/* Asesor Virtual Fiduciario con IA (Google Gemini + Contexto Dinámico de Obras en Tiempo Real) */}
+        <ChatbotAsesor
+          proyectosActivos={fondosList.filter((f) => !esSimulacion(f))}
+          currentFondo={currentFondo}
+          onNavigate={(route) => navigateTo(route)}
+          onOpenSimulador={() => handleIniciarNuevaSimulacion()}
         />
 
         {/* Notificación Toast para Copiar Link y Feedback de Exportación */}
