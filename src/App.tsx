@@ -840,8 +840,8 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 md:p-8 overflow-x-hidden max-w-full">
+      <div className="max-w-7xl mx-auto space-y-6 w-full max-w-full overflow-x-hidden">
         
         {/* ------------------------------------------------------------------ */}
         {/* ENTORNO 1: LANDING COMERCIAL AISLADA EN LA RUTA RAÍZ (/)           */}

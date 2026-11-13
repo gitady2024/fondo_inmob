@@ -127,7 +127,7 @@ export const FintechInput: React.FC<FintechInputProps> = ({
   return (
     <div className="relative w-full flex items-center">
       {prefix && (
-        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm select-none pointer-events-none z-10">
+        <span className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs sm:text-sm select-none pointer-events-none z-10">
           {prefix}
         </span>
       )}
@@ -140,11 +140,11 @@ export const FintechInput: React.FC<FintechInputProps> = ({
         onBlur={handleBlur}
         placeholder={placeholder}
         className={`w-full bg-slate-900 border border-slate-700 ${borderColor} rounded-xl ${
-          prefix ? 'pl-20' : 'pl-3.5'
-        } ${suffix ? 'pr-8' : 'pr-3.5'} py-2.5 font-mono font-bold ${textColor} outline-none transition shadow-inner ${className}`}
+          prefix ? 'pl-7 sm:pl-8' : 'pl-2.5 sm:pl-3.5'
+        } ${suffix ? 'pr-6 sm:pr-8' : 'pr-2.5 sm:pr-3.5'} py-2 sm:py-2.5 font-mono font-bold text-base sm:text-xs ${textColor} outline-none transition shadow-inner ${className}`}
       />
       {suffix && (
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs select-none pointer-events-none z-10">
+        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs select-none pointer-events-none z-10">
           {suffix}
         </span>
       )}
@@ -827,14 +827,14 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
             </div>
 
             {/* Toggle switch para activar cesión */}
-            <label className="flex items-center gap-2 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-slate-200 font-bold cursor-pointer hover:border-rose-500/50 transition">
+            <label className="flex items-center gap-2 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-slate-200 font-bold cursor-pointer hover:border-rose-500/50 transition max-w-full">
               <input
                 type="checkbox"
                 checked={activarCesion}
                 onChange={(e) => onActivarCesionChange(e.target.checked)}
-                className="w-4 h-4 rounded text-rose-500 accent-rose-500 cursor-pointer"
+                className="w-4 h-4 rounded text-rose-500 accent-rose-500 cursor-pointer shrink-0"
               />
-              <span>{activarCesion ? 'Simulación de Cesión Activada' : 'Simular Salida / Cesión Anticipada'}</span>
+              <span className="truncate">{activarCesion ? 'Simulación de Cesión Activada' : 'Simular Salida / Cesión Anticipada'}</span>
             </label>
           </div>
 
@@ -963,15 +963,15 @@ export const PanelSimuladorPlan: React.FC<PanelSimuladorPlanProps> = ({
 
             </div>
           ) : (
-            <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800/80 text-xs text-slate-400 flex items-center justify-between">
+            <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800/80 text-xs text-slate-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <span className="flex items-center gap-2">
                 <Info className="w-4 h-4 text-slate-500 shrink-0" />
-                No se ha programado cesión anticipada. El plan proyecta la cancelación total hasta la última cuota.
+                <span>No se ha programado cesión anticipada. El plan proyecta la cancelación total hasta la última cuota.</span>
               </span>
               <button
                 type="button"
                 onClick={() => onActivarCesionChange(true)}
-                className="text-xs bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 px-3 py-1.5 rounded-lg font-bold transition cursor-pointer shrink-0 ml-2"
+                className="w-full sm:w-auto text-center text-xs bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 px-3 py-2 sm:py-1.5 rounded-lg font-bold transition cursor-pointer shrink-0"
               >
                 Activar Simulación de Cesión
               </button>

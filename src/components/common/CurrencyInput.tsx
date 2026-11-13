@@ -99,7 +99,7 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
       onFocus={handleFocus}
       onBlur={handleBlur}
       placeholder={placeholder}
-      className={`font-mono font-semibold transition-all outline-none ${className}`}
+      className={`font-mono font-semibold transition-all outline-none text-base sm:text-sm ${className}`}
     />
   );
 };
