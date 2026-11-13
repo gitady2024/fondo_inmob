@@ -87,7 +87,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="text-base sm:text-lg font-extrabold text-white tracking-tight leading-none">
                 Inverfondo
               </span>
-              <span className="text-[10px] sm:text-[11px] font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate max-w-[155px] sm:max-w-none">
+              <span className="hidden sm:block text-[11px] font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate">
                 Inversión Fiduciaria Inmobiliaria
               </span>
             </div>

@@ -148,8 +148,8 @@ export const ObrasEnMarcha: React.FC<ObrasEnMarchaProps> = ({
             </div>
 
             {/* Lado derecho: Botón de apertura a detalle completo + Tacho de basura (Admin) */}
-            <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 group-hover:bg-amber-400 text-amber-300 group-hover:text-slate-950 text-xs font-black border border-amber-500/30 group-hover:border-amber-400 transition-all shadow-sm">
+            <div className="flex items-center justify-between md:justify-end gap-2 shrink-0 w-full md:w-auto mt-1 md:mt-0">
+              <span className="inline-flex items-center justify-center gap-1.5 w-full md:w-auto px-3.5 py-2 md:py-1.5 rounded-xl bg-amber-500/15 group-hover:bg-amber-400 text-amber-300 group-hover:text-slate-950 text-xs font-black border border-amber-500/30 group-hover:border-amber-400 transition-all shadow-sm">
                 <span>Ver Detalle (Financiero & Técnico)</span>
                 <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
               </span>

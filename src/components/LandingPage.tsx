@@ -204,8 +204,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   };
 
   return (
-    <div className="w-full text-slate-100 relative">
-      {/* FAB Flotante: solo ícono circular, visible tras scroll del 50% */}
+    <div className="w-full text-slate-100 relative pb-28 sm:pb-16">
+      {/* FAB Flotante: Agendar Entrevista (ubicado a la izquierda para no solaparse jamás con el Asesor IA) */}
       <a
         id="btn-flotante-calendar"
         href="https://calendar.app.google/aacxfmLJk73KnyB39"
@@ -214,37 +214,40 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         aria-label="Agendar entrevista de ingreso"
         title="Agendar Entrevista para Ingresar"
         onClick={() => trackClicAgendarEntrevista('fab')}
-        className={`fixed bottom-6 right-5 z-50 w-14 h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full shadow-[0_4px_24px_rgba(79,70,229,0.55)] flex items-center justify-center transition-all duration-300 ${
+        className={`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40 w-12 h-12 sm:w-14 sm:h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full shadow-[0_4px_24px_rgba(79,70,229,0.55)] flex items-center justify-center transition-all duration-300 ${
           showFab
             ? 'opacity-100 translate-y-0 pointer-events-auto'
             : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
       >
-        <Calendar className="w-6 h-6" />
+        <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
       </a>
 
       {/* ==================================================================== */}
       {/* CABECERA DE LA LANDING: NAVEGACIÓN MODERNA, SIMPLE Y RESPONSIVE      */}
+      {/* En móviles: Anclada al tope (top-0) de borde a borde para que el     */}
+      {/* contenido en scroll pase limpiamente por debajo sin traslucirse.     */}
+      {/* En desktop: Barra flotante elegante con esquinas redondeadas.         */}
       {/* ==================================================================== */}
-      <nav className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-md mb-8 px-3 sm:px-6 py-3 transition-all sticky top-2 z-30 shadow-lg shadow-black/20">
+      <nav className="-mx-3 sm:mx-0 sticky top-0 sm:top-2 z-40 bg-slate-950/95 sm:bg-slate-900/90 backdrop-blur-xl border-b sm:border border-slate-800 rounded-none sm:rounded-2xl px-3 sm:px-6 py-2.5 sm:py-3 mb-6 sm:mb-8 shadow-lg shadow-black/40 transition-all">
         <div className="flex justify-between items-center gap-2">
-          {/* Logo Inverfondo: Isologo oficial + Marca y Eslogan perfectamente legibles */}
+          {/* Logo Inverfondo: Isologo oficial + Marca y Eslogan */}
           <div
-            className="flex items-center gap-2.5 sm:gap-3 cursor-pointer select-none shrink-0 group"
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer select-none shrink-0 group"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             title="Inverfondo - Inversión Fiduciaria Inmobiliaria"
           >
             <img
               src="/isologo-fondin.png"
               alt="Inverfondo"
-              className="h-9 w-9 sm:h-10 sm:w-10 object-contain shrink-0 transition-transform duration-200 group-hover:scale-105"
+              className="h-8 w-8 sm:h-10 sm:w-10 object-contain shrink-0 transition-transform duration-200 group-hover:scale-105"
               loading="eager"
             />
             <div className="flex flex-col justify-center min-w-0">
               <span className="text-base sm:text-lg font-extrabold text-white tracking-tight leading-none">
                 Inverfondo
               </span>
-              <span className="text-[10px] sm:text-[11px] font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate max-w-[155px] sm:max-w-none">
+              <span className="hidden sm:block text-[11px] font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate">
                 Inversión Fiduciaria Inmobiliaria
               </span>
             </div>
@@ -285,7 +288,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 onClick={togglePlanes}
                 aria-expanded={isPlanesOpen}
                 aria-label="Planes y Obras"
-                className={`text-xs sm:text-sm font-bold px-2.5 sm:px-3.5 py-2 rounded-xl transition cursor-pointer flex items-center gap-1 sm:gap-1.5 shadow-sm border ${
+                className={`text-xs sm:text-sm font-bold px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl transition cursor-pointer flex items-center gap-1 sm:gap-1.5 shadow-sm border ${
                   isPlanesOpen
                     ? 'bg-slate-800 border-amber-500/60 text-amber-200'
                     : 'bg-slate-800/80 hover:bg-slate-700/80 text-amber-300 hover:text-amber-200 border-amber-500/40'
@@ -377,7 +380,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 onClick={toggleIngresar}
                 aria-expanded={isIngresarOpen}
                 aria-label="Ingresar a los Portales"
-                className={`text-xs sm:text-sm font-extrabold px-2.5 sm:px-3.5 py-2 rounded-xl transition cursor-pointer flex items-center gap-1 sm:gap-1.5 shadow-sm border ${
+                className={`text-xs sm:text-sm font-extrabold px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl transition cursor-pointer flex items-center gap-1 sm:gap-1.5 shadow-sm border ${
                   user
                     ? user.role === 'admin'
                       ? 'bg-indigo-600/30 hover:bg-indigo-600/40 border-indigo-500/60 text-indigo-200'
@@ -581,7 +584,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 aria-expanded={isMenuOpen}
                 aria-label="Más opciones"
                 title="Más opciones (Contrato, Imprimir, Restablecer)"
-                className={`p-2 sm:p-2.5 rounded-xl border text-slate-300 hover:text-white transition cursor-pointer flex items-center justify-center ${
+                className={`p-1.5 sm:p-2.5 rounded-xl border text-slate-300 hover:text-white transition cursor-pointer flex items-center justify-center ${
                   isMenuOpen
                     ? 'bg-slate-800 border-indigo-500/50 text-white shadow-md'
                     : 'bg-slate-800/80 hover:bg-slate-700/80 border-slate-700'

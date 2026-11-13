@@ -208,7 +208,7 @@ export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
                 <span className="font-extrabold text-white text-base sm:text-lg tracking-tight leading-none">
                   Inverfondo
                 </span>
-                <span className="text-[10px] sm:text-[11px] font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate max-w-[155px] sm:max-w-none">
+                <span className="hidden sm:block text-[11px] font-medium text-slate-300 tracking-tight leading-tight mt-0.5 truncate">
                   Inversión Fiduciaria Inmobiliaria
                 </span>
               </div>
