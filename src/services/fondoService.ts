@@ -67,7 +67,7 @@ const CURRENT_FONDO_ID_KEY = 'fondo_inmobil_current_id';
 
 export const PLANTILLAS_PREDEFINIDAS: Omit<FondoGuardado, 'id' | 'updated_at'>[] = [
   {
-    nombre: 'Torre Central (10 Deptos • 36 Meses)',
+    nombre: 'Family Homes La Lucia (36 meses)',
     descripcion: 'Plan fiduciario activo con suscripciones completas y avance de cuotas en marcha.',
     estadoPlan: 'activo',
     params: {
@@ -85,7 +85,7 @@ export const PLANTILLAS_PREDEFINIDAS: Omit<FondoGuardado, 'id' | 'updated_at'>[]
       otrosGastos: 500
     },
     anticipos: [7500, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    adjudicacionFijada: { 1: 12 },
+    adjudicacionFijada: { 1: 12, 2: 15, 3: 18, 4: 21, 5: 24, 6: 27, 7: 30, 8: 33, 9: 36 },
     cesion: {
       activo: false,
       socioCedente: 3,
@@ -100,115 +100,25 @@ export const PLANTILLAS_PREDEFINIDAS: Omit<FondoGuardado, 'id' | 'updated_at'>[]
       cuota: 10,
       estrategia: 'reducir_cuota'
     },
-    ajustes: []
-  },
-  {
-    nombre: 'Residencial Plaza Belgrano (8 Deptos • 24 Meses)',
-    descripcion: 'Edificio residencial de escala media con entrega pactada en 24 meses y cuotas de obra al costo.',
-    estadoPlan: 'activo',
-    params: {
-      costoDepto: 60000,
-      cantidadDeptos: 8,
-      cantidadCuotas: 24,
-      valorCuotaBase: 2500,
-      fechaInicio: '2027-01',
-      modalidadAnticipo: 'reducir_cuota'
-    },
-    gastos: {
-      formaPagoGastos: 'final',
-      comisionGestion: 6,
-      comisionEscribania: 3,
-      otrosGastos: 350
-    },
-    anticipos: [6000, 0, 0, 0, 0, 0, 0, 0],
-    adjudicacionFijada: { 1: 10 },
-    cesion: {
-      activo: false,
-      socioCedente: 1,
-      cuotaSalida: 12,
-      primaCesion: 10,
-      mecanismoSalida: 'tercero'
-    },
-    adelanto: {
-      activo: false,
-      socioAdelanta: 1,
-      monto: 5000,
-      cuota: 8,
-      estrategia: 'reducir_cuota'
-    },
-    ajustes: []
-  },
-  {
-    nombre: 'Complejo Casas del Parque (6 Casas • 36 Meses)',
-    descripcion: 'Círculo ágil de viviendas de mayor metraje con amortización en 3 años y gastos prorrateados.',
-    estadoPlan: 'activo',
-    params: {
-      costoDepto: 90000,
-      cantidadDeptos: 6,
-      cantidadCuotas: 36,
-      valorCuotaBase: 2500,
-      fechaInicio: '2027-03',
-      modalidadAnticipo: 'reducir_plazo'
-    },
-    gastos: {
-      formaPagoGastos: 'prorrateado',
-      comisionGestion: 6,
-      comisionEscribania: 3,
-      otrosGastos: 400
-    },
-    anticipos: [15000, 10000, 0, 0, 0, 0],
-    adjudicacionFijada: { 1: 6, 2: 12 },
-    cesion: {
-      activo: false,
-      socioCedente: 2,
-      cuotaSalida: 12,
-      primaCesion: 12,
-      mecanismoSalida: 'tercero'
-    },
-    adelanto: {
-      activo: false,
-      socioAdelanta: 1,
-      monto: 15000,
-      cuota: 8,
-      estrategia: 'acelerar'
-    },
-    ajustes: []
-  },
-  {
-    nombre: 'Edificio Studio Suites (16 Unidades • 60 Meses)',
-    descripcion: 'Microdepartamentos para inversores con cuota accesible financiada a 5 años.',
-    estadoPlan: 'activo',
-    params: {
-      costoDepto: 45000,
-      cantidadDeptos: 16,
-      cantidadCuotas: 60,
-      valorCuotaBase: 750,
-      fechaInicio: '2027-06',
-      modalidadAnticipo: 'reducir_cuota'
-    },
-    gastos: {
-      formaPagoGastos: 'final',
-      comisionGestion: 8,
-      comisionEscribania: 3,
-      otrosGastos: 300
-    },
-    anticipos: [4500, 4500, 4500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    adjudicacionFijada: { 1: 10, 2: 15 },
-    cesion: {
-      activo: false,
-      socioCedente: 4,
-      cuotaSalida: 20,
-      primaCesion: 15,
-      mecanismoSalida: 'preferencia'
-    },
-    adelanto: {
-      activo: false,
-      socioAdelanta: 1,
-      monto: 5000,
-      cuota: 12,
-      estrategia: 'reducir_cuota'
-    },
-    ajustes: []
+    ajustes: [],
+    datosTecnicos: {
+      ...DATOS_TECNICOS_DEFAULT,
+      direccionObra: 'Av. Roque Saenz Peña esuina 12 de Octubre, Santa Lucia',
+      superficieTotalM2: 1250,
+      directorObra: 'Arq. Marcelo Gómez',
+      numeroPermisoObra: 'EXP-MUNIC-2026-89412',
+      etapas: [
+        {
+          id: 'et-1',
+          nombre: 'Estructura & Avance Físico Certificado',
+          pesoPonderado: 100,
+          porcentajeReal: 30,
+          fechaInicioEstimada: '2026-01-01',
+          fechaFinEstimada: '2026-08-30',
+          estado: 'en_progreso'
+        }
+      ]
+    }
   }
 ];
 
@@ -262,9 +172,29 @@ export const getStoredFondosSync = (): FondoGuardado[] => {
     const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
     if (raw) {
       const parsed: FondoGuardado[] = JSON.parse(raw);
-      // Purgar y retornar SOLO obras vigentes (no simulaciones viejas)
-      const soloObras = parsed.filter((f) => !esSimulacion(f));
-      if (soloObras && soloObras.length > 0) return soloObras;
+      // Purgar y retornar SOLO obras vigentes (no simulaciones viejas ni mock templates antiguas)
+      const soloObras = parsed.filter(
+        (f) =>
+          !esSimulacion(f) &&
+          !f.nombre.includes('Residencial Plaza Belgrano') &&
+          !f.nombre.includes('Complejo Casas del Parque') &&
+          !f.nombre.includes('Edificio Studio Suites')
+      );
+      if (soloObras && soloObras.length > 0) {
+        return soloObras.map((f) => {
+          if (f.nombre.includes('Torre Central')) {
+            return {
+              ...f,
+              nombre: 'Family Homes La Lucia (36 meses)',
+              datosTecnicos: {
+                ...(f.datosTecnicos || DATOS_TECNICOS_DEFAULT),
+                direccionObra: 'Av. Roque Saenz Peña esuina 12 de Octubre, Santa Lucia'
+              }
+            };
+          }
+          return f;
+        });
+      }
     }
   } catch {}
   return [
@@ -431,27 +361,32 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
     const raw = localStorage.getItem(LOCAL_STORAGE_FONDOS_KEY);
     if (raw) {
       const parsed: FondoGuardado[] = JSON.parse(raw);
-      const soloObrasActivas = parsed.filter((f) => !esSimulacion(f));
+      // Purgar y retornar SOLO obras vigentes (no simulaciones viejas ni mock templates antiguas)
+      const soloObrasActivas = parsed.filter(
+        (f) =>
+          !esSimulacion(f) &&
+          !f.nombre.includes('Residencial Plaza Belgrano') &&
+          !f.nombre.includes('Complejo Casas del Parque') &&
+          !f.nombre.includes('Edificio Studio Suites')
+      );
       if (soloObrasActivas.length > 0) {
-        if (soloObrasActivas.length !== parsed.length) {
-          try {
-            localStorage.setItem(LOCAL_STORAGE_FONDOS_KEY, JSON.stringify(soloObrasActivas));
-          } catch {}
-        }
         let changed = false;
         const upgraded = soloObrasActivas.map((f) => {
-          if (f.nombre.includes('Torre Central') && (f.nombre.includes('48 Meses') || f.params.cantidadCuotas === 48)) {
+          if (f.nombre.includes('Torre Central')) {
             changed = true;
             return {
               ...f,
-              nombre: 'Torre Central (10 Deptos • 36 Meses)',
+              nombre: 'Family Homes La Lucia (36 meses)',
               params: {
                 ...f.params,
                 costoDepto: 75000,
                 cantidadCuotas: 36,
                 valorCuotaBase: 2083
               },
-              anticipos: f.anticipos && f.anticipos[0] === 6500 ? [7500, ...f.anticipos.slice(1)] : f.anticipos,
+              datosTecnicos: {
+                ...(f.datosTecnicos || DATOS_TECNICOS_DEFAULT),
+                direccionObra: 'Av. Roque Saenz Peña esuina 12 de Octubre, Santa Lucia'
+              },
               ajustes: f.ajustes || []
             };
           }
@@ -460,7 +395,7 @@ export const getAllFondos = async (): Promise<FondoGuardado[]> => {
             ajustes: f.ajustes || []
           };
         });
-        if (changed) {
+        if (changed || soloObrasActivas.length !== parsed.length) {
           try {
             localStorage.setItem(LOCAL_STORAGE_FONDOS_KEY, JSON.stringify(upgraded));
           } catch {}

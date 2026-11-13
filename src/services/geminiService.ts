@@ -69,7 +69,7 @@ export const construirSystemPrompt = (
   - Estado: Obra en marcha con fideicomiso perfeccionado`;
           })
           .join('\n\n')
-      : '• Proyecto Modelo: Torre Central (36 cuotas al costo, unidades de 1 y 2 ambientes).';
+      : '• Proyecto Modelo: Family Homes La Lucia (36 meses) (36 cuotas al costo, unidades residenciales).';
 
   return `Eres el Asesor Virtual Fiduciario de "Inverfondo" (anteriormente conocida como Fondin).
 Tu misión es educar, asesorar y responder con precisión y calidez a potenciales inversores y socios sobre cómo funciona nuestro sistema de inversión fiduciaria inmobiliaria al costo estricto de obra.
@@ -125,7 +125,7 @@ export const responderConMotorLocal = (
           const avance = pct > 0 ? Math.round(pct) : 25;
           return `• **${o.nombre}** (${o.params?.cantidadCuotas || 36} cuotas, ${avance}% de avance)`;
         }).join('\n')
-      : '• **Torre Central** (36 cuotas al costo en pozo)';
+      : '• **Family Homes La Lucia (36 meses)** (36 cuotas al costo en pozo)';
 
     return {
       text: `Actualmente contamos con los siguientes proyectos fiduciarios activos en marcha:\n\n${nombres}\n\nPodés explorar los planos, memoria descriptiva y avances de cada obra en la sección especializada.`,

@@ -81,7 +81,7 @@ describe('fondoService - Ciclo de vida de Simulaciones vs Obras en Marcha', () =
     const vigentes = getStoredFondosSync();
     expect(vigentes.length).toBe(1);
     expect(vigentes[0].id).toBe('obra-real-1');
-    expect(vigentes[0].nombre).toBe('Torre Central (10 Deptos • 36 Meses)');
+    expect(vigentes[0].nombre).toBe('Family Homes La Lucia (36 meses)');
   });
 
   it('eliminarSimulacionDeBase remueve la simulación de la base y de localStorage', async () => {
