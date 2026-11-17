@@ -78,6 +78,39 @@ describe('geminiService - Asesor Virtual de Inverfondo', () => {
     expect(res.actions?.some((a) => a.action === 'whatsapp')).toBe(true);
   });
 
+  it('el motor local responde sobre la documentación requerida para inscribirse', () => {
+    const res = responderConMotorLocal('¿Qué documentación necesito para inscribirme?', dummyObras);
+    expect(res.text).toContain('DNI');
+    expect(res.text).toContain('domicilio');
+    expect(res.text).toContain('Garantía');
+  });
+
+  it('el motor local responde sobre la moneda de pago en dólares', () => {
+    const res = responderConMotorLocal('¿En qué moneda se pagan las cuotas?', dummyObras);
+    expect(res.text).toContain('DÓLARES ESTADOUNIDENSES');
+  });
+
+  it('el motor local aclara que no se aceptan permutas de vehículos', () => {
+    const res = responderConMotorLocal('¿Aceptan un auto o vehículo en parte de pago?', dummyObras);
+    expect(res.text.toLowerCase()).toContain('no se aceptan permutas');
+  });
+
+  it('el motor local explica el tratamiento de la mora o retraso', () => {
+    const res = responderConMotorLocal('¿Qué pasa si tengo un retraso o mora en una cuota?', dummyObras);
+    expect(res.text).toContain('prima de retraso');
+  });
+
+  it('el motor local explica las terminaciones de obra y entrega', () => {
+    const res = responderConMotorLocal('¿Cómo son las terminaciones y la entrega?', dummyObras);
+    expect(res.text).toContain('memoria técnica');
+  });
+
+  it('el motor local responde sobre los gastos de posesión y escrituración', () => {
+    const res = responderConMotorLocal('¿Cómo se pagan los gastos de posesión y escrituración?', dummyObras);
+    expect(res.text).toContain('elección del fondo');
+    expect(res.text.toLowerCase()).toContain('prorratearse');
+  });
+
   it('consultarAsesorGemini responde en modo fallback si no hay API key', async () => {
     const historial: ChatMessage[] = [];
     const res = await consultarAsesorGemini({

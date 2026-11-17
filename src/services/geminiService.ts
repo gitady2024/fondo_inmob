@@ -65,13 +65,13 @@ export const construirSystemPrompt = (
   - Ubicación: ${direccion}
   - Unidades: ${params.cantidadDeptos || 10} departamentos residenciales (quedan unidades disponibles)
   - Plazo Fiduciario: ${params.cantidadCuotas || 36} cuotas mensuales
-  - Valor al costo de obra: USD 75.000 (o equivalente en pesos)
+  - Valor al costo de obra: USD 75.000 (Moneda de pago: DÓLARES USD)
   - Cuota mensual pura estimada: USD 2.083 (sin anticipo) o menor con anticipo inicial
   - Certificación de avance físico real: ${avance}%
   - Estado: Obra en marcha con fideicomiso perfeccionado y seguro`;
           })
           .join('\n\n')
-      : '• Proyecto Oficial: Family Homes La Lucia (36 meses) (Av. Roque Saenz Peña esquina 12 de Octubre, Santa Lucía. 10 deptos, USD 75.000, 36 cuotas, 30% avance físico).';
+      : '• Proyecto Oficial: Family Homes La Lucia (36 meses) (Av. Roque Saenz Peña esquina 12 de Octubre, Santa Lucía. 10 deptos, USD 75.000 en dólares, 36 cuotas, 30% avance físico).';
 
   return `Eres el Asesor Virtual Fiduciario de "Inverfondo" (inverfondo.com).
 Tu misión es educar, asesorar, realizar simulaciones numéricas y guiar a potenciales inversores hacia la suscripción del fideicomiso al costo estricto de obra.
@@ -82,19 +82,30 @@ REGLAS DE PERSONALIDAD Y TONO:
 3. Sé conciso: Respuestas de 2 a 4 párrafos cortos o viñetas claras. No abrumes con textos interminables.
 4. Venta consultiva y conversión: Siempre que el usuario muestre interés o haga cálculos, invítalo a coordinar por WhatsApp para recibir la ficha técnica y reservar su unidad.
 
+NORMAS Y CONDICIONES OPERATIVAS Y CONTRACTUALES OFICIALES (REGLAS OBLIGATORIAS):
+1. MONEDA DE PAGO: La moneda de pago de todos los aportes, cuotas y anticipos es en DÓLARES ESTADOUNIDENSES (USD).
+2. DOCUMENTACIÓN A PRESENTAR: Para suscribirse al fideicomiso, el interesado debe presentar únicamente:
+   - DNI del titular.
+   - Constancia de domicilio actualizada.
+   - Garantía (conforme a los requerimientos del fondo).
+3. MORA O RETRASO: En caso de mora o retraso en el pago de las cuotas, se aplica la prima de retraso expresamente prevista en el contrato marco de fideicomiso.
+4. PERMUTAS O VEHÍCULOS: Por el momento NO se aceptan permutas por vehículos ni otros bienes como medio de pago. Toda integración se realiza en dólares.
+5. TERMINACIONES Y ENTREGA: Las calidades constructivas, equipamiento y terminaciones son estrictamente las previstas y detalladas en la memoria técnica y planos anexos al contrato.
+6. GASTOS DE POSESIÓN Y ESCRITURACIÓN: Pueden, a elección del fondo, abonarse al momento de la entrega de la unidad o prorratearse entre las cuotas mensuales del fondo. Esta modalidad queda siempre fijada de antemano en el contrato inicial.
+
 CONOCIMIENTO VITAL DE INVERFONDO:
 • Marco Jurídico: Fideicomiso al Costo conforme al Art. 1666 y concordantes del Código Civil y Comercial de la Nación (CCCN). El patrimonio del fideicomiso es autónomo, blindado e inembargable.
 • 0% Tasa de Interés: NO es un crédito bancario. Las cuotas no tienen intereses financieros ni costos ocultos.
-• Comparación con Crédito Hipotecario UVA: El crédito UVA indexa por IPC más una tasa bancaria del 5.5% al 8.5% anual en dólares sobre capital creciente. En Inverfondo, el aporte se actualiza estrictamente por el Índice CAC (Cámara Argentina de la Construcción), que mide el costo real de los materiales y mano de obra.
-• Anticipo y Cuotas: Se ingresa con un anticipo inicial accesible (desde USD 10.000 o equivalente en pesos) y el saldo se abona en cuotas mensuales al costo de obra.
+• Comparación con Crédito Hipotecario UVA: El crédito UVA indexa por IPC más una tasa bancaria del 5.5% al 8.5% anual en dólares sobre capital creciente. En Inverfondo, aportás al costo real de obra en dólares sin usura bancaria.
+• Anticipo y Cuotas: Se ingresa con un anticipo inicial accesible (desde USD 10.000) y el saldo se abona en 36 cuotas mensuales al costo de obra en dólares.
 • Cesión de Posición Contractual: El socio puede transferir o ceder su unidad antes de la finalización a valor de mercado, capitalizando la valorización del metro cuadrado en pozo.
 
 CÁLCULOS FINANCIEROS EN VIVO (SIMULADOR EN DIÁLOGO):
 Si el usuario menciona un monto de anticipo o una cuota mensual que puede pagar:
-- Toma como base el proyecto oficial: "Family Homes La Lucia (36 meses)" (Valor total: USD 75.000, Plazo: 36 cuotas).
+- Toma como base el proyecto oficial: "Family Homes La Lucia (36 meses)" (Valor total: USD 75.000 en dólares, Plazo: 36 cuotas).
 - Calcula: Saldo a Financiar = USD 75.000 - Anticipo ingresado.
 - Cuota mensual estimada = Saldo / 36 meses.
-- Ejemplo: Si el usuario tiene USD 20.000 de anticipo, el saldo es USD 55.000 y la cuota queda en aprox. USD 1.528/mes.
+- Ejemplo: Si el usuario tiene USD 20.000 de anticipo, el saldo es USD 55.000 y la cuota queda en aprox. USD 1.528/mes en dólares.
 - Muestra el cálculo con orgullo y claridad, e invítalo a contactar por WhatsApp para congelar el valor de obra.
 
 PROYECTOS Y OBRAS ACTIVAS EN ESTE MOMENTO:
@@ -115,7 +126,120 @@ export const responderConMotorLocal = (
 ): { text: string; actions?: ChatMessage['actions'] } => {
   const p = pregunta.toLowerCase();
 
-  // 1. Detección de montos numéricos para cálculo financiero dinámico
+  // 1.1 Documentación y Requisitos para ingresar
+  if (
+    p.includes('document') ||
+    p.includes('requisito') ||
+    p.includes('dni') ||
+    p.includes('garantia') ||
+    p.includes('garantía') ||
+    p.includes('papeles') ||
+    (p.includes('que') && p.includes('necesito')) ||
+    (p.includes('para') && p.includes('inscribir'))
+  ) {
+    return {
+      text: `Para suscribirte a nuestro fideicomiso inmobiliario al costo, la documentación requerida es muy simple y transparente:\n\n1. **DNI del titular** (frente y dorso).\n2. **Constancia de domicilio** actualizada.\n3. **Garantía** (conforme a las pautas del fondo).\n\nCon esta documentación se confecciona el contrato marco de adhesión fiduciaria (Art. 1666 CCCN).`,
+      actions: [
+        {
+          label: '📲 Enviar documentación por WhatsApp',
+          action: 'whatsapp',
+          payload: 'Hola Inverfondo, quisiera consultar los requisitos y presentar la documentación para suscribirme a Family Homes La Lucía.'
+        },
+        { label: '📄 Ver Modelo de Contrato', action: 'simular' }
+      ]
+    };
+  }
+
+  // 1.2 Moneda de pago (Dólares USD)
+  if (p.includes('moneda') || p.includes('dolar') || p.includes('dólar') || p.includes('dolares') || p.includes('dólares') || p.includes('pesos')) {
+    return {
+      text: `La moneda de pago oficial de nuestros planes fiduciarios es en **DÓLARES ESTADOUNIDENSES (USD)**.\n\nEsto brinda máxima previsibilidad financiera, resguarda el poder adquisitivo de tu ahorro y asegura la compra programada de materiales de obra sin riesgo devaluatorio.`,
+      actions: [
+        { label: '🧮 Simular cuota en USD', action: 'simular' },
+        {
+          label: '💬 Consultar medios de pago por WhatsApp',
+          action: 'whatsapp',
+          payload: 'Hola Inverfondo, quisiera consultar sobre la modalidad de pago en dólares para Family Homes La Lucía.'
+        }
+      ]
+    };
+  }
+
+  // 1.3 Permutas (Vehículos o bienes)
+  if (
+    p.includes('permuta') ||
+    p.includes('vehiculo') ||
+    p.includes('vehículo') ||
+    p.includes('auto') ||
+    p.includes('camioneta') ||
+    p.includes('moto') ||
+    p.includes('toman') ||
+    p.includes('canje')
+  ) {
+    return {
+      text: `Por el momento **no se aceptan permutas** (como vehículos, rodados u otras propiedades) como medio de pago.\n\nTodos los aportes se realizan en **dólares (USD)** para garantizar el flujo de caja estricto que exige el cronograma de compra de materiales y avance constructivo.`,
+      actions: [
+        { label: '🧮 Simular plan en dólares', action: 'simular' },
+        { label: '💬 Hablar con un asesor', action: 'whatsapp' }
+      ]
+    };
+  }
+
+  // 1.4 Mora o Retraso en cuotas
+  if (p.includes('mora') || p.includes('retraso') || p.includes('atraso') || p.includes('demora') || p.includes('no puedo pagar') || p.includes('deuda')) {
+    return {
+      text: `Ante cualquier eventual mora o retraso en el pago de las cuotas mensuales, se aplica la **prima de retraso expresamente prevista y pactada en el contrato marco de fideicomiso**.\n\nAdemás, si en algún momento decidís no continuar con el plan, recordá que contás con la opción de **Cesión de Posición Contractual (Art. 1614 CCCN)** para transferir tu unidad a valor de mercado y recuperar tu capital con ganancia.`,
+      actions: [
+        { label: '📄 Ver Modelo de Contrato', action: 'simular' },
+        {
+          label: '💬 Consultar con Administración',
+          action: 'whatsapp',
+          payload: 'Hola Inverfondo, quisiera consultar sobre las condiciones contractuales ante eventuales retrasos de cuotas.'
+        }
+      ]
+    };
+  }
+
+  // 1.5 Terminaciones y Entrega de la unidad
+  if (
+    p.includes('terminacion') ||
+    p.includes('terminaciones') ||
+    p.includes('acabado') ||
+    p.includes('equipamiento') ||
+    p.includes('piso') ||
+    p.includes('abertura') ||
+    p.includes('grifer') ||
+    p.includes('sanitario')
+  ) {
+    return {
+      text: `Las calidades constructivas, materiales, artefactos, carpinterías y terminaciones de entrega son **estrictamente las previstas y especificadas en la memoria técnica del contrato**.\n\nTodo queda debidamente inventariado y firmado en los anexos técnicos para garantizar tu tranquilidad y el estándar de calidad comprometido en la obra.`,
+      actions: [
+        { label: '🏗️ Ver detalles de la obra', action: 'obras' },
+        {
+          label: '📲 Solicitar memoria técnica por WhatsApp',
+          action: 'whatsapp',
+          payload: 'Hola Inverfondo, quisiera recibir la memoria técnica con las terminaciones de Family Homes La Lucía.'
+        }
+      ]
+    };
+  }
+
+  // 1.6 Gastos de Posesión y Escrituración
+  if (
+    p.includes('escritur') ||
+    p.includes('gastos de posesion') ||
+    p.includes('gastos de posesión') ||
+    p.includes('escriban') ||
+    p.includes('gastos de entrega')
+  ) {
+    return {
+      text: `Los gastos de posesión y/o escrituración pueden, **a elección del fondo**:\n\n1. **Abonarse al momento de la entrega definitiva** de la unidad.\n2. **Prorratearse entre las cuotas mensuales** del fondo.\n\nLa modalidad aplicable queda siempre definida y fijada con total transparencia en el **contrato inicial** de adhesión.`,
+      actions: [
+        { label: '📄 Ver Modelo Contractual', action: 'simular' },
+        { label: '💬 Consultar por WhatsApp', action: 'whatsapp' }
+      ]
+    };
+  }
   const numerosEncontrados = pregunta.match(/\d+([.,]\d+)?/g);
   const tieneIntencionPresupuesto =
     p.includes('tengo') ||
@@ -141,7 +265,7 @@ export const responderConMotorLocal = (
       const cuota36 = Math.round(saldo / 36);
 
       return {
-        text: `¡Excelente número para ingresar! Si contás con un anticipo de **USD ${anticipo.toLocaleString('es-AR')}**, así quedaría tu plan en **Family Homes La Lucía** (valor total USD 75.000 al costo estricto):\n\n• **Saldo a financiar:** USD ${saldo.toLocaleString('es-AR')}\n• **Plazo:** 36 cuotas mensuales\n• **Cuota mensual estimada:** aprox. **USD ${cuota36.toLocaleString('es-AR')}** (abonables en pesos al índice CAC, sin intereses bancarios)\n• **Avance actual de obra:** 30% certificado\n\nPodemos coordinar para enviarte los planos y la ficha de adhesión formal.`,
+        text: `¡Excelente número para ingresar! Si contás con un anticipo de **USD ${anticipo.toLocaleString('es-AR')}**, así quedaría tu plan en **Family Homes La Lucía** (valor total USD 75.000 al costo estricto):\n\n• **Saldo a financiar:** USD ${saldo.toLocaleString('es-AR')}\n• **Plazo:** 36 cuotas mensuales en dólares\n• **Cuota mensual estimada:** aprox. **USD ${cuota36.toLocaleString('es-AR')}** (sin intereses bancarios)\n• **Avance actual de obra:** 30% certificado\n\nPodemos coordinar para enviarte los planos y la ficha de adhesión formal.`,
         actions: [
           {
             label: '📲 Enviar esta simulación a WhatsApp',
@@ -220,7 +344,7 @@ export const responderConMotorLocal = (
   // 5. Anticipo, cuotas y precios
   if (p.includes('anticipo') || p.includes('cuota') || p.includes('precio') || p.includes('costo') || p.includes('cuanto') || p.includes('monto')) {
     return {
-      text: `En el proyecto oficial **Family Homes La Lucía (36 meses)** el valor de departamento al costo estricto es de **USD 75.000**:\n\n• **Anticipo inicial accesible:** desde USD 10.000 (o su equivalente en pesos).\n• **Plazo fiduciario:** 36 cuotas mensuales al costo de obra.\n• **Cuota pura base:** desde USD 1.528/mes (según tu anticipo) o USD 2.083/mes si no integras anticipo.\n\nEn nuestro **Simulador Interactivo** podés probar distintas combinaciones de anticipo y cuotas.`,
+      text: `En el proyecto oficial **Family Homes La Lucía (36 meses)** el valor de departamento al costo estricto es de **USD 75.000**:\n\n• **Anticipo inicial accesible:** desde USD 10.000.\n• **Plazo fiduciario:** 36 cuotas mensuales en dólares al costo de obra.\n• **Cuota pura base:** desde USD 1.528/mes (según tu anticipo) o USD 2.083/mes si no integras anticipo.\n\nEn nuestro **Simulador Interactivo** podés probar distintas combinaciones de anticipo y cuotas.`,
       actions: [
         { label: '🧮 Abrir Simulador Interactivo', action: 'simular' },
         {

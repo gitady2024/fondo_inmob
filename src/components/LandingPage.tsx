@@ -17,7 +17,13 @@ import {
   LogOut,
   ChevronDown,
   ChevronRight,
-  Layers
+  Layers,
+  DollarSign,
+  FileText,
+  AlertCircle,
+  Ban,
+  Home,
+  Key
 } from 'lucide-react';
 import type { FondoGuardado } from '../services/fondoService';
 import { PLANTILLAS_PREDEFINIDAS } from '../services/fondoService';
@@ -980,6 +986,105 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <h3 className="text-lg font-bold text-white">Posesión o Cesión</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
               Toma posesión para habitar o alquilar tu departamento terminado, o vende tu posición en el mercado con plusvalía.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================================================================== */}
+      {/* CONDICIONES CLARAS Y OPERATORIA DEL FONDO                            */}
+      {/* ==================================================================== */}
+      <section id="condiciones-fondo" className="mb-16 scroll-mt-24">
+        <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-bold uppercase tracking-wider mb-1">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Transparencia y Reglas Claras</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
+            Condiciones de Adhesión y Operatoria
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-400">
+            Todo lo que necesitás saber antes de suscribirte, respaldado en el contrato marco de fideicomiso al costo.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* 1. Moneda de Pago */}
+          <div className="bg-slate-900/60 border border-slate-800 hover:border-amber-500/40 rounded-3xl p-6 space-y-3 transition group">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform">
+              <DollarSign className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <span>Moneda de Pago</span>
+              <span className="text-[10px] uppercase font-black bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">USD</span>
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              La integración de anticipos y cuotas se realiza en <strong>dólares estadounidenses (USD)</strong>, brindando máxima estabilidad y resguardo del poder de compra de los materiales de obra.
+            </p>
+          </div>
+
+          {/* 2. Documentación */}
+          <div className="bg-slate-900/60 border border-slate-800 hover:border-indigo-500/40 rounded-3xl p-6 space-y-3 transition group">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 group-hover:scale-105 transition-transform">
+              <FileText className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-white">
+              Documentación Requerida
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Para ingresar al fideicomiso solo se solicita: <strong>DNI del titular</strong>, <strong>constancia de domicilio</strong> actualizada y <strong>garantía</strong> para perfeccionar el contrato marco.
+            </p>
+          </div>
+
+          {/* 3. Mora o Retraso */}
+          <div className="bg-slate-900/60 border border-slate-800 hover:border-rose-500/40 rounded-3xl p-6 space-y-3 transition group">
+            <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 group-hover:scale-105 transition-transform">
+              <AlertCircle className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-white">
+              Mora o Retraso
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Ante cualquier atraso en las cuotas se aplica estrictamente la <strong>prima de retraso prevista en el contrato</strong>, protegiendo el ritmo de avance de la obra colectiva.
+            </p>
+          </div>
+
+          {/* 4. Permutas */}
+          <div className="bg-slate-900/60 border border-slate-800 hover:border-slate-700 rounded-3xl p-6 space-y-3 transition group">
+            <div className="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 group-hover:scale-105 transition-transform">
+              <Ban className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-white">
+              Permutas de Vehículos
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Por el momento <strong>no se aceptan permutas</strong> (vehículos, rodados ni otros bienes) como medio de pago. Todos los aportes se integran en dólares para flujo directo de obra.
+            </p>
+          </div>
+
+          {/* 5. Terminaciones y Entrega */}
+          <div className="bg-slate-900/60 border border-slate-800 hover:border-emerald-500/40 rounded-3xl p-6 space-y-3 transition group">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
+              <Home className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-white">
+              Terminaciones de Obra
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Las terminaciones, artefactos y especificaciones constructivas son las <strong>previstas en la memoria técnica del contrato</strong>, garantizando el estándar comprometido.
+            </p>
+          </div>
+
+          {/* 6. Gastos de Posesión y Escrituración */}
+          <div className="bg-slate-900/60 border border-slate-800 hover:border-teal-500/40 rounded-3xl p-6 space-y-3 transition group">
+            <div className="w-10 h-10 rounded-2xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 group-hover:scale-105 transition-transform">
+              <Key className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-white">
+              Posesión y Escrituración
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              A elección del fondo, pueden <strong>incluirse al momento de la entrega o prorratearse entre las cuotas</strong>. La modalidad siempre se establece formalmente en el contrato inicial.
             </p>
           </div>
         </div>
