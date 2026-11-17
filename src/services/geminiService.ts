@@ -270,7 +270,7 @@ export const responderConMotorLocal = (
 };
 
 /**
- * Consulta en modo STREAMING a Google Gemini (gemini-1.5-flash).
+ * Consulta en modo STREAMING a Google Gemini (gemini-3.5-flash-lite).
  * Si hay API Key: transmite palabra por palabra en tiempo real vía Server-Sent Events (SSE).
  * Si no hay API Key o falla: recurre al motor heurístico con efecto progresivo tipo máquina de escribir.
  */
@@ -347,7 +347,7 @@ export const consultarAsesorGeminiStream = async ({
   contents.push({ role: 'user', parts: [{ text: nuevoMensaje }] });
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:streamGenerateContent?alt=sse&key=${apiKey}`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -368,6 +368,15 @@ export const consultarAsesorGeminiStream = async ({
     if (!response.ok || !response.body) {
       console.warn('Gemini stream falló con código:', response.status);
       const fallback = responderConMotorLocal(nuevoMensaje, proyectosActivos);
+      if (onChunk) {
+        const palabras = fallback.text.split(' ');
+        let acumulado = '';
+        for (let i = 0; i < palabras.length; i++) {
+          acumulado += (i === 0 ? '' : ' ') + palabras[i];
+          onChunk(acumulado);
+          await new Promise((resolve) => setTimeout(resolve, 14));
+        }
+      }
       return {
         id: `msg-${Date.now()}`,
         sender: 'assistant',
@@ -440,6 +449,15 @@ export const consultarAsesorGeminiStream = async ({
   } catch (error) {
     console.error('Error en conexión streaming con Gemini:', error);
     const fallback = responderConMotorLocal(nuevoMensaje, proyectosActivos);
+    if (onChunk) {
+      const palabras = fallback.text.split(' ');
+      let acumulado = '';
+      for (let i = 0; i < palabras.length; i++) {
+        acumulado += (i === 0 ? '' : ' ') + palabras[i];
+        onChunk(acumulado);
+        await new Promise((resolve) => setTimeout(resolve, 14));
+      }
+    }
     return {
       id: `msg-${Date.now()}`,
       sender: 'assistant',

@@ -167,7 +167,7 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
         id: `msg-sys-${Date.now()}`,
         sender: 'assistant',
         text: keyValida
-          ? '✨ **Google Gemini 1.5 Flash activado con éxito.** A partir de ahora contás con razonamiento de Inteligencia Artificial completo y streaming ultrarrápido.'
+          ? '✨ **Google Gemini AI activado con éxito.** A partir de ahora contás con razonamiento de Inteligencia Artificial completo y streaming ultrarrápido.'
           : 'ℹ️ Se eliminó la clave API personalizada. El asesor vuelve a operar en **Modo Local Inteligente**.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
@@ -280,7 +280,7 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
                 </div>
                 <span className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
                   <span className={`w-1.5 h-1.5 rounded-full ${hasCustomKey ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                  {hasCustomKey ? 'Gemini 1.5 Flash • Streaming' : 'Modo Heurístico Activo'}
+                  {hasCustomKey ? 'Gemini AI • Streaming' : 'Modo Heurístico Activo'}
                 </span>
               </div>
             </div>
