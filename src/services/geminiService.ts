@@ -134,6 +134,8 @@ export const responderConMotorLocal = (
     p.includes('garantia') ||
     p.includes('garantía') ||
     p.includes('papeles') ||
+    p.includes('paso a paso') ||
+    p.includes('pasos') ||
     (p.includes('que') && p.includes('necesito')) ||
     (p.includes('para') && p.includes('inscribir'))
   ) {
@@ -151,7 +153,19 @@ export const responderConMotorLocal = (
   }
 
   // 1.2 Moneda de pago (Dólares USD)
-  if (p.includes('moneda') || p.includes('dolar') || p.includes('dólar') || p.includes('dolares') || p.includes('dólares') || p.includes('pesos')) {
+  if (
+    p.includes('moneda') ||
+    p.includes('monda') ||
+    p.includes('dolar') ||
+    p.includes('dólar') ||
+    p.includes('dolares') ||
+    p.includes('dólares') ||
+    p.includes('pesos') ||
+    (p.includes('en que') && p.includes('paga')) ||
+    (p.includes('en qué') && p.includes('paga')) ||
+    (p.includes('medio') && p.includes('pago')) ||
+    (p.includes('forma') && p.includes('pago'))
+  ) {
     return {
       text: `La moneda de pago oficial de nuestros planes fiduciarios es en **DÓLARES ESTADOUNIDENSES (USD)**.\n\nEsto brinda máxima previsibilidad financiera, resguarda el poder adquisitivo de tu ahorro y asegura la compra programada de materiales de obra sin riesgo devaluatorio.`,
       actions: [

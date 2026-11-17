@@ -88,6 +88,9 @@ describe('geminiService - Asesor Virtual de Inverfondo', () => {
   it('el motor local responde sobre la moneda de pago en dólares', () => {
     const res = responderConMotorLocal('¿En qué moneda se pagan las cuotas?', dummyObras);
     expect(res.text).toContain('DÓLARES ESTADOUNIDENSES');
+
+    const resTypo = responderConMotorLocal('en que monda puedo pagar', dummyObras);
+    expect(resTypo.text).toContain('DÓLARES ESTADOUNIDENSES');
   });
 
   it('el motor local aclara que no se aceptan permutas de vehículos', () => {
