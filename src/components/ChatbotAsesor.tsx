@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { FondoGuardado } from '../services/fondoService';
 import {
   type ChatMessage,
-  consultarAsesorGemini,
+  consultarAsesorGeminiStream,
   getGeminiApiKey,
   setGeminiApiKey
 } from '../services/geminiService';
+import { WHATSAPP_RAW_NUMBER } from '../types/preinscripcion';
 import {
   X,
   Send,
@@ -14,7 +15,10 @@ import {
   RotateCcw,
   Key,
   Check,
-  ArrowRight
+  ArrowRight,
+  Zap,
+  Trash2,
+  ExternalLink
 } from 'lucide-react';
 
 interface ChatbotAsesorProps {
@@ -26,9 +30,10 @@ interface ChatbotAsesorProps {
 
 const PREGUNTAS_RAPIDAS = [
   '¿Cómo funciona el fideicomiso al costo?',
+  'Tengo USD 20.000, ¿cuánto pago de cuota?',
   '¿Por qué es mejor que un crédito UVA?',
   '¿Qué obras tienen disponibles hoy?',
-  '¿Cuánto es el anticipo y las cuotas?'
+  'Quiero anotarme en Family Homes La Lucía'
 ];
 
 export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
@@ -40,6 +45,7 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [streamingText, setStreamingText] = useState<string | null>(null);
   const [showConfigApiKey, setShowConfigApiKey] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [hasCustomKey, setHasCustomKey] = useState(false);
@@ -49,11 +55,16 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
     {
       id: 'msg-welcome',
       sender: 'assistant',
-      text: '¡Hola! Soy tu **Asesor Virtual Fiduciario** en **Inverfondo**.\n\nPuedo responder cualquier duda sobre cómo funciona el sistema al costo, la diferencia con los créditos bancarios UVA, o los proyectos disponibles en este momento. ¿En qué te puedo ayudar?',
+      text: '¡Hola! Soy tu **Asesor Virtual Fiduciario** en **Inverfondo**.\n\nPuedo responder cualquier duda sobre cómo funciona el sistema al costo, calcular tus cuotas al instante para **Family Homes La Lucía** (USD 75.000 en 36 meses), o comparar nuestro plan con créditos UVA. ¿En qué te puedo ayudar hoy?',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       actions: [
         { label: '💡 ¿Cómo funciona?', action: 'simular' },
-        { label: '🏗️ Ver proyectos activos', action: 'obras' }
+        { label: '🏗️ Ver proyecto activo', action: 'obras' },
+        {
+          label: '💬 Consultar por WhatsApp',
+          action: 'whatsapp',
+          payload: 'Hola Inverfondo, quisiera recibir asesoramiento comercial sobre el proyecto Family Homes La Lucía.'
+        }
       ]
     }
   ]);
@@ -73,7 +84,7 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       setTimeout(() => inputRef.current?.focus(), 150);
     }
-  }, [isOpen, messages, isTyping]);
+  }, [isOpen, messages, isTyping, streamingText]);
 
   const handleSendMessage = async (textToSend?: string) => {
     const messageContent = (textToSend || inputText).trim();
@@ -89,17 +100,23 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
     setMessages((prev) => [...prev, userMsg]);
     setInputText('');
     setIsTyping(true);
+    setStreamingText('');
 
     try {
-      const respuesta = await consultarAsesorGemini({
+      const respuesta = await consultarAsesorGeminiStream({
         historial: [...messages, userMsg],
         nuevoMensaje: messageContent,
         proyectosActivos,
-        currentFondo
+        currentFondo,
+        onChunk: (parcial) => {
+          setStreamingText(parcial);
+        }
       });
 
+      setStreamingText(null);
       setMessages((prev) => [...prev, respuesta]);
     } catch {
+      setStreamingText(null);
       setMessages((prev) => [
         ...prev,
         {
@@ -112,10 +129,11 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
       ]);
     } finally {
       setIsTyping(false);
+      setStreamingText(null);
     }
   };
 
-  const handleActionClick = (action: string) => {
+  const handleActionClick = (action: string, payload?: string) => {
     if (action === 'simular') {
       if (onOpenSimulador) {
         onOpenSimulador();
@@ -129,29 +147,56 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
       }
       setIsOpen(false);
     } else if (action === 'whatsapp') {
-      const msg = encodeURIComponent(
-        'Hola, estuve consultando en la web de Inverfondo y me gustaría recibir asesoramiento personalizado sobre los planes fiduciarios al costo.'
-      );
-      window.open(`https://wa.me/5491161234567?text=${msg}`, '_blank');
+      const defaultMsg =
+        'Hola, estuve consultando con el Asesor IA de Inverfondo y me gustaría recibir asesoramiento personalizado sobre Family Homes La Lucía.';
+      const finalMsg = encodeURIComponent(payload || defaultMsg);
+      window.open(`https://wa.me/${WHATSAPP_RAW_NUMBER}?text=${finalMsg}`, '_blank');
     }
   };
 
   const handleSaveApiKey = () => {
     setGeminiApiKey(apiKeyInput);
-    setHasCustomKey(Boolean(apiKeyInput.trim()));
+    const keyValida = Boolean(apiKeyInput.trim());
+    setHasCustomKey(keyValida);
+    setShowConfigApiKey(false);
+
+    // Mensaje confirmatorio en el chat
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `msg-sys-${Date.now()}`,
+        sender: 'assistant',
+        text: keyValida
+          ? '✨ **Google Gemini 1.5 Flash activado con éxito.** A partir de ahora contás con razonamiento de Inteligencia Artificial completo y streaming ultrarrápido.'
+          : 'ℹ️ Se eliminó la clave API personalizada. El asesor vuelve a operar en **Modo Local Inteligente**.',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ]);
+  };
+
+  const handleClearApiKey = () => {
+    setApiKeyInput('');
+    setGeminiApiKey('');
+    setHasCustomKey(false);
     setShowConfigApiKey(false);
   };
 
   const handleResetChat = () => {
+    setStreamingText(null);
     setMessages([
       {
         id: `msg-${Date.now()}`,
         sender: 'assistant',
-        text: '¡Conversación reiniciada! ¿Qué consulta tenés sobre los planes fiduciarios al costo de **Inverfondo**?',
+        text: '¡Conversación reiniciada! ¿Qué consulta tenés sobre los planes fiduciarios al costo de **Inverfondo** o el proyecto **Family Homes La Lucía**?',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         actions: [
           { label: '💡 ¿Cómo funciona?', action: 'simular' },
-          { label: '🏗️ Ver proyectos activos', action: 'obras' }
+          { label: '🏗️ Ver proyectos activos', action: 'obras' },
+          {
+            label: '💬 Hablar por WhatsApp',
+            action: 'whatsapp',
+            payload: 'Hola Inverfondo, quisiera recibir información sobre el plan fiduciario de Family Homes La Lucía.'
+          }
         ]
       }
     ]);
@@ -164,7 +209,7 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
       {/* ==================================================================== */}
       {!isOpen && (
         <div className="relative group">
-          {/* Badge o notificación flotante superior sutil (solo desktop para no tapar contenido en móviles) */}
+          {/* Badge o notificación flotante superior sutil (solo desktop) */}
           {hasUnreadNotification && (
             <div className="hidden sm:flex absolute -top-10 right-2 bg-slate-900/95 text-amber-300 text-[11px] font-bold px-3 py-1.5 rounded-full border border-amber-500/40 shadow-xl whitespace-nowrap animate-bounce items-center gap-1.5 pointer-events-none backdrop-blur-md">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
@@ -214,10 +259,9 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
       {/* 2. VENTANA DE CHAT (ESTADO ABIERTO)                                  */}
       {/* ==================================================================== */}
       {isOpen && (
-        <div className="w-[calc(100vw-1.5rem)] sm:w-[400px] h-[550px] max-h-[calc(100dvh-5rem)] bg-slate-950/95 backdrop-blur-2xl border border-slate-800 rounded-3xl shadow-2xl shadow-black/80 flex flex-col overflow-hidden animate-fade-in transition-all">
-          
+        <div className="w-[calc(100vw-1.5rem)] sm:w-[420px] h-[570px] max-h-[calc(100dvh-5rem)] bg-slate-950/95 backdrop-blur-2xl border border-slate-800 rounded-3xl shadow-2xl shadow-black/80 flex flex-col overflow-hidden animate-fade-in transition-all">
           {/* CABECERA INSTITUCIONAL */}
-          <header className="px-4 py-3.5 bg-slate-900/95 border-b border-slate-800 flex items-center justify-between gap-3 shrink-0">
+          <header className="px-4 py-3 bg-slate-900/95 border-b border-slate-800 flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-2.5">
               <div className="relative">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 border border-indigo-400/40 flex items-center justify-center text-white shadow-md shadow-indigo-600/30">
@@ -235,8 +279,8 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
                   </span>
                 </div>
                 <span className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  Inverfondo • Respuestas al instante
+                  <span className={`w-1.5 h-1.5 rounded-full ${hasCustomKey ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                  {hasCustomKey ? 'Gemini 1.5 Flash • Streaming' : 'Modo Heurístico Activo'}
                 </span>
               </div>
             </div>
@@ -248,10 +292,10 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
                 onClick={() => setShowConfigApiKey((prev) => !prev)}
                 className={`p-1.5 rounded-lg text-xs transition cursor-pointer ${
                   hasCustomKey
-                    ? 'text-emerald-400 hover:bg-emerald-500/10'
+                    ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
-                title="Configurar Google Gemini API Key"
+                title={hasCustomKey ? 'API Key de Gemini Configurada' : 'Configurar Google Gemini API Key'}
               >
                 <Key className="w-4 h-4" />
               </button>
@@ -278,18 +322,36 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
             </div>
           </header>
 
-          {/* PANEL OPCIONAL: CONFIGURAR API KEY */}
+          {/* PANEL DE CONFIGURACIÓN API KEY */}
           {showConfigApiKey && (
-            <div className="bg-slate-900 p-3.5 border-b border-slate-800 text-xs text-slate-300 space-y-2 animate-fade-in shrink-0">
+            <div className="bg-slate-900 p-3.5 border-b border-slate-800 text-xs text-slate-300 space-y-2.5 animate-fade-in shrink-0">
               <div className="flex items-center justify-between font-bold text-white">
                 <span className="flex items-center gap-1.5">
                   <Key className="w-3.5 h-3.5 text-amber-400" /> Google Gemini API Key
                 </span>
-                <span className="text-[10px] text-slate-400">Opcional</span>
+                {hasCustomKey ? (
+                  <span className="text-[10px] text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                    <Zap className="w-2.5 h-2.5" /> Conectado
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-full font-bold">
+                    Opcional
+                  </span>
+                )}
               </div>
+
               <p className="text-[11px] text-slate-400 leading-snug">
-                Si no ingresas una clave, el asesor funcionará en <strong>Modo Local Inteligente</strong> utilizando las obras y datos en tiempo real de Inverfondo.
+                Con tu clave gratuita de Google Gemini 1.5 Flash el asesor razona libremente en tiempo real. Podés obtenerla en{' '}
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-amber-400 hover:underline inline-flex items-center gap-0.5"
+                >
+                  aistudio.google.com <ExternalLink className="w-2.5 h-2.5" />
+                </a>.
               </p>
+
               <div className="flex gap-2">
                 <input
                   type="password"
@@ -301,11 +363,21 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
                 <button
                   type="button"
                   onClick={handleSaveApiKey}
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer transition"
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 cursor-pointer transition shrink-0"
                 >
                   <Check className="w-3.5 h-3.5" />
                   <span>Guardar</span>
                 </button>
+                {hasCustomKey && (
+                  <button
+                    type="button"
+                    onClick={handleClearApiKey}
+                    className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-xl text-xs transition cursor-pointer"
+                    title="Eliminar clave"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -320,7 +392,7 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
                 }`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 space-y-1.5 leading-relaxed shadow-sm ${
+                  className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 space-y-1.5 leading-relaxed shadow-sm ${
                     msg.sender === 'user'
                       ? 'bg-amber-500 text-slate-950 font-medium rounded-tr-sm'
                       : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-sm'
@@ -349,7 +421,7 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
                         <button
                           key={actIdx}
                           type="button"
-                          onClick={() => handleActionClick(act.action)}
+                          onClick={() => handleActionClick(act.action, act.payload)}
                           className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer active:scale-95"
                         >
                           <span>{act.label}</span>
@@ -366,11 +438,37 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
               </div>
             ))}
 
-            {/* Indicador de escritura animado */}
-            {isTyping && (
-              <div className="flex items-center gap-2 text-slate-400 bg-slate-900/80 border border-slate-800 rounded-2xl px-3.5 py-2 max-w-[140px] animate-pulse">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" />
-                <span className="text-[11px]">Escribiendo...</span>
+            {/* Mensaje en tiempo real mientras hace streaming */}
+            {streamingText !== null && (
+              <div className="flex flex-col items-start animate-fade-in">
+                <div className="max-w-[88%] rounded-2xl rounded-tl-sm px-3.5 py-2.5 space-y-1.5 leading-relaxed shadow-sm bg-slate-900 border border-indigo-500/30 text-slate-200">
+                  {streamingText.trim().length === 0 ? (
+                    <div className="flex items-center gap-2 text-indigo-300 py-1">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                      <span className="text-[11px]">Calculando respuesta...</span>
+                    </div>
+                  ) : (
+                    <div className="whitespace-pre-wrap">
+                      {streamingText.split('\n\n').map((paragraph, pIdx) => (
+                        <p key={pIdx} className={pIdx > 0 ? 'mt-2' : ''}>
+                          {paragraph.split('**').map((part, i) =>
+                            i % 2 === 1 ? (
+                              <strong key={i} className="font-bold text-white">
+                                {part}
+                              </strong>
+                            ) : (
+                              part
+                            )
+                          )}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <span className="text-[10px] text-indigo-400/80 px-1 mt-1 flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5 animate-pulse text-amber-400" />
+                  Escribiendo en vivo...
+                </span>
               </div>
             )}
 
@@ -405,7 +503,7 @@ export const ChatbotAsesor: React.FC<ChatbotAsesorProps> = ({
                   handleSendMessage();
                 }
               }}
-              placeholder="Preguntá lo que quieras sobre el plan..."
+              placeholder="Escribí tu consulta o tu presupuesto..."
               className="flex-1 bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition"
               disabled={isTyping}
             />

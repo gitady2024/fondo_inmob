@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   construirSystemPrompt,
   responderConMotorLocal,
   consultarAsesorGemini,
+  consultarAsesorGeminiStream,
   type ChatMessage
 } from './geminiService';
 import type { FondoGuardado } from './fondoService';
@@ -11,12 +12,12 @@ describe('geminiService - Asesor Virtual de Inverfondo', () => {
   const dummyObras: FondoGuardado[] = [
     {
       id: 'obra-test-1',
-      nombre: 'Edificio Las Heras 48 Meses',
+      nombre: 'Family Homes La Lucia (36 meses)',
       updated_at: new Date().toISOString(),
       params: {
-        costoDepto: 48000000,
-        cantidadCuotas: 48,
-        cantidadDeptos: 24,
+        costoDepto: 75000,
+        cantidadCuotas: 36,
+        cantidadDeptos: 10,
         tasaAjusteMensual: 0,
         mesInicio: '2026-01',
         modalidadAnticipo: 'tradicional',
@@ -28,8 +29,8 @@ describe('geminiService - Asesor Virtual de Inverfondo', () => {
       cesion: {} as any,
       adelanto: {} as any,
       datosTecnicos: {
-        direccionObra: 'Av. Las Heras 2340',
-        etapas: [{ pesoPonderado: 100, porcentajeReal: 35 }]
+        direccionObra: 'Av. Roque Saenz Peña esquina 12 de Octubre, Santa Lucía',
+        etapas: [{ pesoPonderado: 100, porcentajeReal: 30 }]
       } as any
     }
   ];
@@ -37,8 +38,8 @@ describe('geminiService - Asesor Virtual de Inverfondo', () => {
   it('construye el System Prompt inyectando las obras activas en tiempo real', () => {
     const prompt = construirSystemPrompt(dummyObras);
     expect(prompt).toContain('Inverfondo');
-    expect(prompt).toContain('Edificio Las Heras 48 Meses');
-    expect(prompt).toContain('Av. Las Heras 2340');
+    expect(prompt).toContain('Family Homes La Lucia (36 meses)');
+    expect(prompt).toContain('Santa Lucía');
     expect(prompt).toContain('Art. 1666');
     expect(prompt).toContain('UVA');
   });
@@ -53,14 +54,28 @@ describe('geminiService - Asesor Virtual de Inverfondo', () => {
 
   it('el motor local responde preguntas sobre obras activas listando los proyectos en vivo', () => {
     const res = responderConMotorLocal('¿Qué departamentos u obras tienen disponibles?', dummyObras);
-    expect(res.text).toContain('Edificio Las Heras 48 Meses');
-    expect(res.actions?.some(a => a.action === 'obras')).toBe(true);
+    expect(res.text).toContain('Family Homes La Lucia');
+    expect(res.actions?.some((a) => a.action === 'obras')).toBe(true);
   });
 
   it('el motor local responde preguntas sobre anticipos y cuotas', () => {
     const res = responderConMotorLocal('¿Cuánto tengo que pagar de anticipo?', dummyObras);
     expect(res.text).toContain('10.000');
-    expect(res.actions?.some(a => a.action === 'simular')).toBe(true);
+    expect(res.actions?.some((a) => a.action === 'simular')).toBe(true);
+  });
+
+  it('el motor local realiza cálculos financieros dinámicos en diálogo', () => {
+    const res = responderConMotorLocal('Tengo USD 20.000 de anticipo, ¿cuánto pago por mes?', dummyObras);
+    expect(res.text).toContain('20.000');
+    expect(res.text).toContain('55.000'); // 75.000 - 20.000
+    expect(res.text).toContain('1.528');  // 55.000 / 36
+    expect(res.actions?.some((a) => a.action === 'whatsapp')).toBe(true);
+  });
+
+  it('el motor local detecta intención de preinscripción o reserva', () => {
+    const res = responderConMotorLocal('Quiero anotarme para reservar un depto', dummyObras);
+    expect(res.text.toLowerCase()).toContain('reserva');
+    expect(res.actions?.some((a) => a.action === 'whatsapp')).toBe(true);
   });
 
   it('consultarAsesorGemini responde en modo fallback si no hay API key', async () => {
@@ -74,5 +89,22 @@ describe('geminiService - Asesor Virtual de Inverfondo', () => {
     expect(res.sender).toBe('assistant');
     expect(res.text.length).toBeGreaterThan(20);
     expect(res.timestamp).toBeDefined();
+  });
+
+  it('consultarAsesorGeminiStream emite fragmentos vía onChunk', async () => {
+    const historial: ChatMessage[] = [];
+    const chunks: string[] = [];
+    const res = await consultarAsesorGeminiStream({
+      historial,
+      nuevoMensaje: 'Tengo USD 15.000 para invertir',
+      proyectosActivos: dummyObras,
+      onChunk: (chunk) => {
+        chunks.push(chunk);
+      }
+    });
+
+    expect(chunks.length).toBeGreaterThan(0);
+    expect(res.sender).toBe('assistant');
+    expect(res.text).toContain('15.000');
   });
 });
