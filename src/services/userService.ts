@@ -53,47 +53,47 @@ export const CUENTAS_BASE_DEFAULT: UsuarioCuenta[] = [
 ];
 
 /**
- * Obtiene la lista completa de usuarios registrados en el sistema
+ * Obtiene la lista completa de usuarios registrados en el sistema.
+ * Inicializa con las cuentas fiduciarias base solo en la primera carga (cuando el almacenamiento está virgen),
+ * respetando estrictamente las eliminaciones, modificaciones y adiciones posteriores del usuario.
  */
 export const getUsuariosRegistrados = (): UsuarioCuenta[] => {
   if (typeof window === 'undefined') return CUENTAS_BASE_DEFAULT;
 
   try {
     const raw = localStorage.getItem(STORAGE_ACCOUNTS_KEY);
-    let accounts: UsuarioCuenta[] = raw ? JSON.parse(raw) : [];
 
-    // Si está vacío, inicializar con las cuentas base
-    if (!accounts || accounts.length === 0) {
+    // Solo si el storage nunca fue inicializado (null), sembramos las cuentas base
+    if (raw === null) {
+      const initial = [...CUENTAS_BASE_DEFAULT];
+      localStorage.setItem(STORAGE_ACCOUNTS_KEY, JSON.stringify(initial));
+      return initial;
+    }
+
+    let accounts: UsuarioCuenta[] = [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        accounts = parsed;
+      } else {
+        accounts = [...CUENTAS_BASE_DEFAULT];
+        localStorage.setItem(STORAGE_ACCOUNTS_KEY, JSON.stringify(accounts));
+        return accounts;
+      }
+    } catch {
       accounts = [...CUENTAS_BASE_DEFAULT];
       localStorage.setItem(STORAGE_ACCOUNTS_KEY, JSON.stringify(accounts));
       return accounts;
     }
 
-    // Asegurar que las cuentas base existan si no fueron dadas de baja
-    const emailsExistentes = new Set(accounts.map((a) => a.email.toLowerCase()));
-    let modificado = false;
-
-    for (const base of CUENTAS_BASE_DEFAULT) {
-      if (!emailsExistentes.has(base.email.toLowerCase())) {
-        accounts.push(base);
-        modificado = true;
-      }
-    }
-
-    // Normalizar campos faltantes (activo por defecto true, etc.)
-    accounts = accounts.map((acc) => ({
+    // Normalizar campos para consistencia de datos
+    return accounts.map((acc) => ({
       ...acc,
       activo: acc.activo !== false,
-      nombre: acc.nombre || acc.email.split('@')[0],
+      nombre: acc.nombre ? acc.nombre.trim() : acc.email.split('@')[0],
       createdAt: acc.createdAt || new Date().toISOString(),
       updatedAt: acc.updatedAt || new Date().toISOString()
     }));
-
-    if (modificado) {
-      localStorage.setItem(STORAGE_ACCOUNTS_KEY, JSON.stringify(accounts));
-    }
-
-    return accounts;
   } catch (err) {
     console.warn('Error al leer usuarios de localStorage:', err);
     return CUENTAS_BASE_DEFAULT;
@@ -101,7 +101,8 @@ export const getUsuariosRegistrados = (): UsuarioCuenta[] => {
 };
 
 /**
- * Crea o edita un usuario registrado en el sistema
+ * Crea o edita un usuario registrado en el sistema.
+ * Valida formato de correo, unicidad del email, contraseña, asignaciones según rol y sincroniza la sesión activa.
  */
 export const guardarUsuario = (
   datos: Partial<UsuarioCuenta> & { email: string; role: UserRole }
@@ -111,25 +112,73 @@ export const guardarUsuario = (
   }
 
   const normEmail = datos.email.trim().toLowerCase();
+
+  // Validación básica de formato de correo
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(normEmail)) {
+    return { success: false, error: 'El formato de correo electrónico ingresado no es válido.' };
+  }
+
+  if (datos.nombre !== undefined && (!datos.nombre || !datos.nombre.trim())) {
+    return { success: false, error: 'El nombre completo o razón social no puede estar vacío.' };
+  }
+
   const accounts = getUsuariosRegistrados();
 
-  const id = datos.id || `user-${Date.now()}`;
+  // Validar conflicto de email: no permitir que dos cuentas tengan el mismo correo
+  if (datos.id) {
+    const conflict = accounts.find(
+      (a) => a.email.toLowerCase() === normEmail && a.id !== datos.id
+    );
+    if (conflict) {
+      return {
+        success: false,
+        error: `El correo "${normEmail}" ya está asignado a otra cuenta (${conflict.nombre}).`
+      };
+    }
+  } else {
+    const existe = accounts.find((a) => a.email.toLowerCase() === normEmail);
+    if (existe) {
+      return {
+        success: false,
+        error: `Ya existe una cuenta registrada con el correo "${normEmail}".`
+      };
+    }
+  }
+
   const now = new Date().toISOString();
 
-  const index = accounts.findIndex(
-    (a) => (datos.id && a.id === datos.id) || a.email.toLowerCase() === normEmail
-  );
+  // Buscar usuario a editar por ID primero, luego por email
+  let index = -1;
+  if (datos.id) {
+    index = accounts.findIndex((a) => a.id === datos.id);
+  }
+  if (index === -1) {
+    index = accounts.findIndex((a) => a.email.toLowerCase() === normEmail);
+  }
+
+  const finalId = index >= 0 ? accounts[index].id : (datos.id || `user-${Date.now()}`);
+
+  // Manejo de contraseña:
+  // Si se ingresó una nueva contraseña, validar longitud mínima de 3 caracteres
+  let passwordFinal = index >= 0 ? (accounts[index].password || 'inverfondo123') : 'inverfondo123';
+  if (datos.password && datos.password.trim()) {
+    if (datos.password.trim().length < 3) {
+      return { success: false, error: 'La contraseña debe tener al menos 3 caracteres.' };
+    }
+    passwordFinal = datos.password.trim();
+  }
 
   const usuarioGuardado: UsuarioCuenta = {
-    id: index >= 0 ? accounts[index].id : id,
+    id: finalId,
     email: normEmail,
-    password: datos.password || (index >= 0 ? accounts[index].password : 'inverfondo123'),
+    password: passwordFinal,
     nombre: datos.nombre?.trim() || (index >= 0 ? accounts[index].nombre : normEmail.split('@')[0]),
     role: datos.role,
     especialidad: datos.role === 'tecnico' ? (datos.especialidad?.trim() || 'Dirección de Obra y Certificaciones') : undefined,
     socioId: datos.role === 'socio' ? (datos.socioId || 1) : undefined,
     activo: datos.activo !== undefined ? datos.activo : (index >= 0 ? accounts[index].activo : true),
-    createdAt: index >= 0 ? accounts[index].createdAt || now : now,
+    createdAt: index >= 0 ? (accounts[index].createdAt || now) : now,
     updatedAt: now
   };
 
@@ -146,18 +195,21 @@ export const guardarUsuario = (
       // Si el usuario editado es el que actualmente está logueado, sincronizar su sesión activa
       const rawActive = localStorage.getItem(STORAGE_ACTIVE_USER_KEY);
       if (rawActive) {
-        const active: UserProfile = JSON.parse(rawActive);
-        if (active.email?.toLowerCase() === normEmail || active.id === usuarioGuardado.id) {
-          const updatedActive: UserProfile = {
-            ...active,
-            nombre: usuarioGuardado.nombre,
-            role: usuarioGuardado.role,
-            email: usuarioGuardado.email,
-            especialidad: usuarioGuardado.especialidad,
-            socioId: usuarioGuardado.socioId
-          };
-          localStorage.setItem(STORAGE_ACTIVE_USER_KEY, JSON.stringify(updatedActive));
-        }
+        try {
+          const active: UserProfile = JSON.parse(rawActive);
+          if (active.email?.toLowerCase() === normEmail || active.id === usuarioGuardado.id) {
+            const updatedActive: UserProfile = {
+              ...active,
+              id: usuarioGuardado.id,
+              nombre: usuarioGuardado.nombre,
+              role: usuarioGuardado.role,
+              email: usuarioGuardado.email,
+              especialidad: usuarioGuardado.especialidad,
+              socioId: usuarioGuardado.socioId
+            };
+            localStorage.setItem(STORAGE_ACTIVE_USER_KEY, JSON.stringify(updatedActive));
+          }
+        } catch {}
       }
     }
     return { success: true, usuario: usuarioGuardado };
@@ -167,15 +219,30 @@ export const guardarUsuario = (
 };
 
 /**
- * Elimina una cuenta de usuario por ID o Email
+ * Elimina permanentemente una cuenta de usuario por ID o Email.
+ * Una vez eliminada, no volverá a regenerarse automáticamente.
  */
-export const eliminarUsuario = (id: string): { success: boolean; error?: string } => {
+export const eliminarUsuario = (idOrEmail: string): { success: boolean; error?: string } => {
   try {
-    const accounts = getUsuariosRegistrados();
-    const filtered = accounts.filter((a) => a.id !== id && a.email !== id);
+    const raw = localStorage.getItem(STORAGE_ACCOUNTS_KEY);
+    if (!raw) {
+      return { success: false, error: 'No se encontraron cuentas almacenadas en el sistema.' };
+    }
+
+    let accounts: UsuarioCuenta[] = [];
+    try {
+      accounts = JSON.parse(raw);
+    } catch {
+      return { success: false, error: 'Error al interpretar el almacenamiento de cuentas.' };
+    }
+
+    const target = idOrEmail.trim().toLowerCase();
+    const filtered = accounts.filter(
+      (a) => a.id !== idOrEmail && a.email.toLowerCase() !== target
+    );
 
     if (filtered.length === accounts.length) {
-      return { success: false, error: 'No se encontró el usuario a eliminar.' };
+      return { success: false, error: 'No se encontró la cuenta que se desea eliminar.' };
     }
 
     if (typeof window !== 'undefined') {
@@ -190,10 +257,11 @@ export const eliminarUsuario = (id: string): { success: boolean; error?: string 
 /**
  * Conmuta el estado de actividad de un usuario (Activo / Suspendido)
  */
-export const alternarEstadoUsuario = (id: string): { success: boolean; nuevoEstado?: boolean; error?: string } => {
+export const alternarEstadoUsuario = (idOrEmail: string): { success: boolean; nuevoEstado?: boolean; error?: string } => {
   try {
     const accounts = getUsuariosRegistrados();
-    const index = accounts.findIndex((a) => a.id === id);
+    const target = idOrEmail.trim().toLowerCase();
+    const index = accounts.findIndex((a) => a.id === idOrEmail || a.email.toLowerCase() === target);
 
     if (index === -1) {
       return { success: false, error: 'Usuario no encontrado.' };
@@ -219,14 +287,15 @@ export const alternarEstadoUsuario = (id: string): { success: boolean; nuevoEsta
 /**
  * Restablece o cambia la contraseña de una cuenta
  */
-export const restablecerPassword = (id: string, nuevoPass: string): { success: boolean; error?: string } => {
+export const restablecerPassword = (idOrEmail: string, nuevoPass: string): { success: boolean; error?: string } => {
   if (!nuevoPass || nuevoPass.trim().length < 3) {
     return { success: false, error: 'La contraseña debe tener al menos 3 caracteres.' };
   }
 
   try {
     const accounts = getUsuariosRegistrados();
-    const index = accounts.findIndex((a) => a.id === id);
+    const target = idOrEmail.trim().toLowerCase();
+    const index = accounts.findIndex((a) => a.id === idOrEmail || a.email.toLowerCase() === target);
 
     if (index === -1) {
       return { success: false, error: 'Usuario no encontrado.' };
@@ -246,5 +315,15 @@ export const restablecerPassword = (id: string, nuevoPass: string): { success: b
   } catch (err: any) {
     return { success: false, error: err?.message || 'Error al restablecer contraseña.' };
   }
+};
+
+/**
+ * Restablece las cuentas de fábrica del sistema fiduciario
+ */
+export const restablecerCuentasPorDefecto = (): UsuarioCuenta[] => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_ACCOUNTS_KEY, JSON.stringify(CUENTAS_BASE_DEFAULT));
+  }
+  return [...CUENTAS_BASE_DEFAULT];
 };
 

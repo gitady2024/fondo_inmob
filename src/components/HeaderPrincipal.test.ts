@@ -24,3 +24,4 @@ describe('HeaderPrincipal - Componente Global de Navegación Permanente', () => 
     expect(dummyProps.onNavigateObras).toBeDefined();
   });
 });
+

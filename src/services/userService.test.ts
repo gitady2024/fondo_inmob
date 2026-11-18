@@ -148,4 +148,86 @@ describe('userService - Gestión de Cuentas y Accesos de Usuarios', () => {
     const usuarios = getUsuariosRegistrados();
     expect(usuarios.some((u) => u.id === id)).toBe(false);
   });
+
+  it('permite eliminar permanentemente una de las cuentas base (ej: admin base) sin que vuelva a aparecer', () => {
+    // 1. Obtener lista inicial con cuentas base
+    const inicial = getUsuariosRegistrados();
+    const adminBase = inicial.find((u) => u.email === 'admin@fondoinmobil.com');
+    expect(adminBase).toBeDefined();
+
+    // 2. Eliminar la cuenta base
+    const deleteRes = eliminarUsuario(adminBase!.id);
+    expect(deleteRes.success).toBe(true);
+
+    // 3. Consultar nuevamente la lista; NO debe resucitar
+    const despues = getUsuariosRegistrados();
+    expect(despues.some((u) => u.email === 'admin@fondoinmobil.com')).toBe(false);
+    expect(despues.some((u) => u.id === adminBase!.id)).toBe(false);
+  });
+
+  it('rechaza guardar usuario si el email entra en conflicto con otra cuenta registrada', () => {
+    guardarUsuario({
+      id: 'user-a',
+      email: 'primero@example.com',
+      nombre: 'Primer Usuario',
+      role: 'socio'
+    });
+
+    guardarUsuario({
+      id: 'user-b',
+      email: 'segundo@example.com',
+      nombre: 'Segundo Usuario',
+      role: 'socio'
+    });
+
+    // Intentar cambiar el email de user-b para que sea el de user-a
+    const conflictoRes = guardarUsuario({
+      id: 'user-b',
+      email: 'primero@example.com',
+      nombre: 'Segundo Usuario Con Conflicto',
+      role: 'socio'
+    });
+
+    expect(conflictoRes.success).toBe(false);
+    expect(conflictoRes.error).toContain('ya está asignado a otra cuenta');
+  });
+
+  it('permite cambiar el email de una cuenta sin regenerar el email anterior como duplicado', () => {
+    const res = guardarUsuario({
+      id: 'user-modificar-email',
+      email: 'original@example.com',
+      nombre: 'Original',
+      role: 'tecnico'
+    });
+    expect(res.success).toBe(true);
+
+    // Modificar email
+    const editRes = guardarUsuario({
+      id: 'user-modificar-email',
+      email: 'renombrado@example.com',
+      nombre: 'Original Renombrado',
+      role: 'tecnico'
+    });
+    expect(editRes.success).toBe(true);
+
+    const usuarios = getUsuariosRegistrados();
+    expect(usuarios.some((u) => u.email === 'renombrado@example.com')).toBe(true);
+    expect(usuarios.some((u) => u.email === 'original@example.com')).toBe(false);
+  });
+
+  it('guarda correctamente el estado activo/suspendido del usuario', () => {
+    const res = guardarUsuario({
+      id: 'user-estado-test',
+      email: 'inactivo@example.com',
+      nombre: 'Usuario Inactivo',
+      role: 'socio',
+      activo: false
+    });
+    expect(res.success).toBe(true);
+    expect(res.usuario?.activo).toBe(false);
+
+    const usuarios = getUsuariosRegistrados();
+    const guardado = usuarios.find((u) => u.id === 'user-estado-test');
+    expect(guardado?.activo).toBe(false);
+  });
 });

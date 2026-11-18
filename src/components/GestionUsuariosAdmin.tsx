@@ -110,7 +110,10 @@ export const GestionUsuariosAdmin: React.FC<GestionUsuariosAdminProps> = ({
   // Abrir modal de edición
   const handleAbrirEditar = (user: UsuarioCuenta) => {
     setModoModal('editar');
-    setUsuarioEditando({ ...user });
+    setUsuarioEditando({
+      ...user,
+      password: '' // Vaciamos para que el placeholder "Dejar en blanco para conservar" funcione correctamente
+    });
     setMostrarPassword(false);
     setIsModalOpen(true);
   };
@@ -120,6 +123,10 @@ export const GestionUsuariosAdmin: React.FC<GestionUsuariosAdminProps> = ({
     e.preventDefault();
     if (!usuarioEditando.email || !usuarioEditando.email.trim()) {
       onShowToast('❌ Debes ingresar un correo electrónico válido.');
+      return;
+    }
+    if (!usuarioEditando.nombre || !usuarioEditando.nombre.trim()) {
+      onShowToast('❌ Debes ingresar el nombre completo o razón social.');
       return;
     }
 
@@ -137,20 +144,37 @@ export const GestionUsuariosAdmin: React.FC<GestionUsuariosAdminProps> = ({
 
     setGuardando(false);
 
-    if (res.success) {
+    if (res.success && res.usuario) {
       onShowToast(
         modoModal === 'crear'
-          ? `✅ Cuenta de ${usuarioEditando.nombre || usuarioEditando.email} creada con éxito.`
-          : `✅ Datos de ${usuarioEditando.nombre || usuarioEditando.email} actualizados.`
+          ? `✅ Cuenta de "${res.usuario.nombre}" creada con éxito.`
+          : `✅ Datos de "${res.usuario.nombre}" actualizados correctamente.`
       );
-      cargarUsuarios();
       setIsModalOpen(false);
+      cargarUsuarios();
+
+      // Si el usuario editado es el que tiene la sesión activa actual, sincronizar en vivo
+      if (
+        res.usuario.id === currentUser.id ||
+        res.usuario.email.toLowerCase() === currentUser.email?.toLowerCase()
+      ) {
+        if (onSwitchUser) {
+          onSwitchUser({
+            id: res.usuario.id,
+            nombre: res.usuario.nombre,
+            role: res.usuario.role,
+            email: res.usuario.email,
+            especialidad: res.usuario.especialidad,
+            socioId: res.usuario.socioId
+          });
+        }
+      }
     } else {
       onShowToast(`❌ Error: ${res.error || 'No se pudo guardar el usuario'}`);
     }
   };
 
-  // Eliminar usuario
+  // Eliminar usuario permanentemente
   const handleEliminar = (user: UsuarioCuenta) => {
     if (user.id === currentUser.id || user.email.toLowerCase() === currentUser.email?.toLowerCase()) {
       onShowToast('⚠️ No puedes eliminar la cuenta con la que has iniciado sesión.');
@@ -160,7 +184,9 @@ export const GestionUsuariosAdmin: React.FC<GestionUsuariosAdminProps> = ({
     if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente la cuenta de "${user.nombre}" (${user.email})?`)) {
       const res = eliminarUsuario(user.id);
       if (res.success) {
-        onShowToast(`🗑️ Cuenta de ${user.nombre} eliminada del sistema.`);
+        // Remover de inmediato del estado visual de React para respuesta instantánea
+        setUsuarios((prev) => prev.filter((u) => u.id !== user.id && u.email.toLowerCase() !== user.email.toLowerCase()));
+        onShowToast(`🗑️ Cuenta de "${user.nombre}" eliminada permanentemente del sistema.`);
         cargarUsuarios();
       } else {
         onShowToast(`❌ Error al eliminar: ${res.error}`);
@@ -640,17 +666,26 @@ export const GestionUsuariosAdmin: React.FC<GestionUsuariosAdminProps> = ({
                     type={mostrarPassword ? 'text' : 'password'}
                     value={usuarioEditando.password || ''}
                     onChange={(e) => setUsuarioEditando({ ...usuarioEditando, password: e.target.value })}
-                    placeholder={modoModal === 'crear' ? 'Asignar contraseña (mínimo 3 caracteres)' : 'Dejar en blanco para no modificar'}
+                    placeholder={
+                      modoModal === 'crear'
+                        ? 'Asignar contraseña (mínimo 3 caracteres)'
+                        : 'Dejar en blanco para conservar la actual'
+                    }
                     className="w-full bg-slate-950 border border-slate-700 hover:border-indigo-500 focus:border-indigo-500 rounded-xl px-3.5 py-2 pr-10 text-xs text-white outline-none font-mono transition"
                   />
                   <button
                     type="button"
                     onClick={() => setMostrarPassword(!mostrarPassword)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-white cursor-pointer"
                   >
                     {mostrarPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
+                <span className="text-[11px] text-slate-400 mt-1 block">
+                  {modoModal === 'editar'
+                    ? 'Dejá este campo en blanco si deseás mantener la contraseña actual del usuario.'
+                    : 'Contraseña provisoria de acceso (mínimo 3 caracteres).'}
+                </span>
               </div>
 
               {/* Rol en la Plataforma */}
@@ -763,6 +798,41 @@ export const GestionUsuariosAdmin: React.FC<GestionUsuariosAdminProps> = ({
                   />
                 </div>
               )}
+
+              {/* Estado de la Cuenta (Activo / Suspendido) */}
+              <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between">
+                <div>
+                  <span className="block text-xs font-bold text-slate-200">
+                    Estado de la Cuenta
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    {usuarioEditando.activo !== false
+                      ? '🟢 Cuenta activa con acceso habilitado a la plataforma'
+                      : '🔴 Cuenta suspendida (bloquea el inicio de sesión)'}
+                  </span>
+                  {modoModal === 'editar' &&
+                    (usuarioEditando.id === currentUser.id ||
+                      usuarioEditando.email?.toLowerCase() === currentUser.email?.toLowerCase()) && (
+                      <span className="text-[10px] text-amber-400 block mt-0.5">
+                        ⚠️ No puedes suspender tu propia cuenta activa en uso.
+                      </span>
+                    )}
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={usuarioEditando.activo !== false}
+                    onChange={(e) => setUsuarioEditando({ ...usuarioEditando, activo: e.target.checked })}
+                    disabled={
+                      modoModal === 'editar' &&
+                      (usuarioEditando.id === currentUser.id ||
+                        usuarioEditando.email?.toLowerCase() === currentUser.email?.toLowerCase())
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600 peer-disabled:opacity-40"></div>
+                </label>
+              </div>
 
               {/* Botonera de Guardado */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
