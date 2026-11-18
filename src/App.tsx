@@ -26,6 +26,7 @@ import {
   PLANTILLAS_PREDEFINIDAS
 } from './services/fondoService';
 import type { FondoGuardado } from './services/fondoService';
+import { verificarEstadoSocio } from './services/userService';
 import { HeaderPrincipal } from './components/HeaderPrincipal';
 import { FundSwitcher } from './components/FundSwitcher';
 import { NewFundModal } from './components/NewFundModal';
@@ -79,6 +80,28 @@ export const App: React.FC = () => {
 
   const [devUser, setDevUserOverride] = useState<UserProfile | null>(null);
   const currentUser: UserProfile | null = authProfile || devUser;
+
+  // Verificación reactiva de admisión fiduciaria para socios inversores
+  const verificacionSocio = useMemo(() => {
+    return currentUser ? verificarEstadoSocio(currentUser) : null;
+  }, [currentUser]);
+
+  // Si el usuario tiene rol 'socio' pero aún no cumple los requisitos fiduciarios (Art. 1666 CCCN),
+  // entra protegido en Modo Invitado / Prospecto con invitaciones a completar requisitos
+  const currentUserEfectivo = useMemo(() => {
+    if (!currentUser) return null;
+    if (currentUser.role === 'socio') {
+      const verif = verificarEstadoSocio(currentUser);
+      if (!verif.esAprobado) {
+        return {
+          ...currentUser,
+          isGuest: true,
+          estadoSocio: verif.estado
+        };
+      }
+    }
+    return currentUser;
+  }, [currentUser]);
   const [loginInitialRole, setLoginInitialRole] = useState<UserRole>('admin');
   const [isLoginOpen, setIsLoginOpen] = useState<boolean>(false);
   const currentFondoRef = useRef<FondoGuardado | null>(null);
@@ -864,7 +887,7 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       {/* HEADER INSTITUCIONAL UNIFICADO Y FIJO DE MANERA PERMANENTE EN TODAS LAS PÁGINAS Y SECCIONES */}
       <HeaderPrincipal
-        user={currentUser}
+        user={currentUserEfectivo}
         currentRoute={currentRoute}
         proyectoActivoId={currentFondoId}
         unreadCount={unreadCount}
@@ -1350,7 +1373,13 @@ export const App: React.FC = () => {
           /* CASO 3: USUARIO LOGUEADO Y ES SOCIO -> PORTAL DEL SOCIO */
           <div className="space-y-6 animate-fade-in">
             <PortalSocio
-              user={currentUser}
+              user={currentUserEfectivo || currentUser}
+              verificacionSocio={verificacionSocio || undefined}
+              onSolicitudEnviada={(actualizado) => {
+                setDevUserOverride(actualizado);
+                setDevUser(actualizado);
+                setToastMessage('✅ Solicitud de admisión enviada a la Administración Fiduciaria para revisión.');
+              }}
               currentFondo={currentFondo}
               flujoSocio={socioActual}
               fechaInicio={currentFondo.params.fechaInicio}
@@ -1358,8 +1387,8 @@ export const App: React.FC = () => {
               gastos={currentFondo.gastos}
               onUpdateGastos={handleGastosChange}
               onOpenContrato={() => setIsContratoOpen(true)}
-              onSignOut={currentUser.isGuest ? undefined : handleSignOutAll}
-              onLogin={currentUser.isGuest ? () => setIsLoginOpen(true) : undefined}
+              onSignOut={handleSignOutAll}
+              onLogin={() => setIsLoginOpen(true)}
               initialTab="simulacion"
             />
           </div>

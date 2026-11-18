@@ -8,6 +8,15 @@ export interface UserProfile {
   email?: string;
   especialidad?: string; // Ej: 'Dirección de Obras y Gestoría Pública'
   isGuest?: boolean;
+  estadoSocio?: 'aprobado' | 'prospecto' | 'pendiente_aprobacion';
+  dni?: string;
+  domicilio?: string;
+  garantiaTipo?: string;
+  garantiaDetalle?: string;
+  pagoInicialMonto?: number;
+  pagoInicialAcreditado?: boolean;
+  obraAsignadaId?: string;
+  obraAsignadaNombre?: string;
 }
 
 export const ADMIN_USER: UserProfile = {

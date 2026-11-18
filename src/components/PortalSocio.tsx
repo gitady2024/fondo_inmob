@@ -22,6 +22,11 @@ import { ModuloTecnico } from './ModuloTecnico';
 import { CentroMensajes } from './CentroMensajes';
 import { DATOS_TECNICOS_DEFAULT } from '../types/tecnico';
 import {
+  verificarEstadoSocio,
+  enviarSolicitudSocio,
+  type VerificacionSocio
+} from '../services/userService';
+import {
   Building2,
   ScrollText,
   HardHat,
@@ -39,7 +44,13 @@ import {
   AlertCircle,
   LogOut,
   LogIn,
-  Calculator
+  Calculator,
+  ShieldCheck,
+  Clock,
+  User,
+  ArrowRight,
+  FileText,
+  Sparkles
 } from 'lucide-react';
 
 interface PortalSocioProps {
@@ -55,6 +66,10 @@ interface PortalSocioProps {
   onLogin?: () => void;
   /** Tab inicial para abrir directamente (por defecto 'simulacion') */
   initialTab?: 'simulacion' | 'obra' | 'mensajes';
+  /** Estado de verificación fiduciaria de admisión del socio */
+  verificacionSocio?: VerificacionSocio;
+  /** Callback para sincronizar cambios de solicitud en el usuario activo */
+  onSolicitudEnviada?: (usuarioActualizado: UserProfile) => void;
 }
 
 export const PortalSocio: React.FC<PortalSocioProps> = ({
@@ -68,10 +83,19 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   onOpenContrato,
   onSignOut,
   onLogin,
-  initialTab = 'simulacion'
+  initialTab = 'simulacion',
+  verificacionSocio,
+  onSolicitudEnviada
 }) => {
   const socioId = user.socioId || 1;
   const [activeTab, setActiveTab] = useState<'simulacion' | 'obra' | 'mensajes'>(initialTab);
+
+  // Verificación reactiva de requisitos fiduciarios para ser Socio Pleno
+  const verificacion = useMemo(() => {
+    return verificacionSocio || verificarEstadoSocio(user);
+  }, [verificacionSocio, user]);
+
+  const esSocioAprobado = verificacion.esAprobado;
 
   // Cuando el padre pide actualizar la pestaña activa
   useEffect(() => {
@@ -91,6 +115,91 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   const [pagoComprobante, setPagoComprobante] = useState<string>('');
   const [pagoNotas, setPagoNotas] = useState<string>('');
   const [enviandoPago, setEnviandoPago] = useState<boolean>(false);
+
+  // Estados Formulario Solicitud de Admisión / Completar Requisitos de Socio
+  const [showModalAdmision, setShowModalAdmision] = useState<boolean>(false);
+  const [formNombre, setFormNombre] = useState<string>(user.nombre || '');
+  const [formDni, setFormDni] = useState<string>(user.dni || '');
+  const [formDomicilio, setFormDomicilio] = useState<string>(user.domicilio || '');
+  const [formGarantiaTipo, setFormGarantiaTipo] = useState<string>(user.garantiaTipo || 'Recibo de Sueldo');
+  const [formGarantiaDetalle, setFormGarantiaDetalle] = useState<string>(user.garantiaDetalle || '');
+  const [formAnticipoMonto, setFormAnticipoMonto] = useState<number>(user.pagoInicialMonto || 10000);
+  const [formComprobante, setFormComprobante] = useState<string>('');
+  const [enviandoSolicitud, setEnviandoSolicitud] = useState<boolean>(false);
+
+  // Sincronizar datos iniciales si cambia el usuario
+  useEffect(() => {
+    if (user) {
+      if (user.nombre) setFormNombre(user.nombre);
+      if (user.dni) setFormDni(user.dni);
+      if (user.domicilio) setFormDomicilio(user.domicilio);
+      if (user.garantiaTipo) setFormGarantiaTipo(user.garantiaTipo);
+      if (user.garantiaDetalle) setFormGarantiaDetalle(user.garantiaDetalle);
+      if (user.pagoInicialMonto) setFormAnticipoMonto(user.pagoInicialMonto);
+    }
+  }, [user]);
+
+  // Manejador para enviar solicitud de admisión formal con requisitos
+  const handleEnviarSolicitudAdmision = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formDni.trim() || !formDomicilio.trim()) {
+      showToast('❌ Por favor completá tu DNI y constancia de domicilio.');
+      return;
+    }
+
+    setEnviandoSolicitud(true);
+    try {
+      const res = enviarSolicitudSocio(user.id, {
+        nombre: formNombre.trim(),
+        dni: formDni.trim(),
+        domicilio: formDomicilio.trim(),
+        garantiaTipo: formGarantiaTipo,
+        garantiaDetalle: formGarantiaDetalle.trim(),
+        pagoInicialMonto: Number(formAnticipoMonto),
+        obraAsignadaNombre: currentFondo.nombre,
+        comprobanteReferencia: formComprobante.trim()
+      });
+
+      if (res.success && res.usuario) {
+        // Enviar notificación a la administración fiduciaria
+        try {
+          await enviarMensaje(
+            {
+              fondoId: currentFondo.id,
+              receiverRole: 'admin',
+              categoria: 'consulta',
+              asunto: `Solicitud de Admisión de Socio Pleno - ${res.usuario.nombre}`,
+              contenido: `Estimada Administración Fiduciaria:\n\nEl usuario ${res.usuario.nombre} (${res.usuario.email}) ha completado los requisitos de admisión fiduciaria (Art. 1666 CCCN):\n- DNI: ${res.usuario.dni}\n- Domicilio: ${res.usuario.domicilio}\n- Garantía: ${res.usuario.garantiaTipo} (${res.usuario.garantiaDetalle || 'Declarada'})\n- Anticipo Fiduciario Informado: USD ${Number(res.usuario.pagoInicialMonto || 10000).toLocaleString('es-AR')}\n- Obra Solicitada: ${currentFondo.nombre}\n${formComprobante.trim() ? `- Comprobante / Ref: ${formComprobante.trim()}\n` : ''}\nSolicito verificación y asignación formal de unidad en el Padrón de Socios Oficial.`
+            },
+            user
+          );
+        } catch {}
+
+        setShowModalAdmision(false);
+        showToast('✅ Solicitud enviada con éxito. Quedó en proceso de verificación por la Administración.');
+        if (onSolicitudEnviada) {
+          onSolicitudEnviada({
+            ...user,
+            nombre: res.usuario.nombre,
+            dni: res.usuario.dni,
+            domicilio: res.usuario.domicilio,
+            garantiaTipo: res.usuario.garantiaTipo,
+            garantiaDetalle: res.usuario.garantiaDetalle,
+            pagoInicialMonto: res.usuario.pagoInicialMonto,
+            pagoInicialAcreditado: res.usuario.pagoInicialAcreditado,
+            obraAsignadaNombre: res.usuario.obraAsignadaNombre,
+            estadoSocio: res.usuario.estadoSocio
+          });
+        }
+      } else {
+        showToast(`❌ Error: ${res.error || 'No se pudo enviar la solicitud'}`);
+      }
+    } catch (err: any) {
+      showToast(`❌ Error: ${err?.message || 'Intente nuevamente'}`);
+    } finally {
+      setEnviandoSolicitud(false);
+    }
+  };
 
 
   // =========================================================
@@ -405,31 +514,45 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-indigo-600/30">
-                {user.isGuest ? <Calculator className="w-6 h-6 text-white" /> : `D${socioId}`}
+                {esSocioAprobado ? `D${socioId}` : <User className="w-6 h-6 text-white" />}
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                    {user.isGuest ? 'Simulador de Plan de Inversión' : `Hola, ${user.nombre}`}
+                    {esSocioAprobado ? `Hola, ${user.nombre}` : `Hola, ${user.nombre || 'Inversor'}`}
                   </h2>
-                  <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
-                    user.isGuest
-                      ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300'
-                      : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
-                  }`}>
-                    {user.isGuest ? 'Simulación Abierta' : 'Suscripción Activa'}
-                  </span>
+                  {esSocioAprobado ? (
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-emerald-500/15 border-emerald-500/30 text-emerald-300">
+                      🟢 Suscripción Activa • Unidad D{socioId}
+                    </span>
+                  ) : user.estadoSocio === 'pendiente_aprobacion' ? (
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-amber-500/15 border-amber-500/30 text-amber-300 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-amber-400" />
+                      <span>🟡 Solicitud en Revisión</span>
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-indigo-500/15 border-indigo-500/30 text-indigo-300">
+                      ⚪ Modo Invitado / Prospecto
+                    </span>
+                  )}
                 </div>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Proyecto: <strong className="text-indigo-300">{currentFondo.nombre}</strong> • {user.isGuest ? 'Unidad de referencia:' : 'Unidad:'}{' '}
-                  <strong className="text-white">Departamento {socioId}</strong> (Piso {pisoAsignado}° "{letraUnidad}")
-                </p>
+                {esSocioAprobado ? (
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Proyecto: <strong className="text-indigo-300">{currentFondo.nombre}</strong> • Unidad:{' '}
+                    <strong className="text-white">Departamento {socioId}</strong> (Piso {pisoAsignado}° "{letraUnidad}")
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Proyecto de Interés: <strong className="text-indigo-300">{currentFondo.nombre}</strong> •{' '}
+                    <strong className="text-amber-300">Admisión Fiduciaria en Proceso (Requisitos Pendientes)</strong>
+                  </p>
+                )}
               </div>
             </div>
 
             {/* Quick Actions en Cabecera */}
             <div className="flex flex-wrap items-center gap-2">
-              {!user.isGuest && (
+              {esSocioAprobado ? (
                 <button
                   type="button"
                   onClick={() => setShowModalPago(true)}
@@ -437,6 +560,19 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
                 >
                   <CreditCard className="w-4 h-4" />
                   <span>Pagar / Informar Transferencia</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowModalAdmision(true)}
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-amber-500/25 transition cursor-pointer active:scale-95"
+                >
+                  <ShieldCheck className="w-4 h-4 text-slate-950" />
+                  <span>
+                    {user.estadoSocio === 'pendiente_aprobacion'
+                      ? 'Ver Solicitud Enviada'
+                      : 'Completar Requisitos de Socio'}
+                  </span>
                 </button>
               )}
 
@@ -462,8 +598,8 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
                 </button>
               )}
 
-              {/* Botón: Ingresar al Perfil (modo invitado) o Salir de la cuenta (sesión real) */}
-              {user.isGuest ? (
+              {/* Botón: Ingresar al Perfil o Salir de la cuenta */}
+              {user.isGuest && !user.email ? (
                 onLogin && (
                   <button
                     type="button"
@@ -492,81 +628,248 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
           </div>
 
           {/* 3 KPIs Esenciales a Golpe de Vista */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
-            {/* KPI 1: Próxima Cuota */}
-            <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
-                <span className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-                  Próxima Cuota #{flujoActivo.flujo.length > 0 ? proximaCuotaNum : 1}
-                </span>
-                <span className="text-[11px] font-mono text-indigo-300 font-bold">
-                  {fechaProximaCuota.fechaCorta}
-                </span>
-              </div>
-              <div className="mt-2">
-                <div className="text-2xl font-black text-white font-mono">
-                  {fmtMoneda(flujoActivo.flujo.length > 0 ? (proximaCuotaObj?.abonadoMes || 0) : 0)}
+          {esSocioAprobado ? (
+            /* KPIs PARA SOCIO PLENO APROBADO */
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
+              {/* KPI 1: Próxima Cuota */}
+              <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+                    Próxima Cuota #{flujoActivo.flujo.length > 0 ? proximaCuotaNum : 1}
+                  </span>
+                  <span className="text-[11px] font-mono text-indigo-300 font-bold">
+                    {fechaProximaCuota.fechaCorta}
+                  </span>
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
-                  <span>Capital puro: {fmtMoneda(flujoActivo.flujo.length > 0 ? (proximaCuotaObj?.capital || 0) : 0)}</span>
-                  <span className="text-emerald-400 font-medium">Al Día</span>
+                <div className="mt-2">
+                  <div className="text-2xl font-black text-white font-mono">
+                    {fmtMoneda(flujoActivo.flujo.length > 0 ? (proximaCuotaObj?.abonadoMes || 0) : 0)}
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
+                    <span>Capital puro: {fmtMoneda(flujoActivo.flujo.length > 0 ? (proximaCuotaObj?.capital || 0) : 0)}</span>
+                    <span className="text-emerald-400 font-medium">Al Día</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* KPI 2: Progreso de Cancelación */}
+              <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                    Progreso del Plan
+                  </span>
+                  <span className="text-emerald-400 font-mono font-bold text-xs">
+                    {porcentajeCancelado}%
+                  </span>
+                </div>
+                <div className="mt-2 space-y-1.5">
+                  <div className="flex justify-between items-baseline text-xs font-mono">
+                    <span className="text-white font-bold">{fmtMoneda(montoAbonadoEstimado)}</span>
+                    <span className="text-slate-500">de {fmtMoneda(flujoActivo.totalAbonado)}</span>
+                  </div>
+                  {/* Barra de progreso */}
+                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 rounded-full transition-all duration-700"
+                      style={{ width: `${porcentajeCancelado}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    {cuotasAbonadasEstimadas} de {flujoActivo.flujo.length} cuotas computadas + anticipo
+                  </p>
+                </div>
+              </div>
+
+              {/* KPI 3: Tu Unidad Inmueble & Posesión */}
+              <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <Home className="w-3.5 h-3.5 text-amber-400" />
+                    Posesión Programada
+                  </span>
+                  <span className="text-amber-300 font-mono font-bold text-xs">
+                    {mPos > 0 ? `Cuota ${mPos}` : 'A definir'}
+                  </span>
+                </div>
+                <div className="mt-2">
+                  <div className="text-lg font-black text-amber-300 font-mono">
+                    {mPos > 0 ? fechaPos.fechaLarga : 'Sin cuota asignada'}
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Tipología: <strong className="text-slate-200">{esTresAmbientes ? '3 Amb.' : '2 Amb.'}</strong> ({supTotalUnidad} m²) • Llaves en mano
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* KPIs PARA MODO INVITADO / PROSPECTO */
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
+              {/* KPI 1: Anticipo Fiduciario Mínimo */}
+              <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <DollarSign className="w-3.5 h-3.5 text-amber-400" />
+                    Anticipo Fiduciario Mínimo
+                  </span>
+                  <span className="text-[10px] uppercase font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                    Requisito Base
+                  </span>
+                </div>
+                <div className="mt-2">
+                  <div className="text-2xl font-black text-white font-mono">
+                    USD 10.000
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
+                    <span>
+                      {user.pagoInicialAcreditado || (user.pagoInicialMonto && user.pagoInicialMonto >= 10000)
+                        ? '🟢 Integración Acreditada'
+                        : '🟡 Pendiente de Integración'}
+                    </span>
+                    <span className="text-slate-500 font-mono text-[10px]">Mínimo para Suscribirse</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* KPI 2: Condición de Admisión */}
+              <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+                    Admisión Fiduciaria
+                  </span>
+                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
+                    user.estadoSocio === 'pendiente_aprobacion'
+                      ? 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+                      : 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300'
+                  }`}>
+                    {user.estadoSocio === 'pendiente_aprobacion' ? 'En Revisión' : 'Modo Invitado'}
+                  </span>
+                </div>
+                <div className="mt-2">
+                  <div className="text-lg font-black text-white">
+                    {user.estadoSocio === 'pendiente_aprobacion' ? 'Solicitud en Trámite' : 'Requisitos Incompletos'}
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    {user.dni && user.domicilio
+                      ? 'DNI y domicilio presentados'
+                      : 'Pendiente: DNI, domicilio y garantía'}
+                  </div>
+                </div>
+              </div>
+
+              {/* KPI 3: Obra Seleccionada */}
+              <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <Home className="w-3.5 h-3.5 text-emerald-400" />
+                    Obra en Marcha Oficial
+                  </span>
+                  <span className="text-emerald-400 font-mono font-bold text-xs">
+                    Al Costo
+                  </span>
+                </div>
+                <div className="mt-2">
+                  <div className="text-base font-black text-white truncate" title={currentFondo.nombre}>
+                    {currentFondo.nombre}
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    {params.cantidadCuotas || 36} cuotas mensuales en dólares • Sin interés bancario
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── BANNER / CHECKLIST DE ADMISIÓN FIDUCIARIA (SOLO PARA PROSPECTOS / INVITADOS) ── */}
+      {!esSocioAprobado && (
+        <div className="bg-gradient-to-r from-indigo-950/40 via-slate-900 to-amber-950/30 border border-amber-500/40 rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div className="space-y-2.5 max-w-2xl">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold bg-amber-500/15 border border-amber-500/30 text-amber-300">
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                <span>Requisitos para Acceso como Socio Pleno (Art. 1666 CCCN)</span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-white">
+                {user.estadoSocio === 'pendiente_aprobacion'
+                  ? 'Tu solicitud está siendo verificada por la Administración Fiduciaria'
+                  : '¿Querés ser Socio Pleno y adjudicar tu departamento en obra?'}
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {user.estadoSocio === 'pendiente_aprobacion'
+                  ? 'Hemos recibido tus datos y la constancia de anticipo. Nuestro equipo está revisando la información para asignarte tu unidad oficial y habilitarte el pago de cuotas.'
+                  : 'Actualmente tenés acceso en Modo Invitado / Prospecto para simular cuotas libremente. Para acceder al estado de cuenta individual oficial, posesión garantizada y pago de cuotas mensuales, se requiere:'}
+              </p>
+
+              {/* Checklist visual de 4 requisitos */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                <div className="flex items-center gap-2 text-xs text-slate-200 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>1. Registro de Cuenta ({user.email || 'Validado'})</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-200 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                  {user.dni && user.domicilio ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                  )}
+                  <span>
+                    2. {user.dni ? `DNI: ${user.dni}` : 'DNI y Constancia Domicilio'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-200 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                  {user.pagoInicialAcreditado || (user.pagoInicialMonto && user.pagoInicialMonto >= 10000) ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                  )}
+                  <span>
+                    3. Anticipo USD 10.000 ({user.pagoInicialAcreditado ? 'Acreditado' : 'Pendiente'})
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-200 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                  {user.garantiaTipo || user.garantiaDetalle ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                  )}
+                  <span>
+                    4. Garantía Exigida ({user.garantiaTipo ? 'Declarada' : 'Pendiente'})
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* KPI 2: Progreso de Cancelación */}
-            <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
-                <span className="flex items-center gap-1.5">
-                  <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                  Progreso del Plan
+            {/* Botonera de acción */}
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowModalAdmision(true)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                <ShieldCheck className="w-4 h-4 text-slate-950" />
+                <span>
+                  {user.estadoSocio === 'pendiente_aprobacion'
+                    ? 'Actualizar Documentación'
+                    : 'Completar Requisitos de Socio'}
                 </span>
-                <span className="text-emerald-400 font-mono font-bold text-xs">
-                  {porcentajeCancelado}%
-                </span>
-              </div>
-              <div className="mt-2 space-y-1.5">
-                <div className="flex justify-between items-baseline text-xs font-mono">
-                  <span className="text-white font-bold">{fmtMoneda(montoAbonadoEstimado)}</span>
-                  <span className="text-slate-500">de {fmtMoneda(flujoActivo.totalAbonado)}</span>
-                </div>
-                {/* Barra de progreso elegante */}
-                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 rounded-full transition-all duration-700"
-                    style={{ width: `${porcentajeCancelado}%` }}
-                  />
-                </div>
-                <p className="text-[10px] text-slate-400">
-                  {cuotasAbonadasEstimadas} de {flujoActivo.flujo.length} cuotas computadas + anticipo
-                </p>
-              </div>
-            </div>
-
-            {/* KPI 3: Tu Unidad Inmueble & Posesión */}
-            <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
-                <span className="flex items-center gap-1.5">
-                  <Home className="w-3.5 h-3.5 text-amber-400" />
-                  Posesión Programada
-                </span>
-                <span className="text-amber-300 font-mono font-bold text-xs">
-                  {mPos > 0 ? `Cuota ${mPos}` : 'A definir'}
-                </span>
-              </div>
-              <div className="mt-2">
-                <div className="text-lg font-black text-amber-300 font-mono">
-                  {mPos > 0 ? fechaPos.fechaLarga : 'Sin cuota asignada'}
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Tipología: <strong className="text-slate-200">{esTresAmbientes ? '3 Amb.' : '2 Amb.'}</strong> ({supTotalUnidad} m²) • Llaves en mano
-                </p>
-              </div>
+              </button>
+              <a
+                href="https://wa.me/5492646272555?text=Hola%20Inverfondo,%20tengo%20mi%20cuenta%20en%20modo%20invitado/prospecto%20y%20quisiera%20completar%20mi%20ingreso%20como%20socio%20pleno."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border border-slate-700"
+              >
+                <span>Hablar por WhatsApp</span>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+              </a>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ── 2. NAVEGACIÓN POR PESTAÑAS DEL PORTAL ─────────────────────────── */}
       <div className="flex flex-wrap border-b border-slate-800 bg-slate-900/50 backdrop-blur-md rounded-2xl p-1 gap-1 max-w-2xl no-print">
@@ -1025,6 +1328,209 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL SOLICITUD DE ADMISIÓN COMO SOCIO PLENO ─────────────────── */}
+      {showModalAdmision && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-slate-900 border border-amber-500/30 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Header del Modal */}
+            <div className="bg-slate-950/90 border-b border-slate-800 p-4 sm:p-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    Solicitud de Admisión como Socio Pleno
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Requisitos legales de suscripción fiduciaria (Art. 1666 CCCN)
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowModalAdmision(false)}
+                className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800/60 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Contenido del Formulario */}
+            <form onSubmit={handleEnviarSolicitudAdmision} className="p-5 overflow-y-auto space-y-4">
+              <div className="bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-xl text-xs text-amber-200/90 leading-relaxed">
+                <p className="font-semibold mb-1 flex items-center gap-1.5 text-amber-300">
+                  <Sparkles className="w-4 h-4" />
+                  Condiciones para suscripción de cuota parte
+                </p>
+                Para pasar de Modo Invitado a Socio Pleno con asignación de unidad y acceso al cronograma oficial, se requiere integrar el anticipo base de USD 10.000 y declarar tus datos identificatorios y garantía.
+              </div>
+
+              {/* Nombre y DNI */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Nombre y Apellido <span className="text-amber-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formNombre}
+                    onChange={(e) => setFormNombre(e.target.value)}
+                    placeholder="Tu nombre completo"
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    DNI / CUIT / Pasaporte <span className="text-amber-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formDni}
+                    onChange={(e) => setFormDni(e.target.value)}
+                    placeholder="Ej: 32.894.221"
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white font-mono outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Email y Domicilio */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">
+                    Email Registrado
+                  </label>
+                  <input
+                    type="email"
+                    disabled
+                    value={user.email || ''}
+                    className="w-full bg-slate-950/60 border border-slate-800 text-slate-400 rounded-xl px-3.5 py-2 text-xs outline-none cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Domicilio Legal / Residencia <span className="text-amber-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formDomicilio}
+                    onChange={(e) => setFormDomicilio(e.target.value)}
+                    placeholder="Calle, Número, Ciudad, Provincia"
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Garantía */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Tipo de Garantía Exigida <span className="text-amber-400">*</span>
+                  </label>
+                  <select
+                    value={formGarantiaTipo}
+                    onChange={(e) => setFormGarantiaTipo(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white outline-none cursor-pointer"
+                  >
+                    <option value="Recibo de Sueldo">Recibo de Sueldo / Ingresos Demostrables</option>
+                    <option value="Garantía Propietaria">Garantía Propietaria / Inmueble</option>
+                    <option value="Seguro de Caución">Seguro de Caución Fiduciario</option>
+                    <option value="Fianza Bancaria">Fianza Bancaria / Aval</option>
+                    <option value="Certificado de Ingresos">Certificado de Ingresos (CPCE)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Detalle / Empresa / Entidad Emisora
+                  </label>
+                  <input
+                    type="text"
+                    value={formGarantiaDetalle}
+                    onChange={(e) => setFormGarantiaDetalle(e.target.value)}
+                    placeholder="Ej: Empleador, matrícula o N° póliza"
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Anticipo USD 10.000 y Obra */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Anticipo Integrado / A Informar (USD) <span className="text-amber-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-2 text-xs font-mono font-bold text-amber-400">USD</span>
+                    <input
+                      type="number"
+                      min={10000}
+                      step={500}
+                      required
+                      value={formAnticipoMonto}
+                      onChange={(e) => setFormAnticipoMonto(Math.max(10000, Number(e.target.value)))}
+                      className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl pl-13 pr-3.5 py-2 text-xs text-white font-mono font-bold outline-none"
+                    />
+                  </div>
+                  <span className="text-[10px] text-slate-400">Monto mínimo estatutario: USD 10.000</span>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Obra Fiduciaria Suscrita
+                  </label>
+                  <div className="bg-slate-950/80 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-200 flex items-center gap-2">
+                    <Building2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <span className="truncate font-semibold">{currentFondo.nombre}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Comprobante de Anticipo */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Referencia / N° de Transferencia de Anticipo (Opcional si ya se transfirió)
+                </label>
+                <input
+                  type="text"
+                  value={formComprobante}
+                  onChange={(e) => setFormComprobante(e.target.value)}
+                  placeholder="Ej: Transferencia Bancaria USD 10.000 / TR-982140"
+                  className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white font-mono outline-none"
+                />
+              </div>
+
+              <div className="bg-indigo-950/20 border border-indigo-500/20 p-3 rounded-xl flex items-start gap-2 text-[11px] text-slate-300">
+                <AlertCircle className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                <span>
+                  Al enviar la solicitud, tu estado pasará a <strong>"Pendiente de Aprobación"</strong>. El Administrador Fiduciario revisará la documentación, acreditará el depósito y te asignará la unidad de obra definitiva.
+                </span>
+              </div>
+
+              {/* Botones */}
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowModalAdmision(false)}
+                  className="text-slate-400 hover:text-white font-bold text-xs px-4 py-2.5 rounded-xl transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={enviandoSolicitud}
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-50 text-slate-950 font-black text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-amber-500/25 transition flex items-center gap-2 cursor-pointer active:scale-95"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>{enviandoSolicitud ? 'Enviando...' : 'Enviar Solicitud a la Administración'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

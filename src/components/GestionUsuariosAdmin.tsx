@@ -101,7 +101,14 @@ export const GestionUsuariosAdmin: React.FC<GestionUsuariosAdminProps> = ({
       password: '',
       role: 'socio',
       socioId: 1,
-      activo: true
+      activo: true,
+      estadoSocio: 'prospecto',
+      dni: '',
+      domicilio: '',
+      garantiaTipo: 'Recibo de Sueldo',
+      garantiaDetalle: '',
+      pagoInicialMonto: 0,
+      pagoInicialAcreditado: false
     });
     setMostrarPassword(false);
     setIsModalOpen(true);
@@ -139,7 +146,15 @@ export const GestionUsuariosAdmin: React.FC<GestionUsuariosAdminProps> = ({
       role: usuarioEditando.role || 'socio',
       especialidad: usuarioEditando.especialidad,
       socioId: usuarioEditando.socioId,
-      activo: usuarioEditando.activo !== undefined ? usuarioEditando.activo : true
+      activo: usuarioEditando.activo !== undefined ? usuarioEditando.activo : true,
+      estadoSocio: usuarioEditando.estadoSocio,
+      dni: usuarioEditando.dni,
+      domicilio: usuarioEditando.domicilio,
+      garantiaTipo: usuarioEditando.garantiaTipo,
+      garantiaDetalle: usuarioEditando.garantiaDetalle,
+      pagoInicialMonto: usuarioEditando.pagoInicialMonto,
+      pagoInicialAcreditado: usuarioEditando.pagoInicialAcreditado,
+      obraAsignadaNombre: usuarioEditando.obraAsignadaNombre
     });
 
     setGuardando(false);
@@ -482,9 +497,28 @@ export const GestionUsuariosAdmin: React.FC<GestionUsuariosAdminProps> = ({
                       {/* Detalle / Asignación */}
                       <td className="py-3.5 px-4 text-slate-300">
                         {u.role === 'socio' ? (
-                          <div className="flex items-center gap-1.5 font-medium">
-                            <Building2 className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>Unidad D{u.socioId || 1}</span>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5 font-medium">
+                              <Building2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                              <span>Unidad D{u.socioId || 1}</span>
+                            </div>
+                            <div>
+                              {u.estadoSocio === 'aprobado' ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                                  <span>Socio Pleno Aprobado</span>
+                                </span>
+                              ) : u.estadoSocio === 'pendiente_aprobacion' ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30">
+                                  <Clock className="w-2.5 h-2.5 text-amber-400" />
+                                  <span>En Revisión • USD {Number(u.pagoInicialMonto || 0).toLocaleString('es-AR')}</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-slate-300 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700">
+                                  <span>Modo Invitado / Prospecto</span>
+                                </span>
+                              )}
+                            </div>
                           </div>
                         ) : u.role === 'tecnico' ? (
                           <div className="text-slate-300 font-medium truncate max-w-[220px]" title={u.especialidad}>
@@ -759,27 +793,161 @@ export const GestionUsuariosAdmin: React.FC<GestionUsuariosAdminProps> = ({
                 </div>
               </div>
 
-              {/* Asignación condicional según el rol */}
+              {/* Asignación y Requisitos Fiduciarios del Socio */}
               {usuarioEditando.role === 'socio' && (
-                <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-3.5 space-y-1.5">
-                  <label className="block text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5" />
-                    <span>Unidad Fiduciaria Asignada (Depto #)</span>
-                  </label>
-                  <p className="text-[11px] text-slate-400 mb-2">
-                    Indica a qué departamento o número de socio pertenece esta cuenta para ver sus cuotas y posesión.
-                  </p>
-                  <select
-                    value={usuarioEditando.socioId || 1}
-                    onChange={(e) => setUsuarioEditando({ ...usuarioEditando, socioId: Number(e.target.value) })}
-                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer"
-                  >
-                    {Array.from({ length: Math.max(cantidadDeptos, 10) }, (_, i) => i + 1).map((num) => (
-                      <option key={num} value={num}>
-                        🏢 Departamento D{num} (Socio #{num})
-                      </option>
-                    ))}
-                  </select>
+                <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3.5">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Condición de Admisión & Requisitos Fiduciarios</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400">Art. 1666 CCCN</span>
+                  </div>
+
+                  {/* Estado de Admisión */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                      Estado de Admisión del Socio *
+                    </label>
+                    <select
+                      value={usuarioEditando.estadoSocio || 'prospecto'}
+                      onChange={(e) =>
+                        setUsuarioEditando({
+                          ...usuarioEditando,
+                          estadoSocio: e.target.value as any
+                        })
+                      }
+                      className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer"
+                    >
+                      <option value="aprobado">🟢 Aprobado (Socio Pleno con Unidad Adjudicada)</option>
+                      <option value="pendiente_aprobacion">🟡 En Revisión (Solicitud y Documentación Presentada)</option>
+                      <option value="prospecto">⚪ Modo Invitado / Prospecto (Requisitos Pendientes)</option>
+                    </select>
+                  </div>
+
+                  {/* Unidad Fiduciaria Asignada */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                      Unidad Fiduciaria Asignada (Depto #)
+                    </label>
+                    <select
+                      value={usuarioEditando.socioId || 1}
+                      onChange={(e) =>
+                        setUsuarioEditando({ ...usuarioEditando, socioId: Number(e.target.value) })
+                      }
+                      className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer"
+                    >
+                      {Array.from({ length: Math.max(cantidadDeptos, 10) }, (_, i) => i + 1).map((num) => (
+                        <option key={num} value={num}>
+                          🏢 Departamento D{num} (Socio #{num})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* DNI y Domicilio */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                        DNI del Titular
+                      </label>
+                      <input
+                        type="text"
+                        value={usuarioEditando.dni || ''}
+                        onChange={(e) => setUsuarioEditando({ ...usuarioEditando, dni: e.target.value })}
+                        placeholder="Ej: 32.145.890"
+                        className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-1.5 text-xs outline-none focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                        Domicilio Declarado
+                      </label>
+                      <input
+                        type="text"
+                        value={usuarioEditando.domicilio || ''}
+                        onChange={(e) =>
+                          setUsuarioEditando({ ...usuarioEditando, domicilio: e.target.value })
+                        }
+                        placeholder="Ej: Av. Libertador 1240, CABA"
+                        className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-1.5 text-xs outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Garantía */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                        Tipo de Garantía
+                      </label>
+                      <select
+                        value={usuarioEditando.garantiaTipo || 'Recibo de Sueldo'}
+                        onChange={(e) =>
+                          setUsuarioEditando({ ...usuarioEditando, garantiaTipo: e.target.value })
+                        }
+                        className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-1.5 text-xs outline-none"
+                      >
+                        <option value="Recibo de Sueldo">Recibo de Sueldo (Demostración de Ingresos)</option>
+                        <option value="Garante Propietario">Garante con Título de Propiedad</option>
+                        <option value="Seguro de Caución">Seguro de Caución Fiduciario</option>
+                        <option value="Fianza Personal">Fianza Personal o Comercial</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                        Detalle / Emisor de Garantía
+                      </label>
+                      <input
+                        type="text"
+                        value={usuarioEditando.garantiaDetalle || ''}
+                        onChange={(e) =>
+                          setUsuarioEditando({ ...usuarioEditando, garantiaDetalle: e.target.value })
+                        }
+                        placeholder="Ej: Empresa SRL / Garante Juan Gómez"
+                        className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-1.5 text-xs outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Anticipo Fiduciario */}
+                  <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold text-slate-300">
+                        Anticipo Integrado a la Obra (USD)
+                      </label>
+                      <span className="text-[10px] text-amber-400 font-bold">Mínimo sugerido: USD 10.000</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="0"
+                        step="500"
+                        value={usuarioEditando.pagoInicialMonto || 0}
+                        onChange={(e) =>
+                          setUsuarioEditando({
+                            ...usuarioEditando,
+                            pagoInicialMonto: Number(e.target.value)
+                          })
+                        }
+                        className="w-36 bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-1.5 text-xs outline-none font-mono focus:border-emerald-500"
+                      />
+                      <label className="inline-flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(usuarioEditando.pagoInicialAcreditado)}
+                          onChange={(e) =>
+                            setUsuarioEditando({
+                              ...usuarioEditando,
+                              pagoInicialAcreditado: e.target.checked
+                            })
+                          }
+                          className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500"
+                        />
+                        <span className="text-[11px]">Pago acreditado formalmente</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
               )}
 

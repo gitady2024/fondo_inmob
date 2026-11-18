@@ -9,6 +9,16 @@ export interface UsuarioCuenta {
   especialidad?: string;
   socioId?: number;
   activo: boolean;
+  // Campos de verificación y admisión fiduciaria (Requisitos de Socio)
+  estadoSocio?: 'aprobado' | 'prospecto' | 'pendiente_aprobacion';
+  dni?: string;
+  domicilio?: string;
+  garantiaTipo?: string;
+  garantiaDetalle?: string;
+  pagoInicialMonto?: number;
+  pagoInicialAcreditado?: boolean;
+  obraAsignadaId?: string;
+  obraAsignadaNombre?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -47,6 +57,14 @@ export const CUENTAS_BASE_DEFAULT: UsuarioCuenta[] = [
     role: 'socio',
     socioId: 1,
     activo: true,
+    estadoSocio: 'aprobado',
+    dni: '32.145.890',
+    domicilio: 'Av. Libertador 1240, CABA',
+    garantiaTipo: 'Recibo de Sueldo y Fianza Personal',
+    garantiaDetalle: 'Ingresos certificados en relación de dependencia',
+    pagoInicialMonto: 10000,
+    pagoInicialAcreditado: true,
+    obraAsignadaNombre: 'Family Homes La Lucia (36 meses)',
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z'
   }
@@ -176,8 +194,17 @@ export const guardarUsuario = (
     nombre: datos.nombre?.trim() || (index >= 0 ? accounts[index].nombre : normEmail.split('@')[0]),
     role: datos.role,
     especialidad: datos.role === 'tecnico' ? (datos.especialidad?.trim() || 'Dirección de Obra y Certificaciones') : undefined,
-    socioId: datos.role === 'socio' ? (datos.socioId || 1) : undefined,
+    socioId: datos.role === 'socio' ? (datos.socioId || (index >= 0 ? accounts[index].socioId : undefined)) : undefined,
     activo: datos.activo !== undefined ? datos.activo : (index >= 0 ? accounts[index].activo : true),
+    estadoSocio: datos.estadoSocio !== undefined ? datos.estadoSocio : (index >= 0 ? accounts[index].estadoSocio : (datos.role === 'socio' ? 'prospecto' : undefined)),
+    dni: datos.dni !== undefined ? datos.dni?.trim() : (index >= 0 ? accounts[index].dni : undefined),
+    domicilio: datos.domicilio !== undefined ? datos.domicilio?.trim() : (index >= 0 ? accounts[index].domicilio : undefined),
+    garantiaTipo: datos.garantiaTipo !== undefined ? datos.garantiaTipo?.trim() : (index >= 0 ? accounts[index].garantiaTipo : undefined),
+    garantiaDetalle: datos.garantiaDetalle !== undefined ? datos.garantiaDetalle?.trim() : (index >= 0 ? accounts[index].garantiaDetalle : undefined),
+    pagoInicialMonto: datos.pagoInicialMonto !== undefined ? Number(datos.pagoInicialMonto) : (index >= 0 ? accounts[index].pagoInicialMonto : undefined),
+    pagoInicialAcreditado: datos.pagoInicialAcreditado !== undefined ? Boolean(datos.pagoInicialAcreditado) : (index >= 0 ? accounts[index].pagoInicialAcreditado : undefined),
+    obraAsignadaId: datos.obraAsignadaId !== undefined ? datos.obraAsignadaId : (index >= 0 ? accounts[index].obraAsignadaId : undefined),
+    obraAsignadaNombre: datos.obraAsignadaNombre !== undefined ? datos.obraAsignadaNombre : (index >= 0 ? accounts[index].obraAsignadaNombre : undefined),
     createdAt: index >= 0 ? (accounts[index].createdAt || now) : now,
     updatedAt: now
   };
@@ -205,7 +232,16 @@ export const guardarUsuario = (
               role: usuarioGuardado.role,
               email: usuarioGuardado.email,
               especialidad: usuarioGuardado.especialidad,
-              socioId: usuarioGuardado.socioId
+              socioId: usuarioGuardado.socioId,
+              estadoSocio: usuarioGuardado.estadoSocio,
+              dni: usuarioGuardado.dni,
+              domicilio: usuarioGuardado.domicilio,
+              garantiaTipo: usuarioGuardado.garantiaTipo,
+              garantiaDetalle: usuarioGuardado.garantiaDetalle,
+              pagoInicialMonto: usuarioGuardado.pagoInicialMonto,
+              pagoInicialAcreditado: usuarioGuardado.pagoInicialAcreditado,
+              obraAsignadaId: usuarioGuardado.obraAsignadaId,
+              obraAsignadaNombre: usuarioGuardado.obraAsignadaNombre
             };
             localStorage.setItem(STORAGE_ACTIVE_USER_KEY, JSON.stringify(updatedActive));
           }
@@ -325,5 +361,210 @@ export const restablecerCuentasPorDefecto = (): UsuarioCuenta[] => {
     localStorage.setItem(STORAGE_ACCOUNTS_KEY, JSON.stringify(CUENTAS_BASE_DEFAULT));
   }
   return [...CUENTAS_BASE_DEFAULT];
+};
+
+/**
+ * Resultado estructurado de la verificación de admisión como socio fiduciario
+ */
+export interface VerificacionSocio {
+  esAprobado: boolean;
+  estado: 'aprobado' | 'prospecto' | 'pendiente_aprobacion';
+  motivosPendientes: string[];
+  tienePagoMinimo: boolean;
+  tieneDni: boolean;
+  tieneDomicilio: boolean;
+  tieneGarantia: boolean;
+  tieneObraAsignada: boolean;
+  pagoMonto: number;
+}
+
+/**
+ * Verifica si un usuario reúne los requisitos necesarios para operar como Socio Pleno:
+ * 1. Haber integrado el anticipo mínimo de USD 10.000 (o acreditado por la administración).
+ * 2. Estar suscripto a alguna de las obras en marcha del fondo.
+ * 3. Datos mínimos completos: DNI del titular, constancia de domicilio y garantía exigida.
+ * 4. Aprobación formal por la Administración Fiduciaria.
+ * Si no cumple, el usuario debe ingresar en Modo Invitado / Prospecto.
+ */
+export const verificarEstadoSocio = (
+  usuario: Partial<UsuarioCuenta | UserProfile> | null
+): VerificacionSocio => {
+  if (!usuario || usuario.role !== 'socio') {
+    return {
+      esAprobado: false,
+      estado: 'prospecto',
+      motivosPendientes: ['El perfil no corresponde a un usuario con rol de socio.'],
+      tienePagoMinimo: false,
+      tieneDni: false,
+      tieneDomicilio: false,
+      tieneGarantia: false,
+      tieneObraAsignada: false,
+      pagoMonto: 0
+    };
+  }
+
+  // Si es explícitamente invitado demo
+  if (usuario.isGuest && !usuario.email) {
+    return {
+      esAprobado: false,
+      estado: 'prospecto',
+      motivosPendientes: [
+        'Cuenta en modo invitado demo sin registro.',
+        'Anticipo de USD 10.000 pendiente de acreditación.',
+        'Documentación fiduciaria (DNI, domicilio, garantía) pendiente.'
+      ],
+      tienePagoMinimo: false,
+      tieneDni: false,
+      tieneDomicilio: false,
+      tieneGarantia: false,
+      tieneObraAsignada: false,
+      pagoMonto: 0
+    };
+  }
+
+  const motivos: string[] = [];
+
+  // 1. Verificación de pago inicial mínimo (USD 10.000 o bandera de acreditación)
+  const pagoMonto = Number((usuario as any).pagoInicialMonto || (usuario as any).pagoInicial || 0);
+  const pagoAcreditado = Boolean((usuario as any).pagoInicialAcreditado || pagoMonto >= 10000);
+  const tienePagoMinimo = pagoAcreditado;
+  if (!tienePagoMinimo) {
+    motivos.push('Anticipo fiduciario mínimo de USD 10.000 pendiente de integración.');
+  }
+
+  // 2. Verificación de DNI
+  const dni = (usuario as any).dni?.trim();
+  const tieneDni = Boolean(dni && dni.length >= 6);
+  if (!tieneDni) {
+    motivos.push('DNI del titular pendiente de presentar.');
+  }
+
+  // 3. Verificación de Domicilio
+  const domicilio = (usuario as any).domicilio?.trim();
+  const tieneDomicilio = Boolean(domicilio && domicilio.length >= 5);
+  if (!tieneDomicilio) {
+    motivos.push('Constancia de domicilio actualizada pendiente.');
+  }
+
+  // 4. Verificación de Garantía
+  const garantia =
+    (usuario as any).garantiaTipo?.trim() ||
+    (usuario as any).garantia?.trim() ||
+    (usuario as any).garantiaDetalle?.trim();
+  const tieneGarantia = Boolean(garantia && garantia.length >= 3);
+  if (!tieneGarantia) {
+    motivos.push('Garantía exigida por el fondo pendiente de presentar.');
+  }
+
+  // 5. Asignación a obra en marcha
+  const tieneObra = Boolean(
+    (usuario as any).obraAsignadaId ||
+    (usuario as any).obraAsignadaNombre ||
+    (usuario as any).socioId
+  );
+  if (!tieneObra) {
+    motivos.push('Asignación y suscripción a una obra en marcha pendiente.');
+  }
+
+  // Estado administrativo
+  const estadoGuardado = (usuario as any).estadoSocio;
+  let estadoFinal: 'aprobado' | 'prospecto' | 'pendiente_aprobacion' = 'prospecto';
+
+  if (estadoGuardado === 'aprobado' && tienePagoMinimo && tieneDni) {
+    estadoFinal = 'aprobado';
+  } else if (estadoGuardado === 'pendiente_aprobacion' || (tieneDni && tieneDomicilio)) {
+    estadoFinal = 'pendiente_aprobacion';
+  } else {
+    estadoFinal = 'prospecto';
+  }
+
+  const esAprobado = estadoFinal === 'aprobado' && motivos.length === 0;
+
+  return {
+    esAprobado,
+    estado: estadoFinal,
+    motivosPendientes: motivos,
+    tienePagoMinimo,
+    tieneDni,
+    tieneDomicilio,
+    tieneGarantia,
+    tieneObraAsignada: tieneObra,
+    pagoMonto
+  };
+};
+
+/**
+ * Permite a un prospecto o socio enviar/actualizar su documentación fiduciaria (DNI, Domicilio, Garantía, Pago Inicial)
+ * para solicitar la aprobación formal de la Administración.
+ */
+export const enviarSolicitudSocio = (
+  userIdOrEmail: string,
+  datos: {
+    nombre?: string;
+    dni: string;
+    domicilio: string;
+    garantiaTipo: string;
+    garantiaDetalle?: string;
+    pagoInicialMonto?: number;
+    obraAsignadaNombre?: string;
+    comprobanteReferencia?: string;
+  }
+): { success: boolean; error?: string; usuario?: UsuarioCuenta } => {
+  const accounts = getUsuariosRegistrados();
+  const target = userIdOrEmail.trim().toLowerCase();
+  const index = accounts.findIndex((a) => a.id === userIdOrEmail || a.email.toLowerCase() === target);
+
+  if (index === -1) {
+    return { success: false, error: 'No se encontró la cuenta de usuario.' };
+  }
+
+  const prev = accounts[index];
+  const now = new Date().toISOString();
+  const monto = datos.pagoInicialMonto !== undefined ? Number(datos.pagoInicialMonto) : (prev.pagoInicialMonto || 0);
+
+  const actualizado: UsuarioCuenta = {
+    ...prev,
+    nombre: datos.nombre?.trim() || prev.nombre,
+    dni: datos.dni.trim(),
+    domicilio: datos.domicilio.trim(),
+    garantiaTipo: datos.garantiaTipo.trim(),
+    garantiaDetalle: datos.garantiaDetalle?.trim() || prev.garantiaDetalle,
+    pagoInicialMonto: monto,
+    pagoInicialAcreditado: monto >= 10000 ? true : prev.pagoInicialAcreditado,
+    obraAsignadaNombre: datos.obraAsignadaNombre || prev.obraAsignadaNombre || 'Family Homes La Lucia (36 meses)',
+    estadoSocio: 'pendiente_aprobacion',
+    updatedAt: now
+  };
+
+  accounts[index] = actualizado;
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_ACCOUNTS_KEY, JSON.stringify(accounts));
+
+    // Sincronizar sesión activa si es el usuario actual
+    const rawActive = localStorage.getItem(STORAGE_ACTIVE_USER_KEY);
+    if (rawActive) {
+      try {
+        const active: UserProfile = JSON.parse(rawActive);
+        if (active.id === actualizado.id || active.email?.toLowerCase() === actualizado.email.toLowerCase()) {
+          const updatedActive: UserProfile = {
+            ...active,
+            nombre: actualizado.nombre,
+            dni: actualizado.dni,
+            domicilio: actualizado.domicilio,
+            garantiaTipo: actualizado.garantiaTipo,
+            garantiaDetalle: actualizado.garantiaDetalle,
+            pagoInicialMonto: actualizado.pagoInicialMonto,
+            pagoInicialAcreditado: actualizado.pagoInicialAcreditado,
+            obraAsignadaNombre: actualizado.obraAsignadaNombre,
+            estadoSocio: actualizado.estadoSocio
+          };
+          localStorage.setItem(STORAGE_ACTIVE_USER_KEY, JSON.stringify(updatedActive));
+        }
+      } catch {}
+    }
+  }
+
+  return { success: true, usuario: actualizado };
 };
 

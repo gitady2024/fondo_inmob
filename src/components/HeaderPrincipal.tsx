@@ -310,8 +310,24 @@ export const HeaderPrincipal: React.FC<HeaderPrincipalProps> = ({
                   <div className="px-3 py-2.5 mx-2 mb-2 rounded-xl bg-slate-800/90 border border-slate-700">
                     <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
                       <span>Sesión activa</span>
-                      <span className="font-bold uppercase tracking-wider text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                        {user.role}
+                      <span className={`font-bold uppercase tracking-wider text-[10px] px-1.5 py-0.5 rounded border ${
+                        user.role === 'admin'
+                          ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                          : user.role === 'tecnico'
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                          : user.estadoSocio === 'aprobado'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                          : user.estadoSocio === 'pendiente_aprobacion'
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                          : 'bg-slate-700/50 text-slate-300 border-slate-600'
+                      }`}>
+                        {user.role === 'socio'
+                          ? user.estadoSocio === 'aprobado'
+                            ? 'Socio Pleno'
+                            : user.estadoSocio === 'pendiente_aprobacion'
+                            ? 'En Revisión'
+                            : 'Invitado / Prospecto'
+                          : user.role}
                       </span>
                     </div>
                     <div className="font-bold text-white text-xs truncate">{user.nombre}</div>
