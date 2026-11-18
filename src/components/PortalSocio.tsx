@@ -504,7 +504,94 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
         </div>
       )}
 
-      {/* ── 1. CABECERA EJECUTIVA DEL SOCIO (DASHBOARD MINIMALISTA) ──────────── */}
+      {/* ── 1. BANNER / CUADRO PRINCIPAL DE REQUISITOS DE ADMISIÓN (AL TOPE DE LA PÁGINA) ── */}
+      {!esSocioAprobado && (
+        <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-indigo-950/40 border-2 border-amber-500/50 rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden animate-fadeIn">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div className="space-y-2.5 max-w-2xl">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold bg-amber-500/15 border border-amber-500/40 text-amber-300">
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <span>Requisitos Obligatorios para Acceso como Socio Pleno (Art. 1666 CCCN)</span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-white">
+                {user.estadoSocio === 'pendiente_aprobacion'
+                  ? 'Tu solicitud está siendo verificada por la Administración Fiduciaria'
+                  : '¿Querés ser Socio Pleno y adjudicar tu departamento en obra?'}
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {user.estadoSocio === 'pendiente_aprobacion'
+                  ? 'Hemos recibido tus datos y la constancia de anticipo. Nuestro equipo está revisando la información para asignarte tu unidad oficial y habilitarte el pago de cuotas.'
+                  : 'Actualmente tenés acceso en Modo Invitado / Prospecto para simular cuotas libremente. Para acceder al estado de cuenta individual oficial, posesión garantizada y pago de cuotas mensuales, se requiere:'}
+              </p>
+
+              {/* Checklist visual de 4 requisitos */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                <div className="flex items-center gap-2 text-xs text-slate-200 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>1. Registro de Cuenta ({user.email || 'Validado'})</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-200 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+                  {user.dni && user.domicilio ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                  )}
+                  <span>
+                    2. {user.dni ? `DNI: ${user.dni}` : 'DNI y Constancia Domicilio'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-200 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+                  {user.pagoInicialAcreditado || (user.pagoInicialMonto && user.pagoInicialMonto >= 10000) ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                  )}
+                  <span>
+                    3. Anticipo USD 10.000 ({user.pagoInicialAcreditado ? 'Acreditado' : 'Pendiente'})
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-200 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+                  {user.garantiaTipo || user.garantiaDetalle ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                  )}
+                  <span>
+                    4. Garantía Exigida ({user.garantiaTipo ? 'Declarada' : 'Pendiente'})
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Botonera de acción destacada al tope */}
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowModalAdmision(true)}
+                className="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-500/25 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                <ShieldCheck className="w-4 h-4 text-slate-950" />
+                <span>
+                  {user.estadoSocio === 'pendiente_aprobacion'
+                    ? 'Actualizar Documentación'
+                    : 'Completar Requisitos de Socio'}
+                </span>
+              </button>
+              <a
+                href="https://wa.me/5492646272555?text=Hola%20Inverfondo,%20tengo%20mi%20cuenta%20en%20modo%20invitado/prospecto%20y%20quisiera%20completar%20mi%20ingreso%20como%20socio%20pleno."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border border-slate-700"
+              >
+                <span>Hablar por WhatsApp</span>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 2. CABECERA EJECUTIVA DEL SOCIO (DASHBOARD MINIMALISTA) ──────────── */}
       <div className="bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
         {/* Glow de fondo decorativo */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
@@ -784,94 +871,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
         </div>
       </div>
 
-      {/* ── BANNER / CHECKLIST DE ADMISIÓN FIDUCIARIA (SOLO PARA PROSPECTOS / INVITADOS) ── */}
-      {!esSocioAprobado && (
-        <div className="bg-gradient-to-r from-indigo-950/40 via-slate-900 to-amber-950/30 border border-amber-500/40 rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-            <div className="space-y-2.5 max-w-2xl">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold bg-amber-500/15 border border-amber-500/30 text-amber-300">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                <span>Requisitos para Acceso como Socio Pleno (Art. 1666 CCCN)</span>
-              </div>
-              <h3 className="text-base sm:text-lg font-black text-white">
-                {user.estadoSocio === 'pendiente_aprobacion'
-                  ? 'Tu solicitud está siendo verificada por la Administración Fiduciaria'
-                  : '¿Querés ser Socio Pleno y adjudicar tu departamento en obra?'}
-              </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                {user.estadoSocio === 'pendiente_aprobacion'
-                  ? 'Hemos recibido tus datos y la constancia de anticipo. Nuestro equipo está revisando la información para asignarte tu unidad oficial y habilitarte el pago de cuotas.'
-                  : 'Actualmente tenés acceso en Modo Invitado / Prospecto para simular cuotas libremente. Para acceder al estado de cuenta individual oficial, posesión garantizada y pago de cuotas mensuales, se requiere:'}
-              </p>
-
-              {/* Checklist visual de 4 requisitos */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                <div className="flex items-center gap-2 text-xs text-slate-200 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>1. Registro de Cuenta ({user.email || 'Validado'})</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-200 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
-                  {user.dni && user.domicilio ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  ) : (
-                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-                  )}
-                  <span>
-                    2. {user.dni ? `DNI: ${user.dni}` : 'DNI y Constancia Domicilio'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-200 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
-                  {user.pagoInicialAcreditado || (user.pagoInicialMonto && user.pagoInicialMonto >= 10000) ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  ) : (
-                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-                  )}
-                  <span>
-                    3. Anticipo USD 10.000 ({user.pagoInicialAcreditado ? 'Acreditado' : 'Pendiente'})
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-200 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
-                  {user.garantiaTipo || user.garantiaDetalle ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  ) : (
-                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-                  )}
-                  <span>
-                    4. Garantía Exigida ({user.garantiaTipo ? 'Declarada' : 'Pendiente'})
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Botonera de acción */}
-            <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => setShowModalAdmision(true)}
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-              >
-                <ShieldCheck className="w-4 h-4 text-slate-950" />
-                <span>
-                  {user.estadoSocio === 'pendiente_aprobacion'
-                    ? 'Actualizar Documentación'
-                    : 'Completar Requisitos de Socio'}
-                </span>
-              </button>
-              <a
-                href="https://wa.me/5492646272555?text=Hola%20Inverfondo,%20tengo%20mi%20cuenta%20en%20modo%20invitado/prospecto%20y%20quisiera%20completar%20mi%20ingreso%20como%20socio%20pleno."
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border border-slate-700"
-              >
-                <span>Hablar por WhatsApp</span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── 2. NAVEGACIÓN POR PESTAÑAS DEL PORTAL ─────────────────────────── */}
+      {/* ── 3. NAVEGACIÓN POR PESTAÑAS DEL PORTAL ─────────────────────────── */}
       <div className="flex flex-wrap border-b border-slate-800 bg-slate-900/50 backdrop-blur-md rounded-2xl p-1 gap-1 max-w-2xl no-print">
         <button
           type="button"
