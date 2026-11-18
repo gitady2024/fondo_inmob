@@ -194,6 +194,12 @@ export const useAuth = (): UseAuthReturn => {
     const localMatch = accounts.find((a) => a.email.toLowerCase() === normEmail);
 
     if (localMatch) {
+      if ((localMatch as any).activo === false) {
+        const msg = 'Esta cuenta se encuentra temporalmente suspendida por la administración fiduciaria.';
+        setError(msg);
+        return { success: false, error: msg };
+      }
+
       if (localMatch.password && localMatch.password !== password) {
         const msg = 'Contraseña incorrecta para este correo.';
         setError(msg);
