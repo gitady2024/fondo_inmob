@@ -77,6 +77,13 @@ export const getSociosPorFondo = async (
               contratoFirmadoNombre: supSocio.contrato_firmado_nombre,
               fotoDniUrl: supSocio.foto_dni_url,
               fotoDniNombre: supSocio.foto_dni_nombre,
+              domicilio: supSocio.domicilio || '',
+              constanciaDomicilioUrl: supSocio.constancia_domicilio_url,
+              constanciaDomicilioNombre: supSocio.constancia_domicilio_nombre,
+              garantiaTipo: supSocio.garantia_tipo || '',
+              garantiaDetalle: supSocio.garantia_detalle || '',
+              garantiaDocUrl: supSocio.garantia_doc_url,
+              garantiaDocNombre: supSocio.garantia_doc_nombre,
               estado: supSocio.pago_inicial_efectuado ? 'activo' : 'pendiente_pago',
               updatedAt: supSocio.updated_at || new Date().toISOString()
             });

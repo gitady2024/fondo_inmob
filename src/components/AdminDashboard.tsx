@@ -11,6 +11,7 @@ import {
 import { formatMonedaARS } from './SocioPortal';
 import { GestionNegocioProyecto } from './GestionNegocioProyecto';
 import { GestionSociosAdmin } from './GestionSociosAdmin';
+import { GestionUsuariosAdmin } from './GestionUsuariosAdmin';
 import type { DatosNegocioProyecto } from '../types/fondo';
 import {
   Shield,
@@ -54,8 +55,9 @@ interface AdminDashboardProps {
   childrenTecnico?: React.ReactNode;
   childrenMensajeria?: React.ReactNode;
   unreadCount?: number;
+  onSwitchUser?: (user: UserProfile) => void;
   /** Módulo inicial al montar (para ir directo al simulador sin cambiar sesión) */
-  initialModule?: 'cobranzas' | 'simulador' | 'tecnico' | 'mensajeria' | 'negocio';
+  initialModule?: 'cobranzas' | 'socios' | 'usuarios' | 'simulador' | 'tecnico' | 'mensajeria' | 'negocio';
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -74,9 +76,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   childrenTecnico,
   childrenMensajeria,
   unreadCount = 0,
+  onSwitchUser,
   initialModule = 'cobranzas'
 }) => {
-  const [activeModule, setActiveModule] = useState<'cobranzas' | 'socios' | 'simulador' | 'tecnico' | 'mensajeria' | 'negocio'>(initialModule);
+  const [activeModule, setActiveModule] = useState<'cobranzas' | 'socios' | 'usuarios' | 'simulador' | 'tecnico' | 'mensajeria' | 'negocio'>(initialModule);
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'mes_actual' | 'morosos' | 'pagados'>('mes_actual');
   const [busquedaSocio, setBusquedaSocio] = useState<string>('');
   const [isLoadingCuotas, setIsLoadingCuotas] = useState<boolean>(true);
@@ -515,6 +518,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveModule('usuarios')}
+          className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            activeModule === 'usuarios'
+              ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+          }`}
+        >
+          <Key className="w-4 h-4" />
+          <span>Usuarios y Accesos</span>
+        </button>
+
+        <button
           onClick={() => setActiveModule('simulador')}
           className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
             activeModule === 'simulador'
@@ -785,6 +800,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <GestionSociosAdmin
           currentFondo={currentFondo}
           onShowToast={onShowToast}
+        />
+      )}
+
+      {/* ==================================================================== */}
+      {/* 4.2. MÓDULO: GESTIÓN DE USUARIOS Y ACCESOS AL SISTEMA                 */}
+      {/* ==================================================================== */}
+      {activeModule === 'usuarios' && (
+        <GestionUsuariosAdmin
+          currentUser={currentUser}
+          onShowToast={onShowToast}
+          onSwitchUser={onSwitchUser}
+          cantidadDeptos={currentFondo.params.cantidadDeptos}
         />
       )}
 

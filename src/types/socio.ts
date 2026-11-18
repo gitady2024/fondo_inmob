@@ -7,6 +7,13 @@ export interface SocioFiduciario {
   dni: string;
   fotoDniUrl?: string; // Data URL o URL del DNI frente/dorso
   fotoDniNombre?: string;
+  domicilio?: string; // Dirección real / fiscal del titular
+  constanciaDomicilioUrl?: string; // Comprobante o certificado de domicilio
+  constanciaDomicilioNombre?: string;
+  garantiaTipo?: string; // Ej: 'Recibo de Sueldo', 'Garante Propietario', 'Seguro de Caución', 'Fianza Personal'
+  garantiaDetalle?: string; // Detalle, titular o entidad de la garantía
+  garantiaDocUrl?: string;
+  garantiaDocNombre?: string;
   email: string;
   telefono: string;
   pagoInicialEfectuado: boolean;

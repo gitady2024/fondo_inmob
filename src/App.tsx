@@ -1103,6 +1103,13 @@ export const App: React.FC = () => {
                 updated_at: new Date().toISOString()
               }));
             }}
+            onSwitchUser={(targetUser) => {
+              setDevUserOverride(targetUser);
+              setDevUser(targetUser);
+              if (targetUser.role === 'socio') {
+                setSocioSeleccionado(targetUser.socioId || 1);
+              }
+            }}
             unreadCount={unreadCount}
             initialModule={goToSimulador ? 'simulador' : 'cobranzas'}
             childrenSimulador={

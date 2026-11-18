@@ -1,0 +1,151 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import {
+  getUsuariosRegistrados,
+  guardarUsuario,
+  eliminarUsuario,
+  alternarEstadoUsuario,
+  restablecerPassword,
+  STORAGE_ACCOUNTS_KEY
+} from './userService';
+
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value.toString();
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    }
+  };
+})();
+
+Object.defineProperty(globalThis, 'localStorage', {
+  value: localStorageMock,
+  writable: true
+});
+
+Object.defineProperty(globalThis, 'window', {
+  value: { localStorage: localStorageMock },
+  writable: true
+});
+
+describe('userService - Gestión de Cuentas y Accesos de Usuarios', () => {
+  beforeEach(() => {
+    localStorageMock.clear();
+  });
+
+  it('inicializa con cuentas base predefinidas si el almacenamiento está vacío', () => {
+    const usuarios = getUsuariosRegistrados();
+    expect(usuarios.length).toBeGreaterThanOrEqual(3);
+
+    const admin = usuarios.find((u) => u.role === 'admin');
+    expect(admin).toBeDefined();
+    expect(admin?.email).toBe('admin@fondoinmobil.com');
+
+    const tecnico = usuarios.find((u) => u.role === 'tecnico');
+    expect(tecnico).toBeDefined();
+    expect(tecnico?.especialidad).toBeDefined();
+  });
+
+  it('permite registrar un nuevo usuario con rol socio', () => {
+    const res = guardarUsuario({
+      email: 'juan.perez@example.com',
+      nombre: 'Juan Pérez Inversor',
+      role: 'socio',
+      socioId: 4,
+      password: 'password123'
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.usuario).toBeDefined();
+    expect(res.usuario?.email).toBe('juan.perez@example.com');
+    expect(res.usuario?.role).toBe('socio');
+    expect(res.usuario?.socioId).toBe(4);
+
+    const usuarios = getUsuariosRegistrados();
+    const encontrado = usuarios.find((u) => u.email === 'juan.perez@example.com');
+    expect(encontrado).toBeDefined();
+    expect(encontrado?.nombre).toBe('Juan Pérez Inversor');
+  });
+
+  it('permite editar los datos de un usuario existente', () => {
+    guardarUsuario({
+      id: 'user-test-1',
+      email: 'carlos@example.com',
+      nombre: 'Carlos Inicial',
+      role: 'tecnico',
+      especialidad: 'Estructuras'
+    });
+
+    // Edición
+    const editRes = guardarUsuario({
+      id: 'user-test-1',
+      email: 'carlos@example.com',
+      nombre: 'Carlos Modificado',
+      role: 'admin'
+    });
+
+    expect(editRes.success).toBe(true);
+    expect(editRes.usuario?.nombre).toBe('Carlos Modificado');
+    expect(editRes.usuario?.role).toBe('admin');
+
+    const usuarios = getUsuariosRegistrados();
+    const carlos = usuarios.find((u) => u.id === 'user-test-1');
+    expect(carlos?.nombre).toBe('Carlos Modificado');
+    expect(carlos?.role).toBe('admin');
+  });
+
+  it('permite alternar el estado activo/suspendido de un usuario', () => {
+    const nuevo = guardarUsuario({
+      email: 'suspendible@example.com',
+      nombre: 'Usuario Suspendible',
+      role: 'socio'
+    });
+
+    const id = nuevo.usuario!.id;
+    const resToggle = alternarEstadoUsuario(id);
+    expect(resToggle.success).toBe(true);
+    expect(resToggle.nuevoEstado).toBe(false);
+
+    const resToggle2 = alternarEstadoUsuario(id);
+    expect(resToggle2.success).toBe(true);
+    expect(resToggle2.nuevoEstado).toBe(true);
+  });
+
+  it('permite restablecer la contraseña de un usuario', () => {
+    const nuevo = guardarUsuario({
+      email: 'cambiopass@example.com',
+      nombre: 'Usuario Pass',
+      role: 'socio',
+      password: 'passOriginal'
+    });
+
+    const id = nuevo.usuario!.id;
+    const resPass = restablecerPassword(id, 'nuevaPasswordSegura2026');
+    expect(resPass.success).toBe(true);
+
+    const usuarios = getUsuariosRegistrados();
+    const modificado = usuarios.find((u) => u.id === id);
+    expect(modificado?.password).toBe('nuevaPasswordSegura2026');
+  });
+
+  it('permite eliminar un usuario registrado', () => {
+    const nuevo = guardarUsuario({
+      email: 'aeliminar@example.com',
+      nombre: 'A Eliminar',
+      role: 'socio'
+    });
+
+    const id = nuevo.usuario!.id;
+    const deleteRes = eliminarUsuario(id);
+    expect(deleteRes.success).toBe(true);
+
+    const usuarios = getUsuariosRegistrados();
+    expect(usuarios.some((u) => u.id === id)).toBe(false);
+  });
+});

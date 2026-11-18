@@ -24,7 +24,12 @@ import {
   Search,
   X,
   UploadCloud,
-  Image as ImageIcon
+  Image as ImageIcon,
+  MapPin,
+  Shield,
+  ShieldCheck,
+  DollarSign,
+  AlertCircle
 } from 'lucide-react';
 
 interface GestionSociosAdminProps {
@@ -56,6 +61,8 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
 
   const fileInputContratoRef = useRef<HTMLInputElement>(null);
   const fileInputDniRef = useRef<HTMLInputElement>(null);
+  const fileInputDomicilioRef = useRef<HTMLInputElement>(null);
+  const fileInputGarantiaRef = useRef<HTMLInputElement>(null);
 
   // Cargar lista de socios
   const cargarSocios = async () => {
@@ -194,8 +201,44 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
         fotoDniNombre: file.name
       });
       onShowToast(`🆔 Foto de DNI "${file.name}" cargada.`);
-    } catch (err) {
+    } catch {
       onShowToast('❌ Error al procesar la foto del DNI.');
+    }
+  };
+
+  // Subida de Constancia de Domicilio
+  const handleFileDomicilioChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !socioEditando) return;
+
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setSocioEditando({
+        ...socioEditando,
+        constanciaDomicilioUrl: dataUrl,
+        constanciaDomicilioNombre: file.name
+      });
+      onShowToast(`📍 Constancia de domicilio "${file.name}" cargada.`);
+    } catch {
+      onShowToast('❌ Error al procesar la constancia de domicilio.');
+    }
+  };
+
+  // Subida de Garantía Fiduciaria
+  const handleFileGarantiaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !socioEditando) return;
+
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setSocioEditando({
+        ...socioEditando,
+        garantiaDocUrl: dataUrl,
+        garantiaDocNombre: file.name
+      });
+      onShowToast(`🛡️ Comprobante de garantía "${file.name}" cargado.`);
+    } catch {
+      onShowToast('❌ Error al procesar el comprobante de garantía.');
     }
   };
 
@@ -420,11 +463,12 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
               <thead className="bg-slate-950/80 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800">
                 <tr>
                   <th className="py-3 px-4">Unidad</th>
-                  <th className="py-3 px-4">Socio Titular</th>
-                  <th className="py-3 px-4">DNI / Documento</th>
+                  <th className="py-3 px-4">Socio Titular & Domicilio</th>
+                  <th className="py-3 px-4">DNI & Constancias</th>
+                  <th className="py-3 px-4">Garantía</th>
                   <th className="py-3 px-4">Contacto</th>
-                  <th className="py-3 px-4">Pago Inicial</th>
-                  <th className="py-3 px-4">Contrato Firmado</th>
+                  <th className="py-3 px-4">Pago Inicial (USD)</th>
+                  <th className="py-3 px-4">Contrato</th>
                   <th className="py-3 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
@@ -444,12 +488,19 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                         </div>
                       </td>
 
-                      {/* Socio Titular */}
+                      {/* Socio Titular & Domicilio */}
                       <td className="py-3.5 px-4">
                         {tieneNombre ? (
                           <div>
                             <strong className="text-white block font-semibold">{s.nombreCompleto}</strong>
-                            <span className="text-[11px] text-slate-400">Titular de Adjudicación</span>
+                            {s.domicilio ? (
+                              <span className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                                <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
+                                <span className="truncate max-w-[200px]">{s.domicilio}</span>
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-slate-500 italic">Sin domicilio cargado</span>
+                            )}
                           </div>
                         ) : (
                           <span className="text-slate-500 italic text-xs">
@@ -458,11 +509,11 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                         )}
                       </td>
 
-                      {/* DNI */}
+                      {/* DNI & Constancias */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
-                        {s.dni ? (
+                        <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-slate-200">{s.dni}</span>
+                            <span className="font-mono text-slate-200">{s.dni || '-'}</span>
                             {s.fotoDniUrl && (
                               <button
                                 type="button"
@@ -474,8 +525,47 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                               </button>
                             )}
                           </div>
+                          {s.constanciaDomicilioUrl && (
+                            <button
+                              type="button"
+                              onClick={() => abrirVisor(`Constancia Domicilio - ${s.nombreCompleto}`, s.constanciaDomicilioUrl!, s.constanciaDomicilioNombre || 'domicilio.pdf')}
+                              className="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
+                              title="Ver constancia de domicilio"
+                            >
+                              <MapPin className="w-3 h-3" />
+                              <span>Constancia Dom.</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Garantía */}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        {s.garantiaTipo ? (
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded-md bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold">
+                                {s.garantiaTipo}
+                              </span>
+                              {s.garantiaDocUrl && (
+                                <button
+                                  type="button"
+                                  onClick={() => abrirVisor(`Garantía - ${s.nombreCompleto}`, s.garantiaDocUrl!, s.garantiaDocNombre || 'garantia.pdf')}
+                                  title="Ver documento de garantía"
+                                  className="text-indigo-400 hover:text-indigo-300 p-1 hover:bg-slate-800 rounded transition cursor-pointer"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                            {s.garantiaDetalle && (
+                              <span className="text-[10px] text-slate-400 block truncate max-w-[150px]">
+                                {s.garantiaDetalle}
+                              </span>
+                            )}
+                          </div>
                         ) : (
-                          <span className="text-slate-500 text-xs">-</span>
+                          <span className="text-slate-500 text-xs italic">Sin garantía</span>
                         )}
                       </td>
 
@@ -524,7 +614,7 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                             {s.pagoInicialEfectuado ? (
                               <>
                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>Abonado ({fmtMoneda(s.montoPagoInicial)})</span>
+                                <span>USD ${s.montoPagoInicial.toLocaleString('es-AR')}</span>
                               </>
                             ) : (
                               <>
@@ -570,7 +660,7 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                           className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold transition flex items-center gap-1.5 ml-auto cursor-pointer"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
-                          <span>Editar</span>
+                          <span>Editar Ficha</span>
                         </button>
                       </td>
 
@@ -614,12 +704,12 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleGuardarModal} className="space-y-4 text-xs sm:text-sm">
+            <form onSubmit={handleGuardarModal} className="space-y-5 text-xs sm:text-sm">
               
-              {/* Bloque 1: Datos Personales */}
+              {/* Bloque 1: Datos Personales y Domicilio */}
               <div className="space-y-3">
-                <h4 className="text-xs uppercase font-bold text-indigo-400 tracking-wider">
-                  1. Datos Personales del Titular
+                <h4 className="text-xs uppercase font-bold text-indigo-400 tracking-wider flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5" /> 1. Datos Personales y Domicilio del Titular
                 </h4>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -651,6 +741,20 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                   </div>
                 </div>
 
+                {/* Domicilio Real y Fiscal */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Domicilio Real / Legal (Calle, Número, Localidad, Provincia)
+                  </label>
+                  <input
+                    type="text"
+                    value={socioEditando.domicilio || ''}
+                    onChange={(e) => setSocioEditando({ ...socioEditando, domicilio: e.target.value })}
+                    placeholder="Ej: Av. Libertador 1250, Santa Lucía, San Juan"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-indigo-500"
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">
@@ -679,12 +783,14 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                   </div>
                 </div>
 
-                {/* Carga de Foto de DNI */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Foto o Escaneo del DNI
-                  </label>
-                  <div className="flex items-center gap-3">
+                {/* Documentos Adjuntos: Foto DNI y Constancia Domicilio */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  
+                  {/* Foto de DNI */}
+                  <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-3 space-y-2">
+                    <label className="block text-xs font-semibold text-slate-300">
+                      Foto / Escaneo del DNI
+                    </label>
                     <input
                       type="file"
                       ref={fileInputDniRef}
@@ -692,24 +798,175 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                       accept="image/*,application/pdf"
                       className="hidden"
                     />
-                    <button
-                      type="button"
-                      onClick={() => fileInputDniRef.current?.click()}
-                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-2 border border-slate-700 cursor-pointer transition"
-                    >
-                      <ImageIcon className="w-4 h-4 text-indigo-400" />
-                      <span>{socioEditando.fotoDniNombre ? 'Reemplazar Foto DNI' : 'Subir Foto DNI'}</span>
-                    </button>
-                    {socioEditando.fotoDniNombre && (
-                      <div className="flex items-center gap-2 text-xs text-emerald-400">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span className="truncate max-w-[200px]">{socioEditando.fotoDniNombre}</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputDniRef.current?.click()}
+                        className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700 cursor-pointer transition"
+                      >
+                        <ImageIcon className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>{socioEditando.fotoDniNombre ? 'Cambiar DNI' : 'Subir DNI'}</span>
+                      </button>
+                      {socioEditando.fotoDniUrl && (
+                        <button
+                          type="button"
+                          onClick={() => abrirVisor(`Foto DNI - ${socioEditando.nombreCompleto}`, socioEditando.fotoDniUrl!, socioEditando.fotoDniNombre || 'DNI.jpg')}
+                          className="p-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-slate-800 rounded-lg transition"
+                          title="Ver DNI"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      )}
+                      {socioEditando.fotoDniNombre && (
                         <button
                           type="button"
                           onClick={() => setSocioEditando({ ...socioEditando, fotoDniUrl: undefined, fotoDniNombre: undefined })}
-                          className="text-rose-400 hover:text-rose-300 text-xs ml-1"
+                          className="text-rose-400 hover:text-rose-300 text-xs p-1"
+                          title="Quitar foto"
                         >
-                          Eliminar
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {socioEditando.fotoDniNombre && (
+                      <span className="text-[10px] text-emerald-400 truncate block">
+                        ✓ {socioEditando.fotoDniNombre}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Constancia de Domicilio */}
+                  <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-3 space-y-2">
+                    <label className="block text-xs font-semibold text-slate-300">
+                      Constancia de Domicilio
+                    </label>
+                    <input
+                      type="file"
+                      ref={fileInputDomicilioRef}
+                      onChange={handleFileDomicilioChange}
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputDomicilioRef.current?.click()}
+                        className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700 cursor-pointer transition"
+                      >
+                        <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                        <span>{socioEditando.constanciaDomicilioNombre ? 'Cambiar Const.' : 'Subir Constancia'}</span>
+                      </button>
+                      {socioEditando.constanciaDomicilioUrl && (
+                        <button
+                          type="button"
+                          onClick={() => abrirVisor(`Constancia Domicilio - ${socioEditando.nombreCompleto}`, socioEditando.constanciaDomicilioUrl!, socioEditando.constanciaDomicilioNombre || 'domicilio.pdf')}
+                          className="p-1.5 text-amber-400 hover:text-amber-300 hover:bg-slate-800 rounded-lg transition"
+                          title="Ver constancia"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      )}
+                      {socioEditando.constanciaDomicilioNombre && (
+                        <button
+                          type="button"
+                          onClick={() => setSocioEditando({ ...socioEditando, constanciaDomicilioUrl: undefined, constanciaDomicilioNombre: undefined })}
+                          className="text-rose-400 hover:text-rose-300 text-xs p-1"
+                          title="Quitar constancia"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {socioEditando.constanciaDomicilioNombre && (
+                      <span className="text-[10px] text-emerald-400 truncate block">
+                        ✓ {socioEditando.constanciaDomicilioNombre}
+                      </span>
+                    )}
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Bloque 2: Garantía Fiduciaria */}
+              <div className="space-y-3 pt-3 border-t border-slate-800">
+                <h4 className="text-xs uppercase font-bold text-amber-400 tracking-wider flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5" /> 2. Garantía Fiduciaria (Requisito Formal)
+                </h4>
+
+                <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                        Tipo de Garantía Presentada
+                      </label>
+                      <select
+                        value={socioEditando.garantiaTipo || ''}
+                        onChange={(e) => setSocioEditando({ ...socioEditando, garantiaTipo: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-amber-500 cursor-pointer text-xs"
+                      >
+                        <option value="">Sin garantía especificada</option>
+                        <option value="Recibo de Sueldo">Recibo de Sueldo / Ingresos Demostrables</option>
+                        <option value="Garante Propietario">Garante Propietario (Fianza Inmobiliaria)</option>
+                        <option value="Seguro de Caución">Seguro de Caución Fiduciario</option>
+                        <option value="Fianza Personal">Fianza Personal de Tercero</option>
+                        <option value="Aval Bancario">Aval Bancario</option>
+                        <option value="Otra">Otra Garantía Contractual</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                        Detalle / Datos del Garante o Póliza
+                      </label>
+                      <input
+                        type="text"
+                        value={socioEditando.garantiaDetalle || ''}
+                        onChange={(e) => setSocioEditando({ ...socioEditando, garantiaDetalle: e.target.value })}
+                        placeholder="Ej: Garante: Pedro Gómez - DNI 28.xxx.xxx"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-amber-500 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Subida del Documento de Garantía */}
+                  <div className="pt-2 flex items-center justify-between border-t border-slate-800/80">
+                    <input
+                      type="file"
+                      ref={fileInputGarantiaRef}
+                      onChange={handleFileGarantiaChange}
+                      accept="application/pdf,image/*"
+                      className="hidden"
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputGarantiaRef.current?.click()}
+                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700 cursor-pointer transition"
+                      >
+                        <Shield className="w-3.5 h-3.5 text-amber-400" />
+                        <span>{socioEditando.garantiaDocNombre ? 'Reemplazar Doc. Garantía' : 'Adjuntar Documento de Garantía'}</span>
+                      </button>
+                      {socioEditando.garantiaDocUrl && (
+                        <button
+                          type="button"
+                          onClick={() => abrirVisor(`Garantía - ${socioEditando.nombreCompleto}`, socioEditando.garantiaDocUrl!, socioEditando.garantiaDocNombre || 'garantia.pdf')}
+                          className="p-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-slate-800 rounded-lg transition"
+                          title="Ver documento de garantía"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    {socioEditando.garantiaDocNombre && (
+                      <div className="flex items-center gap-1.5 text-xs text-emerald-400">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span className="truncate max-w-[180px] text-[11px]">{socioEditando.garantiaDocNombre}</span>
+                        <button
+                          type="button"
+                          onClick={() => setSocioEditando({ ...socioEditando, garantiaDocUrl: undefined, garantiaDocNombre: undefined })}
+                          className="text-rose-400 hover:text-rose-300 text-xs p-1"
+                        >
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     )}
@@ -717,14 +974,43 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                 </div>
               </div>
 
-              {/* Bloque 2: Estado del Pago Inicial */}
+              {/* Bloque 3: Estado, Unidad y Pago Inicial en USD */}
               <div className="space-y-3 pt-3 border-t border-slate-800">
-                <h4 className="text-xs uppercase font-bold text-emerald-400 tracking-wider">
-                  2. Acreditación del Pago Inicial (Condición de Socio Activo)
+                <h4 className="text-xs uppercase font-bold text-emerald-400 tracking-wider flex items-center gap-1.5">
+                  <DollarSign className="w-3.5 h-3.5" /> 3. Situación Fiduciaria y Pago Inicial en Dólares (USD)
                 </h4>
 
                 <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3">
-                  <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2 border-b border-slate-800/80">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                        Unidad / Departamento Asignado
+                      </label>
+                      <input
+                        type="text"
+                        value={socioEditando.unidadDepto}
+                        onChange={(e) => setSocioEditando({ ...socioEditando, unidadDepto: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-emerald-500 font-mono text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                        Estado del Socio en el Fondo
+                      </label>
+                      <select
+                        value={socioEditando.estado}
+                        onChange={(e) => setSocioEditando({ ...socioEditando, estado: e.target.value as any })}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-emerald-500 cursor-pointer text-xs"
+                      >
+                        <option value="activo">Activo (Al día y aportando)</option>
+                        <option value="pendiente_pago">Pendiente de Pago Inicial</option>
+                        <option value="inactivo">Inactivo / Salida</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-3 cursor-pointer pt-1">
                     <input
                       type="checkbox"
                       checked={socioEditando.pagoInicialEfectuado}
@@ -732,6 +1018,7 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                         setSocioEditando({
                           ...socioEditando,
                           pagoInicialEfectuado: e.target.checked,
+                          estado: e.target.checked ? 'activo' : 'pendiente_pago',
                           fechaPagoInicial: e.target.checked
                             ? socioEditando.fechaPagoInicial || new Date().toISOString().slice(0, 10)
                             : undefined
@@ -741,10 +1028,10 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                     />
                     <div>
                       <span className="font-bold text-white block">
-                        Pago Inicial Efectuado y Acreditado
+                        Pago Inicial Efectuado y Acreditado (USD)
                       </span>
                       <span className="text-xs text-slate-400">
-                        Habilita al socio como inversor pleno en el sistema.
+                        Habilita formalmente al socio como inversor pleno en el fondo.
                       </span>
                     </div>
                   </label>
@@ -752,7 +1039,7 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1">
-                        Monto del Pago Inicial ($)
+                        Monto del Pago Inicial (Dólares USD)
                       </label>
                       <input
                         type="number"
@@ -778,10 +1065,10 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                 </div>
               </div>
 
-              {/* Bloque 3: Archivo Digital del Contrato Firmado */}
+              {/* Bloque 4: Copia del Contrato Digital Firmado */}
               <div className="space-y-3 pt-3 border-t border-slate-800">
-                <h4 className="text-xs uppercase font-bold text-indigo-400 tracking-wider">
-                  3. Copia del Contrato Digital Firmado (PDF o Imagen)
+                <h4 className="text-xs uppercase font-bold text-indigo-400 tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5" /> 4. Copia del Contrato Digital Firmado (PDF o Imagen)
                 </h4>
 
                 <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4">
@@ -808,6 +1095,13 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                       </div>
 
                       <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => abrirVisor(`Contrato Firmado - ${socioEditando.unidadDepto}`, socioEditando.contratoFirmadoUrl!, socioEditando.contratoFirmadoNombre || 'contrato.pdf')}
+                          className="px-2.5 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 text-xs font-bold"
+                        >
+                          Ver
+                        </button>
                         <button
                           type="button"
                           onClick={() => fileInputContratoRef.current?.click()}
@@ -847,12 +1141,26 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                 </div>
               </div>
 
+              {/* Bloque 5: Observaciones / Notas Internas */}
+              <div className="space-y-2 pt-3 border-t border-slate-800">
+                <label className="block text-xs font-semibold text-slate-300">
+                  5. Observaciones Internas de la Administración
+                </label>
+                <textarea
+                  value={socioEditando.observaciones || ''}
+                  onChange={(e) => setSocioEditando({ ...socioEditando, observaciones: e.target.value })}
+                  placeholder="Notas privadas sobre este socio o condiciones particulares acordadas..."
+                  rows={2}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-indigo-500 text-xs"
+                />
+              </div>
+
               {/* Botonera de Guardado */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer transition"
                 >
                   Cancelar
                 </button>
@@ -861,7 +1169,7 @@ export const GestionSociosAdmin: React.FC<GestionSociosAdminProps> = ({
                   disabled={guardando}
                   className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition cursor-pointer disabled:opacity-50"
                 >
-                  {guardando ? 'Guardando...' : 'Guardar Ficha del Socio'}
+                  {guardando ? 'Guardando Cambios...' : 'Guardar Ficha del Socio'}
                 </button>
               </div>
 
