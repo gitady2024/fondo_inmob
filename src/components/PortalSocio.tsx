@@ -24,6 +24,7 @@ import { DATOS_TECNICOS_DEFAULT } from '../types/tecnico';
 import {
   verificarEstadoSocio,
   enviarSolicitudSocio,
+  obtenerNombreVisible,
   type VerificacionSocio
 } from '../services/userService';
 import {
@@ -116,9 +117,14 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   const [pagoNotas, setPagoNotas] = useState<string>('');
   const [enviandoPago, setEnviandoPago] = useState<boolean>(false);
 
+  // Nombre legible garantizado (evita exponer el prefijo del correo en lugar de un nombre)
+  const infoNombre = useMemo(() => obtenerNombreVisible(user), [user]);
+
   // Estados Formulario Solicitud de Admisión / Completar Requisitos de Socio
   const [showModalAdmision, setShowModalAdmision] = useState<boolean>(false);
-  const [formNombre, setFormNombre] = useState<string>(user.nombre || '');
+  const [formNombre, setFormNombre] = useState<string>(
+    infoNombre.esNombreReal && user.nombre ? user.nombre : ''
+  );
   const [formDni, setFormDni] = useState<string>(user.dni || '');
   const [formDomicilio, setFormDomicilio] = useState<string>(user.domicilio || '');
   const [formGarantiaTipo, setFormGarantiaTipo] = useState<string>(user.garantiaTipo || 'Recibo de Sueldo');
@@ -130,7 +136,12 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   // Sincronizar datos iniciales si cambia el usuario
   useEffect(() => {
     if (user) {
-      if (user.nombre) setFormNombre(user.nombre);
+      const info = obtenerNombreVisible(user);
+      if (info.esNombreReal && user.nombre) {
+        setFormNombre(user.nombre);
+      } else {
+        setFormNombre('');
+      }
       if (user.dni) setFormDni(user.dni);
       if (user.domicilio) setFormDomicilio(user.domicilio);
       if (user.garantiaTipo) setFormGarantiaTipo(user.garantiaTipo);
@@ -142,6 +153,10 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
   // Manejador para enviar solicitud de admisión formal con requisitos
   const handleEnviarSolicitudAdmision = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formNombre.trim()) {
+      showToast('❌ Por favor ingresá tu Nombre y Apellido completo.');
+      return;
+    }
     if (!formDni.trim() || !formDomicilio.trim()) {
       showToast('❌ Por favor completá tu DNI y constancia de domicilio.');
       return;
@@ -149,16 +164,20 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
 
     setEnviandoSolicitud(true);
     try {
-      const res = enviarSolicitudSocio(user.id, {
-        nombre: formNombre.trim(),
-        dni: formDni.trim(),
-        domicilio: formDomicilio.trim(),
-        garantiaTipo: formGarantiaTipo,
-        garantiaDetalle: formGarantiaDetalle.trim(),
-        pagoInicialMonto: Number(formAnticipoMonto),
-        obraAsignadaNombre: currentFondo.nombre,
-        comprobanteReferencia: formComprobante.trim()
-      });
+      const res = enviarSolicitudSocio(
+        user.id,
+        {
+          nombre: formNombre.trim(),
+          dni: formDni.trim(),
+          domicilio: formDomicilio.trim(),
+          garantiaTipo: formGarantiaTipo,
+          garantiaDetalle: formGarantiaDetalle.trim(),
+          pagoInicialMonto: Number(formAnticipoMonto),
+          obraAsignadaNombre: currentFondo.nombre,
+          comprobanteReferencia: formComprobante.trim()
+        },
+        user.email
+      );
 
       if (res.success && res.usuario) {
         // Enviar notificación a la administración fiduciaria
@@ -606,7 +625,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                    {esSocioAprobado ? `Hola, ${user.nombre}` : `Hola, ${user.nombre || 'Inversor'}`}
+                    Hola, {infoNombre.esNombreReal ? infoNombre.nombreVisible : 'Socio Inversor'}
                   </h2>
                   {esSocioAprobado ? (
                     <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-emerald-500/15 border-emerald-500/30 text-emerald-300">
@@ -1382,7 +1401,7 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
                     required
                     value={formNombre}
                     onChange={(e) => setFormNombre(e.target.value)}
-                    placeholder="Tu nombre completo"
+                    placeholder="Tu Nombre y Apellido completo (Ej: Adolfo Quiroga)"
                     className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-1.5 text-xs text-white outline-none"
                   />
                 </div>

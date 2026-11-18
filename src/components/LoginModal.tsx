@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { UserProfile, UserRole } from '../types/auth';
 import { ADMIN_USER, TECNICO_USER } from '../types/auth';
+import { getUsuariosRegistrados, obtenerNombreVisible } from '../services/userService';
 import {
   Shield,
   User,
@@ -101,13 +102,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         if (!onSupabaseSignIn) throw new Error('Servicio de autenticación no disponible');
         const res = await onSupabaseSignIn(normEmail, password);
         if (res.success) {
+          const registeredUsers = getUsuariosRegistrados();
+          const match = registeredUsers.find((u) => u.email.toLowerCase() === normEmail);
+          const info = obtenerNombreVisible(match || { email: normEmail, role: selectedRole });
+          const finalNombre = match?.nombre && info.esNombreReal
+            ? match.nombre
+            : nombre && !nombre.includes('@')
+            ? nombre.trim()
+            : info.nombreVisible;
+
           onLogin({
-            id: `user-${Date.now()}`,
-            role: selectedRole,
-            nombre: nombre || normEmail.split('@')[0],
+            id: match?.id || `user-${Date.now()}`,
+            role: match?.role || selectedRole,
+            nombre: finalNombre,
             email: normEmail,
-            socioId: selectedRole === 'socio' ? selectedSocioId : undefined,
-            especialidad: selectedRole === 'tecnico' ? especialidad : undefined
+            socioId: match?.socioId || (selectedRole === 'socio' ? selectedSocioId : undefined),
+            especialidad: match?.especialidad || (selectedRole === 'tecnico' ? especialidad : undefined)
           });
           onClose();
         } else {

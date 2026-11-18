@@ -116,13 +116,25 @@ export const useAuth = (): UseAuthReturn => {
     const resolvedRole = await resolveUserRole(authUser);
     setRole(resolvedRole);
 
+    const localMatch = getStoredAccounts().find(
+      (a) => a.email.toLowerCase() === (authUser.email || '').toLowerCase()
+    );
+    const emailPrefix = authUser.email ? authUser.email.split('@')[0] : '';
+    const metadataName = authUser.user_metadata?.nombre;
+    const realNombre =
+      metadataName && metadataName.toLowerCase() !== emailPrefix.toLowerCase()
+        ? metadataName
+        : localMatch?.nombre && localMatch.nombre.toLowerCase() !== emailPrefix.toLowerCase()
+        ? localMatch.nombre
+        : metadataName || localMatch?.nombre || (resolvedRole === 'admin' ? 'Administrador' : resolvedRole === 'tecnico' ? 'Equipo Técnico' : 'Socio Inversor');
+
     const profile: UserProfile = {
       id: authUser.id,
       role: resolvedRole,
-      nombre: authUser.user_metadata?.nombre || (authUser.email ? authUser.email.split('@')[0] : 'Usuario'),
+      nombre: realNombre,
       email: authUser.email || '',
-      socioId: authUser.user_metadata?.socio_id || 1,
-      especialidad: authUser.user_metadata?.especialidad
+      socioId: localMatch?.socioId || authUser.user_metadata?.socio_id || 1,
+      especialidad: localMatch?.especialidad || authUser.user_metadata?.especialidad
     };
     setUserProfile(profile);
     if (typeof window !== 'undefined') {

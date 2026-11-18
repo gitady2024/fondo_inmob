@@ -494,6 +494,62 @@ export const verificarEstadoSocio = (
 };
 
 /**
+ * Determina el nombre legible para mostrar de un usuario, evitando exhibir
+ * el nombre de usuario o prefijo de email cuando aún no ha registrado su nombre y apellido real.
+ */
+export const obtenerNombreVisible = (
+  user: Partial<UsuarioCuenta | UserProfile> | null | undefined
+): { nombreVisible: string; esNombreReal: boolean } => {
+  if (!user) return { nombreVisible: 'Ingresar', esNombreReal: false };
+
+  const email = user.email?.trim().toLowerCase() || '';
+  const emailPrefix = email ? email.split('@')[0].trim().toLowerCase() : '';
+  const rawNombre = user.nombre?.trim() || '';
+
+  // 1. Si tiene un nombre que no es un correo ni coincide con el prefijo del correo
+  if (
+    rawNombre &&
+    !rawNombre.includes('@') &&
+    rawNombre.toLowerCase() !== emailPrefix &&
+    rawNombre !== 'Usuario' &&
+    rawNombre !== 'Inversor'
+  ) {
+    return { nombreVisible: rawNombre, esNombreReal: true };
+  }
+
+  // 2. Buscar en cuentas registradas locales por si el administrador le asignó nombre
+  if (typeof window !== 'undefined' && email) {
+    try {
+      const raw = localStorage.getItem(STORAGE_ACCOUNTS_KEY);
+      if (raw) {
+        const accounts: UsuarioCuenta[] = JSON.parse(raw);
+        const match = accounts.find((a) => a.email.toLowerCase() === email);
+        if (
+          match?.nombre &&
+          !match.nombre.includes('@') &&
+          match.nombre.toLowerCase() !== emailPrefix &&
+          match.nombre !== 'Usuario'
+        ) {
+          return { nombreVisible: match.nombre.trim(), esNombreReal: true };
+        }
+      }
+    } catch {}
+  }
+
+  // 3. Fallback institucional formal (nunca mostrar el prefijo del email como nombre)
+  const fallback =
+    user.role === 'admin'
+      ? 'Administrador'
+      : user.role === 'tecnico'
+      ? 'Equipo Técnico'
+      : user.socioId
+      ? `Socio Inversor D${user.socioId}`
+      : 'Socio Inversor';
+
+  return { nombreVisible: fallback, esNombreReal: false };
+};
+
+/**
  * Permite a un prospecto o socio enviar/actualizar su documentación fiduciaria (DNI, Domicilio, Garantía, Pago Inicial)
  * para solicitar la aprobación formal de la Administración.
  */
@@ -508,35 +564,67 @@ export const enviarSolicitudSocio = (
     pagoInicialMonto?: number;
     obraAsignadaNombre?: string;
     comprobanteReferencia?: string;
-  }
+  },
+  userEmail?: string
 ): { success: boolean; error?: string; usuario?: UsuarioCuenta } => {
   const accounts = getUsuariosRegistrados();
-  const target = userIdOrEmail.trim().toLowerCase();
-  const index = accounts.findIndex((a) => a.id === userIdOrEmail || a.email.toLowerCase() === target);
+  const targetId = userIdOrEmail?.trim().toLowerCase();
+  const targetEmail = (userEmail || userIdOrEmail)?.trim().toLowerCase();
 
-  if (index === -1) {
-    return { success: false, error: 'No se encontró la cuenta de usuario.' };
-  }
+  let index = accounts.findIndex(
+    (a) =>
+      (targetId && a.id.toLowerCase() === targetId) ||
+      (targetEmail && a.email.toLowerCase() === targetEmail)
+  );
 
-  const prev = accounts[index];
   const now = new Date().toISOString();
-  const monto = datos.pagoInicialMonto !== undefined ? Number(datos.pagoInicialMonto) : (prev.pagoInicialMonto || 0);
+  const monto =
+    datos.pagoInicialMonto !== undefined
+      ? Number(datos.pagoInicialMonto)
+      : index >= 0
+      ? accounts[index].pagoInicialMonto || 0
+      : 10000;
 
-  const actualizado: UsuarioCuenta = {
-    ...prev,
-    nombre: datos.nombre?.trim() || prev.nombre,
-    dni: datos.dni.trim(),
-    domicilio: datos.domicilio.trim(),
-    garantiaTipo: datos.garantiaTipo.trim(),
-    garantiaDetalle: datos.garantiaDetalle?.trim() || prev.garantiaDetalle,
-    pagoInicialMonto: monto,
-    pagoInicialAcreditado: monto >= 10000 ? true : prev.pagoInicialAcreditado,
-    obraAsignadaNombre: datos.obraAsignadaNombre || prev.obraAsignadaNombre || 'Family Homes La Lucia (36 meses)',
-    estadoSocio: 'pendiente_aprobacion',
-    updatedAt: now
-  };
+  let actualizado: UsuarioCuenta;
 
-  accounts[index] = actualizado;
+  if (index >= 0) {
+    const prev = accounts[index];
+    actualizado = {
+      ...prev,
+      nombre: datos.nombre?.trim() || prev.nombre,
+      dni: datos.dni.trim(),
+      domicilio: datos.domicilio.trim(),
+      garantiaTipo: datos.garantiaTipo.trim(),
+      garantiaDetalle: datos.garantiaDetalle?.trim() || prev.garantiaDetalle,
+      pagoInicialMonto: monto,
+      pagoInicialAcreditado: monto >= 10000 ? true : prev.pagoInicialAcreditado,
+      obraAsignadaNombre: datos.obraAsignadaNombre || prev.obraAsignadaNombre || 'Family Homes La Lucia (36 meses)',
+      estadoSocio: 'pendiente_aprobacion',
+      updatedAt: now
+    };
+    accounts[index] = actualizado;
+  } else {
+    // Si la cuenta no existía en el registro local, crearla para preservar los datos del socio
+    actualizado = {
+      id: userIdOrEmail || `user-${Date.now()}`,
+      email: targetEmail || `${targetId}@inverfondo.com`,
+      nombre: datos.nombre?.trim() || 'Socio Inversor',
+      role: 'socio',
+      socioId: 1,
+      activo: true,
+      estadoSocio: 'pendiente_aprobacion',
+      dni: datos.dni.trim(),
+      domicilio: datos.domicilio.trim(),
+      garantiaTipo: datos.garantiaTipo.trim(),
+      garantiaDetalle: datos.garantiaDetalle?.trim(),
+      pagoInicialMonto: monto,
+      pagoInicialAcreditado: monto >= 10000,
+      obraAsignadaNombre: datos.obraAsignadaNombre || 'Family Homes La Lucia (36 meses)',
+      createdAt: now,
+      updatedAt: now
+    };
+    accounts.push(actualizado);
+  }
 
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_ACCOUNTS_KEY, JSON.stringify(accounts));
@@ -546,7 +634,10 @@ export const enviarSolicitudSocio = (
     if (rawActive) {
       try {
         const active: UserProfile = JSON.parse(rawActive);
-        if (active.id === actualizado.id || active.email?.toLowerCase() === actualizado.email.toLowerCase()) {
+        if (
+          active.id === actualizado.id ||
+          (active.email && active.email.toLowerCase() === actualizado.email.toLowerCase())
+        ) {
           const updatedActive: UserProfile = {
             ...active,
             nombre: actualizado.nombre,

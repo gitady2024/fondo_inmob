@@ -7,6 +7,7 @@ import {
   restablecerPassword,
   verificarEstadoSocio,
   enviarSolicitudSocio,
+  obtenerNombreVisible,
   STORAGE_ACCOUNTS_KEY
 } from './userService';
 
@@ -326,6 +327,26 @@ describe('userService - Gestión de Cuentas y Accesos de Usuarios', () => {
       expect(verif.tieneDni).toBe(true);
       expect(verif.tieneDomicilio).toBe(true);
       expect(verif.tieneGarantia).toBe(true);
+    });
+
+    it('obtenerNombreVisible formatea correctamente el nombre y evita exponer el email', () => {
+      // Caso 1: Usuario con nombre real
+      const u1 = { nombre: 'Adolfo Quiroga', email: 'adolfo@example.com', role: 'socio' as const };
+      const r1 = obtenerNombreVisible(u1);
+      expect(r1.esNombreReal).toBe(true);
+      expect(r1.nombreVisible).toBe('Adolfo Quiroga');
+
+      // Caso 2: Usuario donde nombre es el prefijo del email (ej: vaenmoto@gmail.com)
+      const u2 = { nombre: 'vaenmoto', email: 'vaenmoto@gmail.com', role: 'socio' as const };
+      const r2 = obtenerNombreVisible(u2);
+      expect(r2.esNombreReal).toBe(false);
+      expect(r2.nombreVisible).toBe('Socio Inversor'); // No muestra el email 'vaenmoto'
+
+      // Caso 3: Usuario sin nombre
+      const u3 = { email: 'invitado@gmail.com', role: 'socio' as const };
+      const r3 = obtenerNombreVisible(u3);
+      expect(r3.esNombreReal).toBe(false);
+      expect(r3.nombreVisible).toBe('Socio Inversor');
     });
   });
 });

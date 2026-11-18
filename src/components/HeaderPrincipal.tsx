@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import type { UserProfile, UserRole } from '../types/auth';
+import { obtenerNombreVisible } from '../services/userService';
 import {
   Layers,
   ChevronDown,
@@ -70,6 +71,9 @@ export const HeaderPrincipal: React.FC<HeaderPrincipalProps> = ({
   const planesMenuRef = useRef<HTMLDivElement>(null);
   const ingresarMenuRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Nombre legible garantizado (evita exponer el prefijo del correo en lugar de un nombre)
+  const infoNombre = useMemo(() => obtenerNombreVisible(user), [user]);
 
   // Cerrar menús al hacer clic fuera
   useEffect(() => {
@@ -273,7 +277,7 @@ export const HeaderPrincipal: React.FC<HeaderPrincipalProps> = ({
                   ? 'bg-slate-800 border-indigo-500/60 text-white'
                   : 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-indigo-600/30'
               }`}
-              title={user ? `Conectado como ${user.nombre}` : 'Ingresar a los portales del sistema'}
+              title={user ? `Conectado como ${infoNombre.nombreVisible}` : 'Ingresar a los portales del sistema'}
             >
               {user ? (
                 user.role === 'admin' ? (
@@ -288,7 +292,7 @@ export const HeaderPrincipal: React.FC<HeaderPrincipalProps> = ({
               )}
               {user ? (
                 <span className="truncate max-w-[85px] sm:max-w-[120px] md:max-w-[150px]">
-                  {user.nombre}
+                  {infoNombre.nombreVisible}
                 </span>
               ) : (
                 <span>Ingresar</span>
@@ -330,7 +334,14 @@ export const HeaderPrincipal: React.FC<HeaderPrincipalProps> = ({
                           : user.role}
                       </span>
                     </div>
-                    <div className="font-bold text-white text-xs truncate">{user.nombre}</div>
+                    <div className="font-bold text-white text-xs truncate">
+                      {infoNombre.nombreVisible}
+                    </div>
+                    {user.email && (
+                      <div className="text-[10px] text-slate-400 font-mono truncate mt-0.5">
+                        {user.email}
+                      </div>
+                    )}
                     {onNavigateApp && (
                       <button
                         type="button"
@@ -675,7 +686,7 @@ export const HeaderPrincipal: React.FC<HeaderPrincipalProps> = ({
                             : 'Ingresar a mi cuenta'}
                         </span>
                         <span className="text-[10px] text-slate-400">
-                          {user ? `${user.nombre} (${user.role})` : 'Acceso para socios y administradores'}
+                          {user ? `${infoNombre.nombreVisible} (${user.role})` : 'Acceso para socios y administradores'}
                         </span>
                       </div>
                     </button>
