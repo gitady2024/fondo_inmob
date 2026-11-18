@@ -1332,48 +1332,49 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
         </div>
       )}
 
-      {/* ── MODAL SOLICITUD DE ADMISIÓN COMO SOCIO PLENO ─────────────────── */}
+      {/* ── MODAL SOLICITUD DE ADMISIÓN COMO SOCIO PLENO (ALINEADO ARRIBA SIN SCROLL) ── */}
       {showModalAdmision && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-amber-500/30 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-2 sm:pt-6 pb-4 px-2 sm:px-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-fadeIn">
+          <div className="bg-slate-900 border border-amber-500/40 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[96vh] mt-1 sm:mt-2">
             {/* Header del Modal */}
-            <div className="bg-slate-950/90 border-b border-slate-800 p-4 sm:p-5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
-                  <ShieldCheck className="w-5 h-5" />
+            <div className="bg-slate-950/95 border-b border-slate-800 px-4 py-3 sm:px-5 sm:py-3.5 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                  <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-1.5">
                     Solicitud de Admisión como Socio Pleno
                   </h3>
-                  <p className="text-xs text-slate-400">
-                    Requisitos legales de suscripción fiduciaria (Art. 1666 CCCN)
+                  <p className="text-[11px] text-slate-400">
+                    Requisitos estatutarios de suscripción fiduciaria (Art. 1666 CCCN)
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowModalAdmision(false)}
-                className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800/60 transition"
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800/60 transition cursor-pointer"
+                title="Cerrar ventana"
               >
                 ✕
               </button>
             </div>
 
-            {/* Contenido del Formulario */}
-            <form onSubmit={handleEnviarSolicitudAdmision} className="p-5 overflow-y-auto space-y-4">
-              <div className="bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-xl text-xs text-amber-200/90 leading-relaxed">
-                <p className="font-semibold mb-1 flex items-center gap-1.5 text-amber-300">
-                  <Sparkles className="w-4 h-4" />
+            {/* Contenido del Formulario Compacto */}
+            <form onSubmit={handleEnviarSolicitudAdmision} className="p-3.5 sm:p-5 overflow-y-auto space-y-2.5 sm:space-y-3">
+              <div className="bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl text-[11px] text-amber-200/90 leading-relaxed">
+                <p className="font-semibold mb-0.5 flex items-center gap-1.5 text-amber-300">
+                  <Sparkles className="w-3.5 h-3.5" />
                   Condiciones para suscripción de cuota parte
                 </p>
-                Para pasar de Modo Invitado a Socio Pleno con asignación de unidad y acceso al cronograma oficial, se requiere integrar el anticipo base de USD 10.000 y declarar tus datos identificatorios y garantía.
+                Completá los datos identificatorios, garantía y anticipo base de USD 10.000 para pasar de Modo Invitado a Socio Pleno con asignación de unidad privativa.
               </div>
 
               {/* Nombre y DNI */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
                     Nombre y Apellido <span className="text-amber-400">*</span>
                   </label>
                   <input
@@ -1382,11 +1383,11 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
                     value={formNombre}
                     onChange={(e) => setFormNombre(e.target.value)}
                     placeholder="Tu nombre completo"
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white outline-none"
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-1.5 text-xs text-white outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
                     DNI / CUIT / Pasaporte <span className="text-amber-400">*</span>
                   </label>
                   <input
@@ -1395,26 +1396,26 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
                     value={formDni}
                     onChange={(e) => setFormDni(e.target.value)}
                     placeholder="Ej: 32.894.221"
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white font-mono outline-none"
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-1.5 text-xs text-white font-mono outline-none"
                   />
                 </div>
               </div>
 
               {/* Email y Domicilio */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">
                     Email Registrado
                   </label>
                   <input
                     type="email"
                     disabled
                     value={user.email || ''}
-                    className="w-full bg-slate-950/60 border border-slate-800 text-slate-400 rounded-xl px-3.5 py-2 text-xs outline-none cursor-not-allowed"
+                    className="w-full bg-slate-950/60 border border-slate-800 text-slate-400 rounded-xl px-3 py-1.5 text-xs outline-none cursor-not-allowed"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
                     Domicilio Legal / Residencia <span className="text-amber-400">*</span>
                   </label>
                   <input
@@ -1423,21 +1424,21 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
                     value={formDomicilio}
                     onChange={(e) => setFormDomicilio(e.target.value)}
                     placeholder="Calle, Número, Ciudad, Provincia"
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white outline-none"
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-1.5 text-xs text-white outline-none"
                   />
                 </div>
               </div>
 
               {/* Garantía */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
                     Tipo de Garantía Exigida <span className="text-amber-400">*</span>
                   </label>
                   <select
                     value={formGarantiaTipo}
                     onChange={(e) => setFormGarantiaTipo(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white outline-none cursor-pointer"
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-1.5 text-xs text-white outline-none cursor-pointer"
                   >
                     <option value="Recibo de Sueldo">Recibo de Sueldo / Ingresos Demostrables</option>
                     <option value="Garantía Propietaria">Garantía Propietaria / Inmueble</option>
@@ -1447,27 +1448,27 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Detalle / Empresa / Entidad Emisora
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    Detalle / Empresa / Emisor
                   </label>
                   <input
                     type="text"
                     value={formGarantiaDetalle}
                     onChange={(e) => setFormGarantiaDetalle(e.target.value)}
-                    placeholder="Ej: Empleador, matrícula o N° póliza"
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white outline-none"
+                    placeholder="Ej: Empleador, matrícula o póliza"
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-1.5 text-xs text-white outline-none"
                   />
                 </div>
               </div>
 
               {/* Anticipo USD 10.000 y Obra */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
                     Anticipo Integrado / A Informar (USD) <span className="text-amber-400">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3.5 top-2 text-xs font-mono font-bold text-amber-400">USD</span>
+                    <span className="absolute left-3 top-1.5 text-xs font-mono font-bold text-amber-400">USD</span>
                     <input
                       type="number"
                       min={10000}
@@ -1475,16 +1476,16 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
                       required
                       value={formAnticipoMonto}
                       onChange={(e) => setFormAnticipoMonto(Math.max(10000, Number(e.target.value)))}
-                      className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl pl-13 pr-3.5 py-2 text-xs text-white font-mono font-bold outline-none"
+                      className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl pl-12 pr-3 py-1.5 text-xs text-white font-mono font-bold outline-none"
                     />
                   </div>
-                  <span className="text-[10px] text-slate-400">Monto mínimo estatutario: USD 10.000</span>
+                  <span className="text-[10px] text-slate-400">Mínimo legal: USD 10.000</span>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
                     Obra Fiduciaria Suscrita
                   </label>
-                  <div className="bg-slate-950/80 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-200 flex items-center gap-2">
+                  <div className="bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 flex items-center gap-2">
                     <Building2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                     <span className="truncate font-semibold">{currentFondo.nombre}</span>
                   </div>
@@ -1493,40 +1494,40 @@ export const PortalSocio: React.FC<PortalSocioProps> = ({
 
               {/* Comprobante de Anticipo */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Referencia / N° de Transferencia de Anticipo (Opcional si ya se transfirió)
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  Referencia / N° Transferencia de Anticipo (Opcional si ya se transfirió)
                 </label>
                 <input
                   type="text"
                   value={formComprobante}
                   onChange={(e) => setFormComprobante(e.target.value)}
                   placeholder="Ej: Transferencia Bancaria USD 10.000 / TR-982140"
-                  className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white font-mono outline-none"
+                  className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-1.5 text-xs text-white font-mono outline-none"
                 />
               </div>
 
-              <div className="bg-indigo-950/20 border border-indigo-500/20 p-3 rounded-xl flex items-start gap-2 text-[11px] text-slate-300">
-                <AlertCircle className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+              <div className="bg-indigo-950/20 border border-indigo-500/20 p-2.5 rounded-xl flex items-start gap-2 text-[11px] text-slate-300">
+                <AlertCircle className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
                 <span>
                   Al enviar la solicitud, tu estado pasará a <strong>"Pendiente de Aprobación"</strong>. El Administrador Fiduciario revisará la documentación, acreditará el depósito y te asignará la unidad de obra definitiva.
                 </span>
               </div>
 
-              {/* Botones */}
-              <div className="flex items-center justify-end gap-2.5 pt-2">
+              {/* Botones de Acción */}
+              <div className="flex items-center justify-end gap-2.5 pt-1">
                 <button
                   type="button"
                   onClick={() => setShowModalAdmision(false)}
-                  className="text-slate-400 hover:text-white font-bold text-xs px-4 py-2.5 rounded-xl transition cursor-pointer"
+                  className="text-slate-400 hover:text-white font-bold text-xs px-3.5 py-2 rounded-xl transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={enviandoSolicitud}
-                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-50 text-slate-950 font-black text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-amber-500/25 transition flex items-center gap-2 cursor-pointer active:scale-95"
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-50 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-amber-500/25 transition flex items-center gap-2 cursor-pointer active:scale-95"
                 >
-                  <Send className="w-4 h-4" />
+                  <Send className="w-3.5 h-3.5" />
                   <span>{enviandoSolicitud ? 'Enviando...' : 'Enviar Solicitud a la Administración'}</span>
                 </button>
               </div>
