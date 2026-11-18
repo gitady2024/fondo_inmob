@@ -78,6 +78,21 @@ describe('geminiService - Asesor Virtual de Inverfondo', () => {
     expect(res.actions?.some((a) => a.action === 'whatsapp')).toBe(true);
   });
 
+  it('el motor local responde sobre la garantía de finalización en tiempo estipulado y el equipo desarrollador', () => {
+    const res = responderConMotorLocal('que garantia tengo que el plan va a finalizar en el tiempo estipulado?', dummyObras);
+    expect(res.text).toContain('Los desarrolladores reúnen las siguientes características:');
+    expect(res.text).toContain('Equipo de Gestión');
+    expect(res.text).toContain('30 años');
+    expect(res.text).toContain('Equipo legal');
+    expect(res.text).toContain('San Juan');
+    expect(res.text).toContain('Equipo Construcción');
+
+    const res2 = responderConMotorLocal('¿Quiénes son los desarrolladores?', dummyObras);
+    expect(res2.text).toContain('Equipo de Gestión');
+    expect(res2.text).toContain('Equipo legal');
+    expect(res2.text).toContain('Equipo Construcción');
+  });
+
   it('el motor local responde sobre la documentación requerida para inscribirse', () => {
     const res = responderConMotorLocal('¿Qué documentación necesito para inscribirme?', dummyObras);
     expect(res.text).toContain('DNI');

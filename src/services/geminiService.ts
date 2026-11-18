@@ -92,6 +92,14 @@ NORMAS Y CONDICIONES OPERATIVAS Y CONTRACTUALES OFICIALES (REGLAS OBLIGATORIAS):
 4. PERMUTAS O VEHÍCULOS: Por el momento NO se aceptan permutas por vehículos ni otros bienes como medio de pago. Toda integración se realiza en dólares.
 5. TERMINACIONES Y ENTREGA: Las calidades constructivas, equipamiento y terminaciones son estrictamente las previstas y detalladas en la memoria técnica y planos anexos al contrato.
 6. GASTOS DE POSESIÓN Y ESCRITURACIÓN: Pueden, a elección del fondo, abonarse al momento de la entrega de la unidad o prorratearse entre las cuotas mensuales del fondo. Esta modalidad queda siempre fijada de antemano en el contrato inicial.
+7. EQUIPO DESARROLLADOR Y GARANTÍA DE CUMPLIMIENTO EN EL TIEMPO ESTIPULADO:
+   Ante preguntas sobre quiénes desarrollan la obra, qué experiencia tienen o qué garantía existe de que el plan va a finalizar en el tiempo estipulado, responder siempre:
+   Los desarrolladores reúnen las siguientes características:
+   El equipo desarrollador está compuesto por:
+   - Equipo de Gestión: integrado por personas con experiencia en el rubro de la construcción, con más de 30 años de gestión en grandes organizaciones y en negocios propios, reuniendo las características necesarias de buena gestión y control.
+   - Equipo Legal: los abogados y escribanos que lo integran detentan amplia experiencia en el rubro de construcción en la provincia de San Juan.
+   - Equipo Construcción: integrado por empresas de amplia trayectoria en la provincia, con proyectos activos actualmente, que garantizan diseño y desarrollo edilicio.
+   Garantía de plazo: El fideicomiso al costo (Art. 1666 CCCN) cuenta con patrimonio separado, acopio anticipado de insumos y auditoría técnica permanente para garantizar la entrega de llaves en el plazo estipulado.
 
 CONOCIMIENTO VITAL DE INVERFONDO:
 • Marco Jurídico: Fideicomiso al Costo conforme al Art. 1666 y concordantes del Código Civil y Comercial de la Nación (CCCN). El patrimonio del fideicomiso es autónomo, blindado e inembargable.
@@ -126,16 +134,46 @@ export const responderConMotorLocal = (
 ): { text: string; actions?: ChatMessage['actions'] } => {
   const p = pregunta.toLowerCase();
 
+  // 1.0 Garantía de finalización en tiempo estipulado y Equipo Desarrollador
+  if (
+    p.includes('desarrollador') ||
+    p.includes('desarrollan') ||
+    p.includes('quienes construyen') ||
+    p.includes('quien construye') ||
+    p.includes('quienes son') ||
+    p.includes('quiénes son') ||
+    p.includes('equipo desarrollador') ||
+    p.includes('constructora') ||
+    p.includes('trayectoria') ||
+    (
+      (p.includes('garantia') || p.includes('garantía') || p.includes('seguridad') || p.includes('respaldo') || p.includes('asegura')) &&
+      (p.includes('tiempo') || p.includes('plazo') || p.includes('finaliz') || p.includes('termin') || p.includes('estipulado') || p.includes('entrega'))
+    )
+  ) {
+    return {
+      text: `Los desarrolladores reúnen las siguientes características:\n\nEl equipo desarrollador esta compuesto por:\n\n• **Equipo de Gestión:** integrado por personas con experiencia en el rubro de la construcción, con más de 30 años de gestión en grandes organizaciones y en negocios propios, reuniendo las características necesarias de buena gestión y control.\n\n• **Equipo legal:** los abogados y escribanos que lo integran detentan amplia experiencia en el rubro de construcción en la provincia de San Juan.\n\n• **Equipo Construcción:** integrado por empresas de amplia trayectoria en la provincia, con proyectos activos actualmente, que garantizan diseño y desarrollo edilicio.\n\nEsta sólida estructura técnica, sumada a la figura del fideicomiso al costo (Art. 1666 CCCN) con patrimonio de afectación separado, acopio anticipado de insumos y auditoría permanente, garantiza el cumplimiento estricto del cronograma y la finalización en el tiempo estipulado.`,
+      actions: [
+        { label: '🏗️ Ver Obras en Marcha', action: 'obras' },
+        {
+          label: '💬 Consultar con el Equipo por WhatsApp',
+          action: 'whatsapp',
+          payload: 'Hola Inverfondo, quisiera consultar sobre el equipo desarrollador y la garantía de plazo de obra.'
+        },
+        { label: '🛡️ Seguridad Legal del Fideicomiso', action: 'simular' }
+      ]
+    };
+  }
+
   // 1.1 Documentación y Requisitos para ingresar
   if (
     p.includes('document') ||
     p.includes('requisito') ||
     p.includes('dni') ||
-    p.includes('garantia') ||
-    p.includes('garantía') ||
     p.includes('papeles') ||
     p.includes('paso a paso') ||
     p.includes('pasos') ||
+    ((p.includes('garantia') || p.includes('garantía')) &&
+      (p.includes('pedir') || p.includes('piden') || p.includes('exigen') || p.includes('presentar') || p.includes('suscrib') || p.includes('ingres') || p.includes('adhesi') || p.includes('debo'))) ||
     (p.includes('que') && p.includes('necesito')) ||
     (p.includes('para') && p.includes('inscribir'))
   ) {
