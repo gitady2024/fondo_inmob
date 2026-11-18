@@ -26,7 +26,7 @@ import {
   PLANTILLAS_PREDEFINIDAS
 } from './services/fondoService';
 import type { FondoGuardado } from './services/fondoService';
-import { Navbar } from './components/Navbar';
+import { HeaderPrincipal } from './components/HeaderPrincipal';
 import { FundSwitcher } from './components/FundSwitcher';
 import { NewFundModal } from './components/NewFundModal';
 import { LoginModal } from './components/LoginModal';
@@ -232,6 +232,27 @@ export const App: React.FC = () => {
       }
     },
     [currentUser, navigateTo, setDevUser]
+  );
+
+  // Navegación fluida a secciones fijas de la landing (Inverfondo vs UVA, Cómo Funciona, Seguridad) desde cualquier página
+  const handleNavigateSection = useCallback(
+    (sectionId: string) => {
+      if (currentRoute !== 'landing') {
+        navigateTo('landing');
+        setTimeout(() => {
+          const el = document.getElementById(sectionId);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 150);
+      } else {
+        const el = document.getElementById(sectionId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    },
+    [currentRoute, navigateTo]
   );
 
   // Desactivar la restauración automática de scroll del navegador para evitar saltos a secciones previas
@@ -840,12 +861,53 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 px-3 sm:px-6 md:px-8 pb-8 pt-0 max-w-full">
-      <div className="max-w-7xl mx-auto w-full max-w-full">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+      {/* HEADER INSTITUCIONAL UNIFICADO Y FIJO DE MANERA PERMANENTE EN TODAS LAS PÁGINAS Y SECCIONES */}
+      <HeaderPrincipal
+        user={currentUser}
+        currentRoute={currentRoute}
+        proyectoActivoId={currentFondoId}
+        unreadCount={unreadCount}
+        onNavigateLanding={() => navigateTo('landing')}
+        onNavigateObras={() => navigateTo('obras')}
+        onNavigateSection={handleNavigateSection}
+        onStartSimulation={(proyecto) => {
+          handleIniciarNuevaSimulacion(proyecto ? { obraBase: proyecto } : undefined);
+        }}
+        onOpenLogin={(role) => {
+          setLoginInitialRole(role || 'socio');
+          setIsLoginOpen(true);
+        }}
+        onSelectPortal={handleSelectPortal}
+        onNavigateApp={() => navigateTo('app')}
+        onSignOut={currentUser ? handleSignOutAll : undefined}
+        onOpenContrato={() => setIsContratoOpen(true)}
+        onPrint={() => window.print()}
+        onReset={handleResetCurrent}
+        onOpenObrasAdmin={
+          currentUser?.role === 'admin'
+            ? () => {
+                setEditObraId(undefined);
+                setIsObrasAdminOpen(true);
+              }
+            : undefined
+        }
+        onEditObra={
+          currentUser?.role === 'admin'
+            ? (obraId) => {
+                const targetId = obraId || currentFondoId;
+                setEditObraId(targetId);
+                setIsObrasAdminOpen(true);
+              }
+            : undefined
+        }
+        onOpenMensajes={() => setIsMensajesOpen(true)}
+        onOpenPersistencia={() => setIsPersistenciaOpen(true)}
+      />
+
+      {/* CONTENEDOR PRINCIPAL CON PADDING SUPERIOR PARA EL HEADER FIJO */}
+      <div className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 md:px-8 pb-12 pt-16 sm:pt-20">
         
-        {/* ------------------------------------------------------------------ */}
-        {/* ENTORNO 1: LANDING COMERCIAL AISLADA EN LA RUTA RAÍZ (/)           */}
-        {/* ------------------------------------------------------------------ */}
         {/* ------------------------------------------------------------------ */}
         {/* ENTORNO: LISTADO DE OBRAS EN MARCHA EN PÁGINA APARTE (/obras)      */}
         {/* ------------------------------------------------------------------ */}
@@ -1001,35 +1063,7 @@ export const App: React.FC = () => {
           /* ------------------------------------------------------------------ */
           /* ENTORNO 2: SISTEMA PRIVADO Y GESTIÓN EN LA RUTA (/app o /acceso)   */
           /* ------------------------------------------------------------------ */
-          <>
-            {/* Barra de Navegación del Sistema de Gestión */}
-            <Navbar
-              user={currentUser?.isGuest ? null : currentUser}
-              unreadCount={unreadCount}
-              onReset={handleResetCurrent}
-              onPrint={() => window.print()}
-              onOpenPersistencia={() => setIsPersistenciaOpen(true)}
-              onOpenLogin={() => setIsLoginOpen(true)}
-              onOpenContrato={() => setIsContratoOpen(true)}
-              onOpenMensajes={() => setIsMensajesOpen(true)}
-              onSignOut={currentUser?.isGuest ? undefined : handleSignOutAll}
-              onSimularPlan={() => {
-                // Solo admin y socio pueden simular; técnico no
-                if (currentUser?.role === 'tecnico') return;
-                handleIniciarNuevaSimulacion();
-              }}
-              onNavigateLanding={() => navigateTo('landing')}
-              onOpenObrasAdmin={
-                currentUser?.role === 'admin'
-                  ? () => {
-                      setEditObraId(currentFondoId);
-                      setIsObrasAdminOpen(true);
-                    }
-                  : undefined
-              }
-            />
-
-            <div className="pt-20 sm:pt-24 space-y-6">
+          <div className="space-y-6">
               {!currentUser ? (
               /* SELECTOR DE PERFILES PRIVADO EN /app o /acceso */
               <div className="space-y-4">
@@ -1393,7 +1427,6 @@ export const App: React.FC = () => {
           </div>
         )}
       </div>
-      </>
     )}
 
         <LoginModal
