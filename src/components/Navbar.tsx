@@ -67,8 +67,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, [isMenuOpen]);
 
   return (
-    <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 py-3.5 px-4 sm:px-6 rounded-2xl mb-6 shadow-lg shadow-black/20 no-print">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800/90 bg-slate-950/95 backdrop-blur-xl shadow-xl shadow-black/50 py-2.5 sm:py-3.5 px-4 sm:px-6 transition-all no-print">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
         
         {/* Identidad de Marca Inverfondo */}
         <div className="flex items-center gap-3">

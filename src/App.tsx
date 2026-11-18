@@ -840,8 +840,8 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-6 md:p-8 overflow-x-hidden max-w-full">
-      <div className="max-w-7xl mx-auto space-y-6 w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen bg-slate-950 text-slate-100 px-3 sm:px-6 md:px-8 pb-8 pt-0 max-w-full">
+      <div className="max-w-7xl mx-auto w-full max-w-full">
         
         {/* ------------------------------------------------------------------ */}
         {/* ENTORNO 1: LANDING COMERCIAL AISLADA EN LA RUTA RAÍZ (/)           */}
@@ -1029,9 +1029,8 @@ export const App: React.FC = () => {
               }
             />
 
-
-
-            {!currentUser ? (
+            <div className="pt-20 sm:pt-24 space-y-6">
+              {!currentUser ? (
               /* SELECTOR DE PERFILES PRIVADO EN /app o /acceso */
               <div className="space-y-4">
                 <button
@@ -1393,6 +1392,7 @@ export const App: React.FC = () => {
             />
           </div>
         )}
+      </div>
       </>
     )}
 

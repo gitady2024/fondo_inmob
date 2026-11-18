@@ -171,12 +171,12 @@ export const ObrasEnMarchaPage: React.FC<ObrasEnMarchaPageProps> = ({
   }, [proyectos]);
 
   return (
-    <div id="pagina-obras-en-marcha" className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-20 selection:bg-amber-500 selection:text-slate-950">
+    <div id="pagina-obras-en-marcha" className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-20 pt-20 sm:pt-24 selection:bg-amber-500 selection:text-slate-950">
       
       {/* ==================================================================== */}
-      {/* BARRA SUPERIOR INSTITUCIONAL (HEADER)                                */}
+      {/* BARRA SUPERIOR INSTITUCIONAL (HEADER FIJO PERMANENTE)                */}
       {/* ==================================================================== */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800/80 px-2.5 sm:px-6 py-2.5 sm:py-3 transition-all shadow-xl shadow-black/40">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-xl border-b border-slate-800/90 shadow-xl shadow-black/50 px-3 sm:px-6 py-2.5 sm:py-3.5 transition-all">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-3">
           
           {/* Lado izquierdo: Botón Volver + Logo Inverfondo */}

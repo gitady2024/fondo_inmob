@@ -210,7 +210,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   };
 
   return (
-    <div className="w-full text-slate-100 relative pb-28 sm:pb-16">
+    <div className="w-full text-slate-100 relative pb-28 sm:pb-16 pt-20 sm:pt-24">
       {/* FAB Flotante: Agendar Entrevista (ubicado a la izquierda para no solaparse jamás con el Asesor IA) */}
       <a
         id="btn-flotante-calendar"
@@ -230,13 +230,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </a>
 
       {/* ==================================================================== */}
-      {/* CABECERA DE LA LANDING: NAVEGACIÓN MODERNA, SIMPLE Y RESPONSIVE      */}
-      {/* En móviles: Anclada al tope (top-0) de borde a borde para que el     */}
-      {/* contenido en scroll pase limpiamente por debajo sin traslucirse.     */}
-      {/* En desktop: Barra flotante elegante con esquinas redondeadas.         */}
+      {/* CABECERA DE LA LANDING: FIJA DE MANERA PERMANENTE EN TODA LA PÁGINA  */}
       {/* ==================================================================== */}
-      <nav className="-mx-3 sm:mx-0 sticky top-0 sm:top-2 z-40 bg-slate-950/95 sm:bg-slate-900/90 backdrop-blur-xl border-b sm:border border-slate-800 rounded-none sm:rounded-2xl px-3 sm:px-6 py-2.5 sm:py-3 mb-6 sm:mb-8 shadow-lg shadow-black/40 transition-all">
-        <div className="flex justify-between items-center gap-2">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-xl border-b border-slate-800/90 shadow-xl shadow-black/50 transition-all">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 flex justify-between items-center gap-2">
           {/* Logo Inverfondo: Isologo oficial + Marca y Eslogan */}
           <div
             className="flex items-center gap-2 sm:gap-3 cursor-pointer select-none shrink-0 group"
@@ -764,7 +761,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
           </div>
         </div>
-      </nav>
+      </header>
 
       {/* ==================================================================== */}
       {/* HERO SECTION: ENFOQUE 100% COMERCIAL (SIN PUERTAS DE ENTRADA DOBLES)  */}

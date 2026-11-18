@@ -235,12 +235,12 @@ export const ObraDetallePage: React.FC<ObraDetallePageProps> = ({
   };
 
   return (
-    <div id="pagina-detalle-obra" className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-16">
+    <div id="pagina-detalle-obra" className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-16 pt-20 sm:pt-24">
       
       {/* ─────────────────────────────────────────────────────────────────── */}
-      {/* BARRA SUPERIOR DE NAVEGACIÓN Y ACCIONES                             */}
+      {/* BARRA SUPERIOR DE NAVEGACIÓN (HEADER FIJO PERMANENTE)               */}
       {/* ─────────────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 py-3.5 transition-all shadow-xl shadow-black/30">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-xl border-b border-slate-800/90 shadow-xl shadow-black/50 px-4 sm:px-6 py-2.5 sm:py-3.5 transition-all">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           
           <div className="flex items-center gap-3 sm:gap-4">

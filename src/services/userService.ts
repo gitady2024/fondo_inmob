@@ -247,3 +247,4 @@ export const restablecerPassword = (id: string, nuevoPass: string): { success: b
     return { success: false, error: err?.message || 'Error al restablecer contraseña.' };
   }
 };
+
