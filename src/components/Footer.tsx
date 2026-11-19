@@ -60,16 +60,10 @@ export const Footer: React.FC<FooterProps> = ({
                 <span>Modelo de Contrato Marco</span>
               </button>
             )}
-            {onOpenPersistencia && (
-              <button
-                type="button"
-                onClick={onOpenPersistencia}
-                className="hover:text-indigo-400 transition-colors flex items-center gap-1 cursor-pointer"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Base de Datos & Nube Supabase</span>
-              </button>
-            )}
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Infraestructura Segura AWS Cloud</span>
+            </div>
           </div>
           <div className="text-slate-400 font-mono text-[11px]">
             © {new Date().getFullYear()} Plataforma Fiduciaria Inmobiliaria. República Argentina.

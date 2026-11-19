@@ -621,23 +621,7 @@ export const HeaderPrincipal: React.FC<HeaderPrincipalProps> = ({
                   </button>
                 )}
 
-                {/* Opción: Nube / Persistencia Supabase */}
-                {onOpenPersistencia && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      onOpenPersistencia();
-                    }}
-                    className="w-full text-left px-3.5 py-2.5 text-xs text-slate-200 hover:text-white hover:bg-indigo-600/20 flex items-center gap-2.5 transition cursor-pointer"
-                  >
-                    <Database className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <div className="flex flex-col">
-                      <span className="font-semibold">Conectar Nube / Supabase</span>
-                      <span className="text-[10px] text-slate-400">Estado de sincronización</span>
-                    </div>
-                  </button>
-                )}
+
 
                 {/* Opción de Editar Obra en el Menú (Solo Administrador) */}
                 {onEditObra && user?.role === 'admin' && (
