@@ -315,250 +315,7 @@ export const App: React.FC = () => {
     const raf = requestAnimationFrame(() => {
       window.scrollTo(0, 0);
     });
-    const renderAdminDashboard = () => (
-    <AdminDashboard
-      currentUser={currentUser!}
-      currentFondo={currentFondo}
-      fondosList={fondosList}
-      onSelectFondo={handleSelectFondo}
-      onOpenNewModal={() => setIsNewModalOpen(true)}
-      onShowToast={(msg) => setToastMessage(msg)}
-      onSignOut={handleSignOutAll}
-      onNavigateLanding={() => navigateTo('landing')}
-      onNavigateApp={() => navigateTo('app')}
-      onEditCurrentObra={() => {
-        setEditObraId(currentFondoId);
-        setIsObrasAdminOpen(true);
-      }}
-      onTransformarEnObraActiva={() => {
-        handleToggleEstadoPlan(currentFondo.id, 'activo');
-      }}
-      onFondoCreated={async () => {
-        await recargarFondos();
-      }}
-      onUpdateDatosNegocio={(nuevosDatos) => {
-        updateCurrentFondo((prev) => ({
-          ...prev,
-          datosNegocio: nuevosDatos,
-          updated_at: new Date().toISOString()
-        }));
-      }}
-      onSwitchUser={(targetUser) => {
-        setDevUserOverride(targetUser);
-        setDevUser(targetUser);
-        if (targetUser.role === 'socio') {
-          setSocioSeleccionado(targetUser.socioId || 1);
-          navigateTo('app');
-        } else if (targetUser.role === 'tecnico') {
-          navigateTo('app');
-        }
-      }}
-      unreadCount={unreadCount}
-      initialModule={goToSimulador ? 'simulador' : 'cobranzas'}
-      childrenSimulador={
-        <>
-          {/* Selector y Gestor de Múltiples Fondos / Planes */}
-          <FundSwitcher
-            currentFondo={currentFondo}
-            fondosList={fondosList}
-            onSelectFondo={handleSelectFondo}
-            onOpenNewModal={() => setIsNewModalOpen(true)}
-            onDuplicate={handleDuplicate}
-            onRename={handleRename}
-            onDelete={handleDelete}
-            onToggleEstadoPlan={handleToggleEstadoPlan}
-          />
-
-          {/* Barra de Herramientas del Escenario (Compartir Link, PDF, CSV, Imprimir) */}
-          <ScenarioToolbar
-            onShare={handleShareScenario}
-            onExportPDF={handleExportPDF}
-            onExportCSV={handleExportCSV}
-            onPrint={() => window.print()}
-          />
-
-          {/* Fila 1: Parámetros del Fondo y Gastos de Adjudicación */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 no-print">
-            <div className="lg:col-span-2">
-              <ParametrosFondo
-                params={currentFondo.params}
-                onChange={handleParamsChange}
-              />
-            </div>
-            <div className="lg:col-span-1">
-              <GastosAdjudicacion
-                costoDepto={currentFondo.params.costoDepto}
-                cantidadDeptos={currentFondo.params.cantidadDeptos}
-                cantidadCuotas={currentFondo.params.cantidadCuotas}
-                gastos={currentFondo.gastos}
-                onChange={handleGastosChange}
-              />
-            </div>
-          </div>
-
-          {/* Matriz Anticipos */}
-          <MatrizAnticipos
-            cantidadSocios={currentFondo.params.cantidadDeptos}
-            anticipos={anticiposNormalizados}
-            onChangeAnticipo={handleAnticipoChange}
-            onSetAll={handleSetAllAnticipos}
-          />
-
-          {/* Cesión de Posición Contractual */}
-          <CesionContractual
-            cantidadSocios={currentFondo.params.cantidadDeptos}
-            cesion={currentFondo.cesion}
-            flujosSocios={flujosSocios}
-            fechaInicio={currentFondo.params.fechaInicio}
-            pagoFinalGastos={gastosCalculados.pagoFinalGastos}
-            onChange={handleCesionChange}
-          />
-
-          {/* Adelanto de Capital / Licitación */}
-          <AdelantoCapital
-            cantidadSocios={currentFondo.params.cantidadDeptos}
-            adelanto={currentFondo.adelanto}
-            fechaInicio={currentFondo.params.fechaInicio}
-            maxCuotas={currentFondo.params.cantidadCuotas}
-            onChange={handleAdelantoChange}
-          />
-
-          {/* Ajuste por Mayores Costos e Inflación Técnica */}
-          <AjustesMayoresCostos
-            ajustes={currentFondo.ajustes || []}
-            cantidadCuotas={currentFondo.params.cantidadCuotas}
-            fechaInicio={currentFondo.params.fechaInicio}
-            costoDepto={currentFondo.params.costoDepto}
-            onChangeAjustes={handleAjustesChange}
-          />
-
-          {/* 2. Sticky KPI Dashboard (Siempre visible en el scroll) */}
-          <StickyKPIs
-            cuotaPura={kpiCuotaPura}
-            cuotaPostPosesion={kpiCuotaPostPosesion}
-            costoTotalPlan={kpiCostoTotalPlan}
-            porcentajeIntegrado={kpiPorcentajeIntegrado}
-            mesPosesion={socioActual?.cuotaPosesion}
-            socioLabel={`Socio D${socioSeleccionado}`}
-            isCalculating={isCalculating}
-            onScrollToChart={() => {
-              document.getElementById('grafico-flujo-capital')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-            onScrollToTable={() => {
-              document.getElementById('seccionCuentaIndividual')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-          />
-
-          {/* 3. Gráfico de Flujo de Capital */}
-          {isCalculating ? (
-            <SkeletonChart />
-          ) : socioActual ? (
-            <CapitalFlowChart
-              flujoSocio={socioActual}
-              fechaInicio={currentFondo.params.fechaInicio}
-              isCalculating={false}
-              costoDepto={currentFondo.params.costoDepto}
-            />
-          ) : null}
-
-          {/* 4. Línea de Tiempo de Posesiones y Adjudicación */}
-          {isCalculating ? (
-            <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
-              <SkeletonTimeline />
-            </div>
-          ) : (
-            <PossessionTimeline
-              flujosSocios={flujosSocios}
-              fechaInicio={currentFondo.params.fechaInicio}
-              socioSeleccionado={socioSeleccionado}
-              onSelectSocio={(id) => setSocioSeleccionado(id)}
-            />
-          )}
-
-          {/* 5. Tablas Detalladas */}
-          <div className="space-y-6">
-            {/* Estado de Cuenta Individual (Vista Admin) */}
-            {isCalculating ? (
-              <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl overflow-hidden shadow-xl">
-                <div className="p-5 border-b border-slate-700/80">
-                  <div className="animate-pulse space-y-2">
-                    <div className="h-4 w-48 bg-slate-700/60 rounded-lg" />
-                    <div className="h-3 w-72 bg-slate-700/40 rounded-lg" />
-                  </div>
-                </div>
-                <table className="w-full">
-                  <tbody>
-                    {Array.from({ length: 8 }).map((_, i) => (
-                      <SkeletonTableRow key={i} cols={6} />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : socioActual ? (
-              <CuentaIndividual
-                cantidadSocios={currentFondo.params.cantidadDeptos}
-                socioSeleccionado={socioSeleccionado}
-                flujoSocio={socioActual}
-                fechaInicio={currentFondo.params.fechaInicio}
-                costoDepto={currentFondo.params.costoDepto}
-                formaPagoGastos={currentFondo.gastos.formaPagoGastos}
-                params={currentFondo.params}
-                gastos={currentFondo.gastos}
-                onSelectSocio={(id) => setSocioSeleccionado(id)}
-                onAdjudicacionChange={handleAdjudicacionChange}
-              />
-            ) : null}
-
-            {/* Resumen Consolidado */}
-            {isCalculating ? (
-              <SkeletonSummaryCard />
-            ) : (
-              <ResumenConsolidado
-                flujosSocios={flujosSocios}
-                fechaInicio={currentFondo.params.fechaInicio}
-                params={currentFondo.params}
-                gastos={currentFondo.gastos}
-                adjudicacionFijada={currentFondo.adjudicacionFijada}
-                cesionActiva={currentFondo.cesion.activo}
-                socioCedente={currentFondo.cesion.socioCedente}
-                cuotaSalidaCesion={currentFondo.cesion.cuotaSalida}
-                adelantoActivo={currentFondo.adelanto.activo}
-                socioAdelanta={currentFondo.adelanto.socioAdelanta}
-                cuotaAdelanto={currentFondo.adelanto.cuota}
-                onSelectSocio={(id) => setSocioSeleccionado(id)}
-              />
-            )}
-          </div>
-        </>
-      }
-      childrenTecnico={
-        <ModuloTecnico
-          datosTecnicos={currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT}
-          fondoNombre={currentFondo.nombre}
-          fondoId={currentFondo.id}
-          currentUser={currentUser}
-          isReadOnly={false}
-          onUpdateDatosTecnicos={handleDatosTecnicosChange}
-        />
-      }
-      childrenMensajeria={
-        <div className="space-y-4">
-          <CentroMensajes
-            user={currentUser}
-            fondoId={currentFondo.id}
-            fondoNombre={currentFondo.nombre}
-            cantidadSocios={currentFondo.params.cantidadDeptos}
-            isEmbedded={true}
-            initialContactRole="socio"
-            initialSocioId={socioSeleccionado}
-            onRefreshBadges={refreshUnreadCount}
-          />
-        </div>
-      }
-    />
-  );
-
-  return () => {
+    return () => {
       clearTimeout(timer);
       cancelAnimationFrame(raf);
     };
@@ -1142,6 +899,249 @@ export const App: React.FC = () => {
     );
     setToastMessage('📊 Cuadro de marcha exportado en formato Excel / CSV.');
   };
+
+    const renderAdminDashboard = () => (
+    <AdminDashboard
+      currentUser={currentUser!}
+      currentFondo={currentFondo}
+      fondosList={fondosList}
+      onSelectFondo={handleSelectFondo}
+      onOpenNewModal={() => setIsNewModalOpen(true)}
+      onShowToast={(msg) => setToastMessage(msg)}
+      onSignOut={handleSignOutAll}
+      onNavigateLanding={() => navigateTo('landing')}
+      onNavigateApp={() => navigateTo('app')}
+      onEditCurrentObra={() => {
+        setEditObraId(currentFondoId);
+        setIsObrasAdminOpen(true);
+      }}
+      onTransformarEnObraActiva={() => {
+        handleToggleEstadoPlan(currentFondo.id, 'activo');
+      }}
+      onFondoCreated={async () => {
+        await recargarFondos();
+      }}
+      onUpdateDatosNegocio={(nuevosDatos) => {
+        updateCurrentFondo((prev) => ({
+          ...prev,
+          datosNegocio: nuevosDatos,
+          updated_at: new Date().toISOString()
+        }));
+      }}
+      onSwitchUser={(targetUser) => {
+        setDevUserOverride(targetUser);
+        setDevUser(targetUser);
+        if (targetUser.role === 'socio') {
+          setSocioSeleccionado(targetUser.socioId || 1);
+          navigateTo('app');
+        } else if (targetUser.role === 'tecnico') {
+          navigateTo('app');
+        }
+      }}
+      unreadCount={unreadCount}
+      initialModule={goToSimulador ? 'simulador' : 'cobranzas'}
+      childrenSimulador={
+        <>
+          {/* Selector y Gestor de Múltiples Fondos / Planes */}
+          <FundSwitcher
+            currentFondo={currentFondo}
+            fondosList={fondosList}
+            onSelectFondo={handleSelectFondo}
+            onOpenNewModal={() => setIsNewModalOpen(true)}
+            onDuplicate={handleDuplicate}
+            onRename={handleRename}
+            onDelete={handleDelete}
+            onToggleEstadoPlan={handleToggleEstadoPlan}
+          />
+
+          {/* Barra de Herramientas del Escenario (Compartir Link, PDF, CSV, Imprimir) */}
+          <ScenarioToolbar
+            onShare={handleShareScenario}
+            onExportPDF={handleExportPDF}
+            onExportCSV={handleExportCSV}
+            onPrint={() => window.print()}
+          />
+
+          {/* Fila 1: Parámetros del Fondo y Gastos de Adjudicación */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 no-print">
+            <div className="lg:col-span-2">
+              <ParametrosFondo
+                params={currentFondo.params}
+                onChange={handleParamsChange}
+              />
+            </div>
+            <div className="lg:col-span-1">
+              <GastosAdjudicacion
+                costoDepto={currentFondo.params.costoDepto}
+                cantidadDeptos={currentFondo.params.cantidadDeptos}
+                cantidadCuotas={currentFondo.params.cantidadCuotas}
+                gastos={currentFondo.gastos}
+                onChange={handleGastosChange}
+              />
+            </div>
+          </div>
+
+          {/* Matriz Anticipos */}
+          <MatrizAnticipos
+            cantidadSocios={currentFondo.params.cantidadDeptos}
+            anticipos={anticiposNormalizados}
+            onChangeAnticipo={handleAnticipoChange}
+            onSetAll={handleSetAllAnticipos}
+          />
+
+          {/* Cesión de Posición Contractual */}
+          <CesionContractual
+            cantidadSocios={currentFondo.params.cantidadDeptos}
+            cesion={currentFondo.cesion}
+            flujosSocios={flujosSocios}
+            fechaInicio={currentFondo.params.fechaInicio}
+            pagoFinalGastos={gastosCalculados.pagoFinalGastos}
+            onChange={handleCesionChange}
+          />
+
+          {/* Adelanto de Capital / Licitación */}
+          <AdelantoCapital
+            cantidadSocios={currentFondo.params.cantidadDeptos}
+            adelanto={currentFondo.adelanto}
+            fechaInicio={currentFondo.params.fechaInicio}
+            maxCuotas={currentFondo.params.cantidadCuotas}
+            onChange={handleAdelantoChange}
+          />
+
+          {/* Ajuste por Mayores Costos e Inflación Técnica */}
+          <AjustesMayoresCostos
+            ajustes={currentFondo.ajustes || []}
+            cantidadCuotas={currentFondo.params.cantidadCuotas}
+            fechaInicio={currentFondo.params.fechaInicio}
+            costoDepto={currentFondo.params.costoDepto}
+            onChangeAjustes={handleAjustesChange}
+          />
+
+          {/* 2. Sticky KPI Dashboard (Siempre visible en el scroll) */}
+          <StickyKPIs
+            cuotaPura={kpiCuotaPura}
+            cuotaPostPosesion={kpiCuotaPostPosesion}
+            costoTotalPlan={kpiCostoTotalPlan}
+            porcentajeIntegrado={kpiPorcentajeIntegrado}
+            mesPosesion={socioActual?.cuotaPosesion}
+            socioLabel={`Socio D${socioSeleccionado}`}
+            isCalculating={isCalculating}
+            onScrollToChart={() => {
+              document.getElementById('grafico-flujo-capital')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            onScrollToTable={() => {
+              document.getElementById('seccionCuentaIndividual')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+          />
+
+          {/* 3. Gráfico de Flujo de Capital */}
+          {isCalculating ? (
+            <SkeletonChart />
+          ) : socioActual ? (
+            <CapitalFlowChart
+              flujoSocio={socioActual}
+              fechaInicio={currentFondo.params.fechaInicio}
+              isCalculating={false}
+              costoDepto={currentFondo.params.costoDepto}
+            />
+          ) : null}
+
+          {/* 4. Línea de Tiempo de Posesiones y Adjudicación */}
+          {isCalculating ? (
+            <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+              <SkeletonTimeline />
+            </div>
+          ) : (
+            <PossessionTimeline
+              flujosSocios={flujosSocios}
+              fechaInicio={currentFondo.params.fechaInicio}
+              socioSeleccionado={socioSeleccionado}
+              onSelectSocio={(id) => setSocioSeleccionado(id)}
+            />
+          )}
+
+          {/* 5. Tablas Detalladas */}
+          <div className="space-y-6">
+            {/* Estado de Cuenta Individual (Vista Admin) */}
+            {isCalculating ? (
+              <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl overflow-hidden shadow-xl">
+                <div className="p-5 border-b border-slate-700/80">
+                  <div className="animate-pulse space-y-2">
+                    <div className="h-4 w-48 bg-slate-700/60 rounded-lg" />
+                    <div className="h-3 w-72 bg-slate-700/40 rounded-lg" />
+                  </div>
+                </div>
+                <table className="w-full">
+                  <tbody>
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <SkeletonTableRow key={i} cols={6} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : socioActual ? (
+              <CuentaIndividual
+                cantidadSocios={currentFondo.params.cantidadDeptos}
+                socioSeleccionado={socioSeleccionado}
+                flujoSocio={socioActual}
+                fechaInicio={currentFondo.params.fechaInicio}
+                costoDepto={currentFondo.params.costoDepto}
+                formaPagoGastos={currentFondo.gastos.formaPagoGastos}
+                params={currentFondo.params}
+                gastos={currentFondo.gastos}
+                onSelectSocio={(id) => setSocioSeleccionado(id)}
+                onAdjudicacionChange={handleAdjudicacionChange}
+              />
+            ) : null}
+
+            {/* Resumen Consolidado */}
+            {isCalculating ? (
+              <SkeletonSummaryCard />
+            ) : (
+              <ResumenConsolidado
+                flujosSocios={flujosSocios}
+                fechaInicio={currentFondo.params.fechaInicio}
+                params={currentFondo.params}
+                gastos={currentFondo.gastos}
+                adjudicacionFijada={currentFondo.adjudicacionFijada}
+                cesionActiva={currentFondo.cesion.activo}
+                socioCedente={currentFondo.cesion.socioCedente}
+                cuotaSalidaCesion={currentFondo.cesion.cuotaSalida}
+                adelantoActivo={currentFondo.adelanto.activo}
+                socioAdelanta={currentFondo.adelanto.socioAdelanta}
+                cuotaAdelanto={currentFondo.adelanto.cuota}
+                onSelectSocio={(id) => setSocioSeleccionado(id)}
+              />
+            )}
+          </div>
+        </>
+      }
+      childrenTecnico={
+        <ModuloTecnico
+          datosTecnicos={currentFondo.datosTecnicos || DATOS_TECNICOS_DEFAULT}
+          fondoNombre={currentFondo.nombre}
+          fondoId={currentFondo.id}
+          currentUser={currentUser}
+          isReadOnly={false}
+          onUpdateDatosTecnicos={handleDatosTecnicosChange}
+        />
+      }
+      childrenMensajeria={
+        <div className="space-y-4">
+          <CentroMensajes
+            user={currentUser}
+            fondoId={currentFondo.id}
+            fondoNombre={currentFondo.nombre}
+            cantidadSocios={currentFondo.params.cantidadDeptos}
+            isEmbedded={true}
+            initialContactRole="socio"
+            initialSocioId={socioSeleccionado}
+            onRefreshBadges={refreshUnreadCount}
+          />
+        </div>
+      }
+    />
+  );
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
