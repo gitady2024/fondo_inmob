@@ -35,7 +35,9 @@ import {
   Sparkles,
   Rocket,
   TrendingUp,
-  Users
+  Users,
+  ArrowLeft,
+  ArrowRight
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -56,6 +58,8 @@ interface AdminDashboardProps {
   childrenMensajeria?: React.ReactNode;
   unreadCount?: number;
   onSwitchUser?: (user: UserProfile) => void;
+  onNavigateLanding?: () => void;
+  onNavigateApp?: () => void;
   /** Módulo inicial al montar (para ir directo al simulador sin cambiar sesión) */
   initialModule?: 'cobranzas' | 'socios' | 'usuarios' | 'simulador' | 'tecnico' | 'mensajeria' | 'negocio';
 }
@@ -77,6 +81,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   childrenMensajeria,
   unreadCount = 0,
   onSwitchUser,
+  onNavigateLanding,
+  onNavigateApp,
   initialModule = 'cobranzas'
 }) => {
   const [activeModule, setActiveModule] = useState<'cobranzas' | 'socios' | 'usuarios' | 'simulador' | 'tecnico' | 'mensajeria' | 'negocio'>(initialModule);
@@ -398,6 +404,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
             )}
+
+            {/* Volver al Sitio Web Público */}
+            {onNavigateLanding && (
+              <div className="self-end">
+                <button
+                  type="button"
+                  onClick={onNavigateLanding}
+                  className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl border border-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  title="Volver al Sitio Web Principal"
+                >
+                  <ArrowLeft className="w-4 h-4 text-slate-400" />
+                  <span className="hidden sm:inline">Sitio Web</span>
+                </button>
+              </div>
+            )}
           </div>
 
         </div>
@@ -406,83 +427,85 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ==================================================================== */}
       {/* 2. DASHBOARD GENERAL (HEALTH KPIS DEL ADMINISTRADOR)                 */}
       {/* ==================================================================== */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-        
-        {/* KPI 1: CAPITAL TOTAL RECAUDADO */}
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-3 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Capital Total Recaudado
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-              <Wallet className="w-4 h-4" />
+      {activeModule !== 'mensajeria' && (
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+          
+          {/* KPI 1: CAPITAL TOTAL RECAUDADO */}
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-3 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Capital Total Recaudado
+              </span>
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <Wallet className="w-4 h-4" />
+              </div>
+            </div>
+            <div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                {formatMonedaARS(healthData.capitalRecaudado)}
+              </div>
+              <p className="text-xs text-emerald-400 font-medium mt-1 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Acreditado e imputado a costo de obra</span>
+              </p>
             </div>
           </div>
-          <div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              {formatMonedaARS(healthData.capitalRecaudado)}
-            </div>
-            <p className="text-xs text-emerald-400 font-medium mt-1 flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Acreditado e imputado a costo de obra</span>
-            </p>
-          </div>
-        </div>
 
-        {/* KPI 2: TASA DE MOROSIDAD */}
-        <div className={`rounded-2xl p-5 sm:p-6 space-y-3 shadow-sm border transition-all ${
-          healthData.cantidadMorosos > 0
-            ? 'bg-gradient-to-br from-slate-900/90 to-rose-950/20 border-rose-500/30'
-            : 'bg-slate-900/60 border-slate-800'
-        }`}>
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Morosidad y Cuotas Vencidas
-            </span>
-            <div className={`w-9 h-9 rounded-xl border flex items-center justify-center ${
-              healthData.cantidadMorosos > 0
-                ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
-                : 'bg-slate-800 border-slate-700 text-slate-400'
-            }`}>
-              <AlertTriangle className="w-4 h-4" />
+          {/* KPI 2: TASA DE MOROSIDAD */}
+          <div className={`rounded-2xl p-5 sm:p-6 space-y-3 shadow-sm border transition-all ${
+            healthData.cantidadMorosos > 0
+              ? 'bg-gradient-to-br from-slate-900/90 to-rose-950/20 border-rose-500/30'
+              : 'bg-slate-900/60 border-slate-800'
+          }`}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Morosidad y Cuotas Vencidas
+              </span>
+              <div className={`w-9 h-9 rounded-xl border flex items-center justify-center ${
+                healthData.cantidadMorosos > 0
+                  ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                  : 'bg-slate-800 border-slate-700 text-slate-400'
+              }`}>
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+            </div>
+            <div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-rose-300 tracking-tight">
+                {formatMonedaARS(healthData.montoMorosidad)}
+              </div>
+              <p className="text-xs text-rose-400 font-medium mt-1 flex items-center gap-1.5">
+                <span>{healthData.cantidadMorosos} socios con cuotas en mora ({healthData.tasaMorosidadPorcentaje}% del devengado)</span>
+              </p>
             </div>
           </div>
-          <div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-rose-300 tracking-tight">
-              {formatMonedaARS(healthData.montoMorosidad)}
-            </div>
-            <p className="text-xs text-rose-400 font-medium mt-1 flex items-center gap-1.5">
-              <span>{healthData.cantidadMorosos} socios con cuotas en mora ({healthData.tasaMorosidadPorcentaje}% del devengado)</span>
-            </p>
-          </div>
-        </div>
 
-        {/* KPI 3: PRÓXIMAS POSESIONES */}
-        <div className="bg-slate-900/60 border border-indigo-500/30 rounded-2xl p-5 sm:p-6 space-y-3 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-indigo-300 uppercase tracking-wider">
-              Próximas Posesiones (Próx. Meses)
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-              <Key className="w-4 h-4" />
+          {/* KPI 3: PRÓXIMAS POSESIONES */}
+          <div className="bg-slate-900/60 border border-indigo-500/30 rounded-2xl p-5 sm:p-6 space-y-3 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-indigo-300 uppercase tracking-wider">
+                Próximas Posesiones (Próx. Meses)
+              </span>
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                <Key className="w-4 h-4" />
+              </div>
+            </div>
+            <div>
+              <div className="space-y-1.5">
+                {healthData.proximasPosesiones.map((p, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs bg-slate-950/60 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                    <span className="font-bold text-white">{p.socio_nombre}</span>
+                    <span className="text-indigo-300 font-mono">Mes #{p.mes_posesion} ({p.fecha_posesion})</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-2">
+                🔔 Alerta fiduciaria de entrega técnica de llaves
+              </p>
             </div>
           </div>
-          <div>
-            <div className="space-y-1.5">
-              {healthData.proximasPosesiones.map((p, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs bg-slate-950/60 px-2.5 py-1.5 rounded-lg border border-slate-800">
-                  <span className="font-bold text-white">{p.socio_nombre}</span>
-                  <span className="text-indigo-300 font-mono">Mes #{p.mes_posesion} ({p.fecha_posesion})</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-2">
-              🔔 Alerta fiduciaria de entrega técnica de llaves
-            </p>
-          </div>
-        </div>
 
-      </section>
+        </section>
+      )}
 
       {/* ==================================================================== */}
       {/* 3. BARRA DE NAVEGACIÓN DE MÓDULOS DEL ADMINISTRADOR                  */}

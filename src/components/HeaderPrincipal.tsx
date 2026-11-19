@@ -23,7 +23,7 @@ import { trackSimuladorInicio } from '../services/analyticsService';
 
 export interface HeaderPrincipalProps {
   user: UserProfile | null;
-  currentRoute?: 'landing' | 'obras' | 'obra-detalle' | 'app';
+  currentRoute?: 'landing' | 'obras' | 'obra-detalle' | 'app' | 'gestion-fiduciaria';
   proyectoActivoId?: string;
   unreadCount?: number;
   onNavigateLanding: () => void;
@@ -33,6 +33,7 @@ export interface HeaderPrincipalProps {
   onOpenLogin: (role?: UserRole) => void;
   onSelectPortal?: (role: UserRole) => void;
   onNavigateApp?: () => void;
+  onNavigateGestionFiduciaria?: () => void;
   onSignOut?: () => void;
   onOpenContrato?: () => void;
   onPrint?: () => void;
@@ -55,6 +56,7 @@ export const HeaderPrincipal: React.FC<HeaderPrincipalProps> = ({
   onOpenLogin,
   onSelectPortal,
   onNavigateApp,
+  onNavigateGestionFiduciaria,
   onSignOut,
   onOpenContrato,
   onPrint,
@@ -143,31 +145,47 @@ export const HeaderPrincipal: React.FC<HeaderPrincipalProps> = ({
         </div>
 
         {/* ================================================================== */}
-        {/* CENTRO: ENLACES DESKTOP PERMANENTES EN TODAS LAS PÁGINAS           */}
+        {/* CENTRO: NAVEGACIÓN SEGÚN RUTA (GESTIÓN FIDUCIARIA VS SITIO PÚBLICO) */}
         {/* ================================================================== */}
-        <div className="hidden lg:flex items-center space-x-6 text-sm font-medium">
-          <button
-            type="button"
-            onClick={() => onNavigateSection('comparativa')}
-            className="text-slate-300 hover:text-white transition cursor-pointer"
-          >
-            Inverfondo vs UVA
-          </button>
-          <button
-            type="button"
-            onClick={() => onNavigateSection('como-funciona')}
-            className="text-slate-300 hover:text-white transition cursor-pointer"
-          >
-            Cómo Funciona
-          </button>
-          <button
-            type="button"
-            onClick={() => onNavigateSection('seguridad')}
-            className="text-slate-300 hover:text-white transition cursor-pointer"
-          >
-            Seguridad Legal
-          </button>
-        </div>
+        {currentRoute === 'gestion-fiduciaria' ? (
+          <div className="hidden lg:flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/25 text-xs font-bold text-indigo-300">
+              <Shield className="w-4 h-4 text-indigo-400 shrink-0" />
+              <span>Backoffice de Gestión Fiduciaria • Art. 1666 CCCN</span>
+            </div>
+            <button
+              type="button"
+              onClick={onNavigateLanding}
+              className="text-xs text-slate-400 hover:text-white px-2.5 py-1.5 rounded-xl hover:bg-slate-800 transition flex items-center gap-1 cursor-pointer"
+            >
+              <span>← Volver a la Web</span>
+            </button>
+          </div>
+        ) : (
+          <div className="hidden lg:flex items-center space-x-6 text-sm font-medium">
+            <button
+              type="button"
+              onClick={() => onNavigateSection('comparativa')}
+              className="text-slate-300 hover:text-white transition cursor-pointer"
+            >
+              Inverfondo vs UVA
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigateSection('como-funciona')}
+              className="text-slate-300 hover:text-white transition cursor-pointer"
+            >
+              Cómo Funciona
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigateSection('seguridad')}
+              className="text-slate-300 hover:text-white transition cursor-pointer"
+            >
+              Seguridad Legal
+            </button>
+          </div>
+        )}
 
         {/* ================================================================== */}
         {/* LADO DERECHO: PLANES + INGRESAR/PERFIL + MENÚ ⋮                    */}
@@ -342,7 +360,21 @@ export const HeaderPrincipal: React.FC<HeaderPrincipalProps> = ({
                         {user.email}
                       </div>
                     )}
-                    {onNavigateApp && (
+                    {user?.role === 'admin' && onNavigateGestionFiduciaria ? (
+                      <button
+                        type="button"
+                        id="btn-dropdown-ir-a-gestion"
+                        onClick={() => {
+                          setIsIngresarOpen(false);
+                          onNavigateGestionFiduciaria();
+                        }}
+                        className="mt-2 w-full py-1.5 px-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                      >
+                        <Shield className="w-3.5 h-3.5" />
+                        <span>Ir a Gestión Fiduciaria</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    ) : onNavigateApp && (
                       <button
                         type="button"
                         id="btn-dropdown-ir-a-panel"
@@ -369,10 +401,10 @@ export const HeaderPrincipal: React.FC<HeaderPrincipalProps> = ({
                   id="btn-portal-admin"
                   onClick={() => {
                     setIsIngresarOpen(false);
-                    if (onSelectPortal) {
+                    if (onNavigateGestionFiduciaria && user?.role === 'admin') {
+                      onNavigateGestionFiduciaria();
+                    } else if (onSelectPortal) {
                       onSelectPortal('admin');
-                    } else if (user?.role === 'admin' && onNavigateApp) {
-                      onNavigateApp();
                     } else if (onOpenLogin) {
                       onOpenLogin('admin');
                     }
