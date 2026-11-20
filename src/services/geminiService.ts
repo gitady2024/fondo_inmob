@@ -101,6 +101,15 @@ NORMAS Y CONDICIONES OPERATIVAS Y CONTRACTUALES OFICIALES (REGLAS OBLIGATORIAS):
    - Equipo Construcción: integrado por empresas de amplia trayectoria en la provincia, con proyectos activos actualmente, que garantizan diseño y desarrollo edilicio.
    Garantía de plazo: El fideicomiso al costo (Art. 1666 CCCN) cuenta con patrimonio separado, acopio anticipado de insumos y auditoría técnica permanente para garantizar la entrega de llaves en el plazo estipulado.
 
+8. POSIBILIDAD DE AJUSTE EN DÓLARES DE LOS COSTOS DE LA OBRA:
+   Existe la posibilidad de ajustar en dólares los costos de la obra, lo que estará estrictamente establecido en el contrato marco. En la construcción al costo, el presupuesto se expresa según la moneda o unidad de medida pactada (dólares, índice CAC u otros ajustes) y el adherente asume variaciones o sobrecostos reales de obra. Si el dólar no acompaña exactamente el ritmo de los costos locales (o viceversa), los valores en dólares estimados pueden variar respecto del costo final.
+9. GASTOS DE ADMINISTRACIÓN FIDUCIARIA:
+   El proyecto del fideicomiso para la construcción de la obra en pozo implica que el fideicomiso deba ser gestionado por profesionales solventes, lo que será detallado en el mismo contrato, así como los gastos correspondientes a la gestión del fideicomiso.
+10. GASTOS DE TRÁMITES LEGALES Y ADMINISTRATIVOS:
+   Los gastos de trámites legales y administrativos ante las instituciones que intervienen en el control y gestión de la obra también serán detallados en el contrato.
+11. GASTOS DE ESCRIBANÍA:
+   Los gastos de escribanía e intervención notarial correspondiente también serán detallados en el contrato marco.
+
 CONOCIMIENTO VITAL DE INVERFONDO:
 • Marco Jurídico: Fideicomiso al Costo conforme al Art. 1666 y concordantes del Código Civil y Comercial de la Nación (CCCN). El patrimonio del fideicomiso es autónomo, blindado e inembargable.
 • 0% Tasa de Interés: NO es un crédito bancario. Las cuotas no tienen intereses financieros ni costos ocultos.
@@ -190,19 +199,51 @@ export const responderConMotorLocal = (
     };
   }
 
-  // 1.2 Moneda de pago (Dólares USD)
+  // 1.2 Posibilidad de ajuste en dólares de los costos de obra y variaciones de costos (CAC / sobrecostos reales)
   if (
-    p.includes('moneda') ||
-    p.includes('monda') ||
-    p.includes('dolar') ||
-    p.includes('dólar') ||
-    p.includes('dolares') ||
-    p.includes('dólares') ||
-    p.includes('pesos') ||
-    (p.includes('en que') && p.includes('paga')) ||
-    (p.includes('en qué') && p.includes('paga')) ||
-    (p.includes('medio') && p.includes('pago')) ||
-    (p.includes('forma') && p.includes('pago'))
+    (p.includes('ajust') && (p.includes('dolar') || p.includes('dólar') || p.includes('costo') || p.includes('obra') || p.includes('cuota') || p.includes('precio'))) ||
+    p.includes('subir en dolares') ||
+    p.includes('subir en dólares') ||
+    p.includes('aumentar en dolares') ||
+    p.includes('aumentar en dólares') ||
+    p.includes('sobrecosto') ||
+    p.includes('variacion de costo') ||
+    p.includes('variación de costo') ||
+    p.includes('variaciones') ||
+    p.includes('costo final') ||
+    p.includes('costos locales') ||
+    (p.includes('cac') && (p.includes('ajuste') || p.includes('aplica') || p.includes('costo') || p.includes('obra') || p.includes('indice') || p.includes('índice')))
+  ) {
+    return {
+      text: `Existe la posibilidad de ajustar en dólares los costos de la obra, lo que estará **estrictamente establecido en el contrato**.\n\nEn la construcción al costo, el presupuesto se expresa según la moneda o unidad de medida pactada (dólares, índice CAC u otros ajustes) y el adherente asume variaciones o sobrecostos reales de obra. Si el dólar no acompaña exactamente el ritmo de los costos locales (o viceversa), los valores en dólares estimados pueden variar respecto del costo final.`,
+      actions: [
+        { label: '📄 Ver Modelo de Contrato', action: 'simular' },
+        {
+          label: '💬 Consultar Ajustes de Obra por WhatsApp',
+          action: 'whatsapp',
+          payload: 'Hola Inverfondo, quisiera consultar sobre la cláusula de ajuste de costos de obra y el contrato.'
+        }
+      ]
+    };
+  }
+
+  // 1.3 Moneda de pago (Dólares USD)
+  if (
+    !p.includes('ajust') &&
+    !p.includes('variac') &&
+    (
+      p.includes('moneda') ||
+      p.includes('monda') ||
+      p.includes('dolar') ||
+      p.includes('dólar') ||
+      p.includes('dolares') ||
+      p.includes('dólares') ||
+      p.includes('pesos') ||
+      (p.includes('en que') && p.includes('paga')) ||
+      (p.includes('en qué') && p.includes('paga')) ||
+      (p.includes('medio') && p.includes('pago')) ||
+      (p.includes('forma') && p.includes('pago'))
+    )
   ) {
     return {
       text: `La moneda de pago oficial de nuestros planes fiduciarios es en **DÓLARES ESTADOUNIDENSES (USD)**.\n\nEsto brinda máxima previsibilidad financiera, resguarda el poder adquisitivo de tu ahorro y asegura la compra programada de materiales de obra sin riesgo devaluatorio.`,
@@ -276,16 +317,63 @@ export const responderConMotorLocal = (
     };
   }
 
-  // 1.6 Gastos de Posesión y Escrituración
+
+
+  // 1.7 Gastos de Administración Fiduciaria
+  if (
+    p.includes('gasto de administracion') ||
+    p.includes('gastos de administracion') ||
+    p.includes('gastos de administración') ||
+    p.includes('honorarios de administracion') ||
+    p.includes('honorarios de administración') ||
+    p.includes('gestion del fideicomiso') ||
+    p.includes('gestión del fideicomiso') ||
+    (p.includes('profesionales solventes')) ||
+    (p.includes('administracion') && (p.includes('cuanto') || p.includes('cuánto') || p.includes('cobran') || p.includes('costo'))) ||
+    (p.includes('administración') && (p.includes('cuanto') || p.includes('cuánto') || p.includes('cobran') || p.includes('costo')))
+  ) {
+    return {
+      text: `El proyecto del fideicomiso para la construcción de la obra en pozo implica que el fideicomiso deba ser gestionado por profesionales solventes, lo que será **detallado en el mismo contrato**, así como los gastos correspondientes a la gestión del fideicomiso.\n\nEsto asegura una administración fiduciaria idónea, transparente y con estricto control contable y legal.`,
+      actions: [
+        { label: '📄 Ver Modelo de Contrato', action: 'simular' },
+        { label: '💬 Consultar por WhatsApp', action: 'whatsapp' }
+      ]
+    };
+  }
+
+  // 1.8 Gastos de trámites legales y administrativos ante instituciones de control
+  if (
+    p.includes('tramites legales') ||
+    p.includes('trámites legales') ||
+    p.includes('tramite legal') ||
+    p.includes('trámite legal') ||
+    (p.includes('tramites') && p.includes('administrativ')) ||
+    (p.includes('trámites') && p.includes('administrativ')) ||
+    (p.includes('instituciones') && (p.includes('control') || p.includes('gestion') || p.includes('gestión') || p.includes('intervien'))) ||
+    p.includes('gastos legales')
+  ) {
+    return {
+      text: `Los **gastos de trámites legales y administrativos** ante las instituciones que intervienen en el control y gestión de la obra también serán **detallados en el contrato**.\n\nEsto abarca las gestiones normativas, planos aprobados, habilitaciones municipales e inscripciones pertinentes para el normal desarrollo del fideicomiso.`,
+      actions: [
+        { label: '📄 Ver Modelo de Contrato', action: 'simular' },
+        { label: '💬 Consultar por WhatsApp', action: 'whatsapp' }
+      ]
+    };
+  }
+
+  // 1.9 Gastos de Escribanía y Posesión/Escrituración
   if (
     p.includes('escritur') ||
     p.includes('gastos de posesion') ||
     p.includes('gastos de posesión') ||
     p.includes('escriban') ||
+    p.includes('escribanía') ||
+    p.includes('escribania') ||
+    p.includes('notarial') ||
     p.includes('gastos de entrega')
   ) {
     return {
-      text: `Los gastos de posesión y/o escrituración pueden, **a elección del fondo**:\n\n1. **Abonarse al momento de la entrega definitiva** de la unidad.\n2. **Prorratearse entre las cuotas mensuales** del fondo.\n\nLa modalidad aplicable queda siempre definida y fijada con total transparencia en el **contrato inicial** de adhesión.`,
+      text: `Los **gastos de escribanía** e intervención notarial serán **detallados en el contrato**.\n\nAsimismo, los gastos de posesión y/o escrituración pueden, a elección del fondo:\n\n1. **Abonarse al momento de la entrega definitiva** de la unidad.\n2. **Prorratearse entre las cuotas mensuales** del fondo.\n\nLa modalidad aplicable queda siempre definida y fijada con total transparencia en el **contrato inicial** de adhesión.`,
       actions: [
         { label: '📄 Ver Modelo Contractual', action: 'simular' },
         { label: '💬 Consultar por WhatsApp', action: 'whatsapp' }

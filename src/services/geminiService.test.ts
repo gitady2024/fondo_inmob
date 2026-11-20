@@ -129,6 +129,32 @@ describe('geminiService - Asesor Virtual de Inverfondo', () => {
     expect(res.text.toLowerCase()).toContain('prorratearse');
   });
 
+  it('el motor local responde sobre la posibilidad de ajuste en dólares y costos reales de obra', () => {
+    const res = responderConMotorLocal('¿Existe posibilidad de ajustar en dólares los costos de la obra?', dummyObras);
+    expect(res.text).toContain('estricta');
+    expect(res.text).toContain('contrato');
+    expect(res.text).toContain('sobrecostos reales');
+    expect(res.text).toContain('costos locales');
+  });
+
+  it('el motor local responde sobre los gastos de administración fiduciaria por profesionales solventes', () => {
+    const res = responderConMotorLocal('¿Qué gastos de administración tiene el fideicomiso?', dummyObras);
+    expect(res.text).toContain('profesionales solventes');
+    expect(res.text).toContain('detallado en el mismo contrato');
+  });
+
+  it('el motor local responde sobre los gastos de trámites legales y administrativos ante instituciones', () => {
+    const res = responderConMotorLocal('¿Quién cubre los trámites legales y administrativos ante instituciones?', dummyObras);
+    expect(res.text).toContain('instituciones');
+    expect(res.text).toContain('detallados en el contrato');
+  });
+
+  it('el motor local responde sobre los gastos de escribanía', () => {
+    const res = responderConMotorLocal('¿Qué pasa con los gastos de escribanía?', dummyObras);
+    expect(res.text).toContain('gastos de escribanía');
+    expect(res.text).toContain('detallados en el contrato');
+  });
+
   it('consultarAsesorGemini responde en modo fallback si no hay API key', async () => {
     const historial: ChatMessage[] = [];
     const res = await consultarAsesorGemini({
