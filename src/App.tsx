@@ -96,6 +96,7 @@ export const App: React.FC = () => {
         return {
           ...currentUser,
           isGuest: true,
+          socioId: undefined, // Nunca tiene unidad fija asignada hasta ser admitido formalmente
           estadoSocio: verif.estado
         };
       }

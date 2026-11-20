@@ -52,7 +52,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setSelectedRole(initialRole);
     }
   }, [isOpen, initialRole]);
-  const [selectedSocioId, setSelectedSocioId] = useState<number>(1);
   const [especialidad, setEspecialidad] = useState('Dirección de Obra y Certificaciones');
 
   // Modo de ingreso: Iniciar Sesión vs Crear Cuenta
@@ -76,14 +75,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         especialidad
       });
     } else {
-      const socioUser: UserProfile = {
-        id: `socio-${selectedSocioId}`,
+      // Por defecto, cualquier ingreso de socio nuevo o prospecto entra sin unidad fija asignada
+      const prospectoUser: UserProfile = {
+        id: 'invitado',
         role: 'socio',
-        socioId: selectedSocioId,
-        nombre: `Socio D${selectedSocioId}`,
-        email: `socio${selectedSocioId}@fondoinmobil.com`
+        nombre: 'Inversor Invitado',
+        email: 'prospecto@fondoinmobil.com',
+        isGuest: true,
+        estadoSocio: 'prospecto',
+        socioId: undefined
       };
-      onLogin(socioUser);
+      onLogin(prospectoUser);
     }
     onClose();
   };
@@ -111,13 +113,25 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             ? nombre.trim()
             : info.nombreVisible;
 
+          const finalRole = match?.role || selectedRole;
+          // Un socio solo va directo a su unidad si ya fue aprobado formalmente por la administración fiduciaria
+          const tieneUnidadOficial = finalRole === 'socio' && Boolean(match?.socioId) && match?.estadoSocio === 'aprobado';
+
           onLogin({
             id: match?.id || `user-${Date.now()}`,
-            role: match?.role || selectedRole,
+            role: finalRole,
             nombre: finalNombre,
             email: normEmail,
-            socioId: match?.socioId || (selectedRole === 'socio' ? selectedSocioId : undefined),
-            especialidad: match?.especialidad || (selectedRole === 'tecnico' ? especialidad : undefined)
+            socioId: tieneUnidadOficial ? match?.socioId : undefined,
+            isGuest: finalRole === 'socio' ? !tieneUnidadOficial : false,
+            estadoSocio: finalRole === 'socio' ? (tieneUnidadOficial ? 'aprobado' : (match?.estadoSocio || 'prospecto')) : undefined,
+            dni: match?.dni,
+            domicilio: match?.domicilio,
+            garantiaTipo: match?.garantiaTipo,
+            garantiaDetalle: match?.garantiaDetalle,
+            pagoInicialMonto: match?.pagoInicialMonto,
+            pagoInicialAcreditado: match?.pagoInicialAcreditado,
+            especialidad: match?.especialidad || (finalRole === 'tecnico' ? especialidad : undefined)
           });
           onClose();
         } else {
@@ -138,16 +152,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           selectedRole === 'tecnico' ? especialidad : undefined
         );
         if (res.success) {
+          // Todo registro público de socio SIEMPRE se crea en modo invitado / prospecto (sin unidad asignada)
           onLogin({
             id: `user-${Date.now()}`,
             role: selectedRole,
             nombre: nombre || normEmail.split('@')[0],
             email: normEmail,
-            socioId: selectedRole === 'socio' ? selectedSocioId : undefined,
+            socioId: undefined,
+            isGuest: selectedRole === 'socio',
+            estadoSocio: selectedRole === 'socio' ? 'prospecto' : undefined,
             especialidad: selectedRole === 'tecnico' ? especialidad : undefined
           });
-          const roleLabel = selectedRole === 'tecnico' ? 'Equipo Técnico' : selectedRole === 'admin' ? 'Administrador' : 'Socio Inversor';
-          setSuccessMsg(`¡Cuenta de ${roleLabel} creada y activada con éxito! Ingresando al sistema...`);
+          const roleLabel = selectedRole === 'tecnico' ? 'Equipo Técnico' : selectedRole === 'admin' ? 'Administrador' : 'Invitado / Prospecto';
+          setSuccessMsg(`¡Cuenta creada con éxito en modo ${roleLabel}! Ingresando al sistema...`);
           setTimeout(() => onClose(), 800);
         } else {
           setErrorMsg(res.error || 'No se pudo completar el registro. Intenta nuevamente.');
@@ -259,7 +276,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 </div>
               </button>
 
-              {/* ROL: SOCIO INVERSOR */}
+              {/* ROL: SOCIO / PROSPECTO */}
               <button
                 type="button"
                 onClick={() => setSelectedRole('socio')}
@@ -280,9 +297,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   )}
                 </div>
                 <div>
-                  <strong className="text-xs block text-white font-bold">Socio Inversor</strong>
+                  <strong className="text-xs block text-white font-bold">Socio / Prospecto</strong>
                   <span className="text-[10px] text-slate-400 leading-tight block mt-0.5">
-                    Unidad asignada, cuotas y adjudicación
+                    Acceso personal, simulación y estado fiduciario
                   </span>
                 </div>
               </button>
@@ -307,26 +324,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 <option value="Cálculo Estructural H°A°">Cálculo Estructural H°A°</option>
                 <option value="Gestoría Municipal y Permisos">Gestoría Municipal y Permisos</option>
                 <option value="Empresa Constructora Principal">Empresa Constructora Principal</option>
-              </select>
-            </div>
-          )}
-
-          {selectedRole === 'socio' && (
-            <div className="bg-emerald-950/20 border border-emerald-500/30 p-3 rounded-2xl space-y-1 animate-in fade-in">
-              <label className="block text-xs font-semibold text-emerald-300 flex items-center gap-1.5">
-                <Building className="w-3.5 h-3.5" />
-                <span>Unidad Funcional / Departamento:</span>
-              </label>
-              <select
-                value={selectedSocioId}
-                onChange={(e) => setSelectedSocioId(parseInt(e.target.value) || 1)}
-                className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-xl px-3 py-1.5 text-xs text-white font-bold outline-none cursor-pointer"
-              >
-                {Array.from({ length: cantidadSocios }, (_, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    Socio D{i + 1} • Departamento / Unidad Funcional {i + 1}
-                  </option>
-                ))}
               </select>
             </div>
           )}
@@ -446,6 +443,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     ? 'Verificando credenciales...'
                     : modoAcceso === 'signin'
                     ? 'Ingresar al Sistema'
+                    : selectedRole === 'socio'
+                    ? 'Registrar Cuenta (Modo Prospecto)'
                     : `Registrar Cuenta (${selectedRole.toUpperCase()})`}
                 </span>
                 <ArrowRight className="w-4 h-4" />
@@ -481,7 +480,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   ? '👑 Acceso Rápido: Administrador Fiduciario'
                   : selectedRole === 'tecnico'
                   ? `🏗️ Acceso Rápido: Equipo Técnico (${especialidad.split(' ')[0]})`
-                  : `👤 Acceso Rápido: Socio Unidad #${selectedSocioId}`}
+                  : '👤 Acceso Rápido: Modo Prospecto / Invitado'}
               </span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>

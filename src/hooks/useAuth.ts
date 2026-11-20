@@ -128,12 +128,17 @@ export const useAuth = (): UseAuthReturn => {
         ? localMatch.nombre
         : metadataName || localMatch?.nombre || (resolvedRole === 'admin' ? 'Administrador' : resolvedRole === 'tecnico' ? 'Equipo Técnico' : 'Socio Inversor');
 
+    const esSocioAprobado = resolvedRole === 'socio' && Boolean(localMatch?.socioId || authUser.user_metadata?.socio_id) && ((localMatch as any)?.estadoSocio === 'aprobado' || authUser.user_metadata?.estado_socio === 'aprobado');
+    const socioIdFinal = esSocioAprobado ? (localMatch?.socioId || authUser.user_metadata?.socio_id) : undefined;
+
     const profile: UserProfile = {
       id: authUser.id,
       role: resolvedRole,
       nombre: realNombre,
       email: authUser.email || '',
-      socioId: localMatch?.socioId || authUser.user_metadata?.socio_id || 1,
+      socioId: socioIdFinal,
+      isGuest: resolvedRole === 'socio' ? !esSocioAprobado : false,
+      estadoSocio: resolvedRole === 'socio' ? (esSocioAprobado ? 'aprobado' : 'prospecto') : undefined,
       especialidad: localMatch?.especialidad || authUser.user_metadata?.especialidad
     };
     setUserProfile(profile);
@@ -218,12 +223,15 @@ export const useAuth = (): UseAuthReturn => {
         return { success: false, error: msg };
       }
 
+      const esSocioAprobado = localMatch.role === 'socio' && Boolean(localMatch.socioId) && (localMatch as any).estadoSocio === 'aprobado';
       const profile: UserProfile = {
         id: localMatch.id,
         role: localMatch.role,
         nombre: localMatch.nombre,
         email: localMatch.email,
-        socioId: localMatch.socioId || 1,
+        socioId: esSocioAprobado ? localMatch.socioId : undefined,
+        isGuest: localMatch.role === 'socio' ? !esSocioAprobado : false,
+        estadoSocio: localMatch.role === 'socio' ? (esSocioAprobado ? 'aprobado' : ((localMatch as any).estadoSocio || 'prospecto')) : undefined,
         especialidad: localMatch.especialidad
       };
 
@@ -277,12 +285,15 @@ export const useAuth = (): UseAuthReturn => {
     setError(null);
     const normEmail = email.trim().toLowerCase();
 
+    // Al crear cuenta pública de socio, siempre se inicia en modo invitado / prospecto (sin unidad asignada)
     const newProfile: UserProfile = {
       id: `user-${Date.now()}`,
       role: roleParam,
       nombre: nombre || normEmail.split('@')[0],
       email: normEmail,
-      socioId: 1,
+      socioId: undefined,
+      isGuest: roleParam === 'socio',
+      estadoSocio: roleParam === 'socio' ? 'prospecto' : undefined,
       especialidad: especialidad || (roleParam === 'tecnico' ? 'Dirección de Obra y Certificaciones' : undefined)
     };
 
@@ -294,8 +305,10 @@ export const useAuth = (): UseAuthReturn => {
       nombre: newProfile.nombre,
       role: roleParam,
       especialidad: newProfile.especialidad,
-      socioId: 1
-    });
+      socioId: undefined,
+      estadoSocio: roleParam === 'socio' ? 'prospecto' : undefined,
+      activo: true
+    } as any);
 
     // 2. Iniciar sesión local de inmediato para que el usuario no quede bloqueado
     setUserProfile(newProfile);

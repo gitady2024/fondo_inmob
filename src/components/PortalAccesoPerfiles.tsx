@@ -34,8 +34,6 @@ export const PortalAccesoPerfiles: React.FC<PortalAccesoPerfilesProps> = ({
   onOpenLoginModal,
   onOpenContrato
 }) => {
-  const [socioUnit, setSocioUnit] = useState<number>(1);
-
   return (
     <div className="space-y-10 animate-fade-in py-4 max-w-6xl mx-auto">
       
@@ -118,42 +116,23 @@ export const PortalAccesoPerfiles: React.FC<PortalAccesoPerfilesProps> = ({
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </button>
 
-            {/* SECCIÓN SECUNDARIA: PARA SOCIOS YA ADHERIDOS */}
+            {/* SECCIÓN SECUNDARIA: PARA SOCIOS YA REGISTRADOS O ADHERIDOS */}
             <div className="pt-2 border-t border-slate-800/80 space-y-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block text-center">
-                ¿Ya tienes departamento asignado?
+                ¿Ya tenés cuenta registrada o departamento asignado?
               </span>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 flex items-center justify-between bg-slate-950/80 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs">
-                  <span className="text-slate-400 text-[11px]">Unidad:</span>
-                  <select
-                    value={socioUnit}
-                    onChange={(e) => setSocioUnit(Number(e.target.value))}
-                    className="bg-transparent font-bold text-emerald-400 text-xs outline-none cursor-pointer"
-                  >
-                    {Array.from({ length: cantidadSocios }, (_, i) => i + 1).map((num) => (
-                      <option key={num} value={num} className="bg-slate-900 text-white">
-                        Depto {num}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onSelectSocio(socioUnit)}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-300 hover:text-white font-bold text-xs rounded-xl border border-slate-700 transition-all cursor-pointer whitespace-nowrap"
-                >
-                  Ver D{socioUnit} →
-                </button>
-              </div>
-
               <button
                 type="button"
                 onClick={() => onOpenLoginModal('socio')}
-                className="w-full text-center text-[11px] text-slate-400 hover:text-emerald-300 font-semibold transition-colors cursor-pointer"
+                className="w-full py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-emerald-300 hover:text-white font-bold text-xs rounded-xl border border-slate-700 transition-all cursor-pointer flex items-center justify-center gap-2"
               >
-                Iniciar sesión con correo de socio
+                <User className="w-4 h-4 text-emerald-400" />
+                <span>Ingresar con mi Correo y Contraseña</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
+              <p className="text-[10px] text-slate-400 text-center leading-tight">
+                El sistema te direccionará automáticamente a tu unidad asignada si sos socio pleno, o a tu panel de simulación si sos prospecto.
+              </p>
             </div>
           </div>
         </div>
